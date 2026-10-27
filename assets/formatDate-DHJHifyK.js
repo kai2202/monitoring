@@ -1,0 +1,1 @@
+function n(t){if(!t)return"—";const e=new Date(t);if(isNaN(e.getTime()))return t;const i=new Intl.DateTimeFormat("vi-VN",{timeZone:"Asia/Ho_Chi_Minh",day:"2-digit",month:"2-digit",year:"numeric"}).format(e);return`${new Intl.DateTimeFormat("vi-VN",{timeZone:"Asia/Ho_Chi_Minh",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:!1}).format(e)} ${i}`}export{n as f};
