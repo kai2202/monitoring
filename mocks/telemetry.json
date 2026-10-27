@@ -1,0 +1,116 @@
+{
+  "range": "6h",
+  "generatedAt": "2026-10-27T15:45:00.000Z",
+  "telemetryList": [
+    {
+      "printerId": "10001",
+      "printerName": "AB1_Tang_2_RDD (10.48.3.252 - Ricoh MP C6004)",
+      "range": "6h",
+      "totalPrintedInRange": 365,
+      "dataQuality": "complete",
+      "lastScraped": "2026-10-27T15:45:00.000Z",
+      "buckets": [
+        { "timestamp": "2026-10-27T10:00:00.000Z", "timeLabel": "10:00", "pagesPrinted": 42, "status": "complete" },
+        { "timestamp": "2026-10-27T10:30:00.000Z", "timeLabel": "10:30", "pagesPrinted": 28, "status": "complete" },
+        { "timestamp": "2026-10-27T11:00:00.000Z", "timeLabel": "11:00", "pagesPrinted": 55, "status": "complete" },
+        { "timestamp": "2026-10-27T11:30:00.000Z", "timeLabel": "11:30", "pagesPrinted": 31, "status": "complete" },
+        { "timestamp": "2026-10-27T12:00:00.000Z", "timeLabel": "12:00", "pagesPrinted": 12, "status": "complete" },
+        { "timestamp": "2026-10-27T12:30:00.000Z", "timeLabel": "12:30", "pagesPrinted": 8, "status": "complete" },
+        { "timestamp": "2026-10-27T13:00:00.000Z", "timeLabel": "13:00", "pagesPrinted": 34, "status": "complete" },
+        { "timestamp": "2026-10-27T13:30:00.000Z", "timeLabel": "13:30", "pagesPrinted": 45, "status": "complete" },
+        { "timestamp": "2026-10-27T14:00:00.000Z", "timeLabel": "14:00", "pagesPrinted": 38, "status": "complete" },
+        { "timestamp": "2026-10-27T14:30:00.000Z", "timeLabel": "14:30", "pagesPrinted": 29, "status": "complete" },
+        { "timestamp": "2026-10-27T15:00:00.000Z", "timeLabel": "15:00", "pagesPrinted": 25, "status": "complete" },
+        { "timestamp": "2026-10-27T15:30:00.000Z", "timeLabel": "15:30", "pagesPrinted": 18, "status": "complete" }
+      ]
+    },
+    {
+      "printerId": "10003",
+      "printerName": "Da_Nang_Ricoh_1 (192.168.31.250 - Ricoh Aficio MP 5002)",
+      "range": "6h",
+      "totalPrintedInRange": 180,
+      "dataQuality": "complete",
+      "lastScraped": "2026-10-27T15:45:00.000Z",
+      "buckets": [
+        { "timestamp": "2026-10-27T10:00:00.000Z", "timeLabel": "10:00", "pagesPrinted": 15, "status": "complete" },
+        { "timestamp": "2026-10-27T10:30:00.000Z", "timeLabel": "10:30", "pagesPrinted": 22, "status": "complete" },
+        { "timestamp": "2026-10-27T11:00:00.000Z", "timeLabel": "11:00", "pagesPrinted": 30, "status": "complete" },
+        { "timestamp": "2026-10-27T11:30:00.000Z", "timeLabel": "11:30", "pagesPrinted": 18, "status": "complete" },
+        { "timestamp": "2026-10-27T12:00:00.000Z", "timeLabel": "12:00", "pagesPrinted": 5, "status": "complete" },
+        { "timestamp": "2026-10-27T12:30:00.000Z", "timeLabel": "12:30", "pagesPrinted": 2, "status": "complete" },
+        { "timestamp": "2026-10-27T13:00:00.000Z", "timeLabel": "13:00", "pagesPrinted": 14, "status": "complete" },
+        { "timestamp": "2026-10-27T13:30:00.000Z", "timeLabel": "13:30", "pagesPrinted": 24, "status": "complete" },
+        { "timestamp": "2026-10-27T14:00:00.000Z", "timeLabel": "14:00", "pagesPrinted": 20, "status": "complete" },
+        { "timestamp": "2026-10-27T14:30:00.000Z", "timeLabel": "14:30", "pagesPrinted": 16, "status": "complete" },
+        { "timestamp": "2026-10-27T15:00:00.000Z", "timeLabel": "15:00", "pagesPrinted": 10, "status": "complete" },
+        { "timestamp": "2026-10-27T15:30:00.000Z", "timeLabel": "15:30", "pagesPrinted": 4, "status": "complete" }
+      ]
+    },
+    {
+      "printerId": "10019",
+      "printerName": "AB1_Tang_tret_le_tan (10.48.90.221 - Canon LBP 223)",
+      "range": "6h",
+      "totalPrintedInRange": 38,
+      "dataQuality": "complete",
+      "lastScraped": "2026-10-27T15:45:00.000Z",
+      "buckets": [
+        { "timestamp": "2026-10-27T10:00:00.000Z", "timeLabel": "10:00", "pagesPrinted": 4, "status": "complete" },
+        { "timestamp": "2026-10-27T10:30:00.000Z", "timeLabel": "10:30", "pagesPrinted": 6, "status": "complete" },
+        { "timestamp": "2026-10-27T11:00:00.000Z", "timeLabel": "11:00", "pagesPrinted": 8, "status": "complete" },
+        { "timestamp": "2026-10-27T11:30:00.000Z", "timeLabel": "11:30", "pagesPrinted": 5, "status": "complete" },
+        { "timestamp": "2026-10-27T12:00:00.000Z", "timeLabel": "12:00", "pagesPrinted": 0, "status": "complete" },
+        { "timestamp": "2026-10-27T12:30:00.000Z", "timeLabel": "12:30", "pagesPrinted": 0, "status": "complete" },
+        { "timestamp": "2026-10-27T13:00:00.000Z", "timeLabel": "13:00", "pagesPrinted": 2, "status": "complete" },
+        { "timestamp": "2026-10-27T13:30:00.000Z", "timeLabel": "13:30", "pagesPrinted": 3, "status": "complete" },
+        { "timestamp": "2026-10-27T14:00:00.000Z", "timeLabel": "14:00", "pagesPrinted": 4, "status": "complete" },
+        { "timestamp": "2026-10-27T14:30:00.000Z", "timeLabel": "14:30", "pagesPrinted": 3, "status": "complete" },
+        { "timestamp": "2026-10-27T15:00:00.000Z", "timeLabel": "15:00", "pagesPrinted": 2, "status": "complete" },
+        { "timestamp": "2026-10-27T15:30:00.000Z", "timeLabel": "15:30", "pagesPrinted": 1, "status": "complete" }
+      ]
+    },
+    {
+      "printerId": "10022",
+      "printerName": "AB1_Tang_2_giao_vu_Epson (10.48.3.55 - Epson 1802)",
+      "range": "6h",
+      "totalPrintedInRange": 0,
+      "dataQuality": "no_data",
+      "lastScraped": "2026-10-27T15:45:00.000Z",
+      "buckets": [
+        { "timestamp": "2026-10-27T10:00:00.000Z", "timeLabel": "10:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T10:30:00.000Z", "timeLabel": "10:30", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T11:00:00.000Z", "timeLabel": "11:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T11:30:00.000Z", "timeLabel": "11:30", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T12:00:00.000Z", "timeLabel": "12:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T12:30:00.000Z", "timeLabel": "12:30", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T13:00:00.000Z", "timeLabel": "13:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T13:30:00.000Z", "timeLabel": "13:30", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T14:00:00.000Z", "timeLabel": "14:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T14:30:00.000Z", "timeLabel": "14:30", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T15:00:00.000Z", "timeLabel": "15:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T15:30:00.000Z", "timeLabel": "15:30", "pagesPrinted": null, "status": "no_data" }
+      ]
+    },
+    {
+      "printerId": "10024",
+      "printerName": "Au_Co_ESUTECH_Ricoh (10.10.47.104 - Ricoh)",
+      "range": "6h",
+      "totalPrintedInRange": 0,
+      "dataQuality": "no_data",
+      "lastScraped": "2026-10-26T21:00:00.000Z",
+      "buckets": [
+        { "timestamp": "2026-10-27T10:00:00.000Z", "timeLabel": "10:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T10:30:00.000Z", "timeLabel": "10:30", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T11:00:00.000Z", "timeLabel": "11:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T11:30:00.000Z", "timeLabel": "11:30", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T12:00:00.000Z", "timeLabel": "12:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T12:30:00.000Z", "timeLabel": "12:30", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T13:00:00.000Z", "timeLabel": "13:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T13:30:00.000Z", "timeLabel": "13:30", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T14:00:00.000Z", "timeLabel": "14:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T14:30:00.000Z", "timeLabel": "14:30", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T15:00:00.000Z", "timeLabel": "15:00", "pagesPrinted": null, "status": "no_data" },
+        { "timestamp": "2026-10-27T15:30:00.000Z", "timeLabel": "15:30", "pagesPrinted": null, "status": "no_data" }
+      ]
+    }
+  ]
+}

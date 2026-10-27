@@ -1,0 +1,57 @@
+// prisma/schema.prisma
+//
+// Printer Monitoring — Application Database Schema
+//
+// Purpose: Persist application-level data that Zabbix does not manage:
+//   - Incident deduplication and lifecycle tracking
+//   - (Future) Notification history, admin-assigned metadata
+//
+// Zabbix remains the source of truth for all SNMP monitoring data.
+// This schema stores only what the application manages independently.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Incident — application-level incident lifecycle tracking
+// Zabbix Problems provide the raw event; this table stores the enriched record.
+// ---------------------------------------------------------------------------
+model Incident {
+  id              String   @id @default(cuid())
+  /// Zabbix eventid for the originating Problem (for deduplication)
+  zabbixEventId   String?  @unique
+  /// Zabbix hostid of the affected printer
+  zabbixHostId    String
+  /// Human-readable printer name at time of incident
+  printerName     String
+  /// Error category (e.g. "Hardware Error", "Supply Alert")
+  errorCategory   String
+  /// Error description from Zabbix trigger name or prtAlertDescription
+  errorDescription String
+  /// Error code when available (e.g. prtAlertCode value)
+  errorCode       String?
+  /// Severity at time of detection: "Critical" | "Warning" | "Info"
+  severity        String
+  /// Whether the incident is currently active or has been resolved
+  isActive        Boolean  @default(true)
+  /// When the incident was first detected (from Zabbix Problem clock)
+  startedAt       DateTime
+  /// When Zabbix reported the problem as resolved (r_clock)
+  resolvedAt      DateTime?
+  /// When an operator manually acknowledged or closed this incident
+  acknowledgedAt  DateTime?
+  /// Application-managed last-observed timestamp (updated on each poll)
+  lastObservedAt  DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([zabbixHostId])
+  @@index([isActive])
+  @@index([startedAt])
+}

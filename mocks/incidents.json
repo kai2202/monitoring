@@ -1,0 +1,261 @@
+[
+  {
+    "id": "inc-10015-1",
+    "printer": "10.48.6.200",
+    "type": "Hardware Error",
+    "desc": "SC542-00: Lỗi gia nhiệt cụm sấy (Fuser Thermistor)",
+    "severity": "Critical",
+    "status": "Active",
+    "start": "2026-10-27T13:15:00.000Z",
+    "duration": "2h 30m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Active",
+    "diagnostic": {
+      "rawCode": "SC542-00",
+      "errorName": "Lỗi gia nhiệt cụm sấy (Fusing Temperature Warm-up Error)",
+      "description": "Nhiệt độ cụm sấy không đạt ngưỡng vận hành chuẩn sau thời gian khởi động quy định.",
+      "subsystem": "Cụm sấy (Fuser)",
+      "severity": "Critical",
+      "isIdentified": true,
+      "vendor": "Ricoh"
+    },
+    "statusHistory": [
+      {
+        "time": "2026-10-27T13:15:00.000Z",
+        "status": "Active",
+        "note": "Hệ thống phát hiện mã lỗi SC542-00 qua SNMP bitmask mfpErrorSummary"
+      }
+    ]
+  },
+  {
+    "id": "inc-10016-1",
+    "printer": "192.168.31.251",
+    "type": "Hardware Error",
+    "desc": "SC202: Lỗi motor gương đa giác cụm laser",
+    "severity": "Critical",
+    "status": "Active",
+    "start": "2026-10-27T14:05:00.000Z",
+    "duration": "1h 40m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Active",
+    "diagnostic": {
+      "rawCode": "SC202",
+      "errorName": "Lỗi motor gương đa giác (Polygon Mirror Motor Error)",
+      "description": "Motor gương đa giác không đạt tốc độ quay mục tiêu trong khối quét laser.",
+      "subsystem": "Cụm laser",
+      "severity": "Critical",
+      "isIdentified": true,
+      "vendor": "Ricoh"
+    },
+    "statusHistory": [
+      {
+        "time": "2026-10-27T14:05:00.000Z",
+        "status": "Active",
+        "note": "Khối quét laser LSU báo lỗi đồng bộ tín hiệu XSCRDY"
+      }
+    ]
+  },
+  {
+    "id": "inc-10017-1",
+    "printer": "10.48.10.18",
+    "type": "Hardware Error",
+    "desc": "E000-0001: Lỗi gia nhiệt cụm sấy không đạt ngưỡng",
+    "severity": "Critical",
+    "status": "Active",
+    "start": "2026-10-27T12:00:00.000Z",
+    "duration": "3h 45m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Active",
+    "diagnostic": {
+      "rawCode": "E000-0001",
+      "errorName": "Lỗi nhiệt độ sấy thấp (Fixing Assembly Heating Error)",
+      "description": "Nhiệt độ của lô sấy không đạt ngưỡng 100°C sau khoảng thời gian tiêu chuẩn khi bật máy.",
+      "subsystem": "Cụm sấy (Fuser)",
+      "severity": "Critical",
+      "isIdentified": true,
+      "vendor": "Canon"
+    },
+    "statusHistory": [
+      {
+        "time": "2026-10-27T12:00:00.000Z",
+        "status": "Active",
+        "note": "Cảm biến Main Thermistor TH1 không tăng nhiệt độ sau 35 giây cấp điện"
+      }
+    ]
+  },
+  {
+    "id": "inc-10018-1",
+    "printer": "192.168.131.55",
+    "type": "Hardware Error",
+    "desc": "C400: Lỗi cảm biến nhiệt cụm sấy",
+    "severity": "Critical",
+    "status": "Active",
+    "start": "2026-10-27T10:30:00.000Z",
+    "duration": "5h 15m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Active",
+    "diagnostic": {
+      "rawCode": "C400",
+      "errorName": "Bất thường cảm biến nhiệt cụm sấy (Fuser Thermistor Abnormality)",
+      "description": "Cảm biến nhiệt trung tâm phát hiện nhiệt độ cụm sấy vượt ngưỡng hoặc hở mạch tín hiệu.",
+      "subsystem": "Cụm sấy (Fuser)",
+      "severity": "Critical",
+      "isIdentified": true,
+      "vendor": "Toshiba"
+    },
+    "statusHistory": [
+      {
+        "time": "2026-10-27T10:30:00.000Z",
+        "status": "Active",
+        "note": "Tín hiệu điện áp cảm biến nhiệt đứt quãng khi khởi động"
+      }
+    ]
+  },
+  {
+    "id": "inc-10011-1",
+    "printer": "192.168.131.48",
+    "type": "Supply Alert",
+    "desc": "Mực đen (K) sắp hết (1% còn lại)",
+    "severity": "Warning",
+    "status": "Active",
+    "start": "2026-10-27T08:30:00.000Z",
+    "duration": "7h 15m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Active",
+    "statusHistory": [
+      {
+        "time": "2026-10-27T08:30:00.000Z",
+        "status": "Active",
+        "note": "Cảm biến đo mức mực Black Toner báo còn 1%"
+      }
+    ]
+  },
+  {
+    "id": "inc-10012-1",
+    "printer": "10.48.4.101",
+    "type": "Supply Alert",
+    "desc": "Mực đen (8%) và mực xanh (12%) xuống dưới ngưỡng an toàn",
+    "severity": "Warning",
+    "status": "Active",
+    "start": "2026-10-27T11:20:00.000Z",
+    "duration": "4h 25m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Active"
+  },
+  {
+    "id": "inc-10013-1",
+    "printer": "10.48.91.50",
+    "type": "Supply Alert",
+    "desc": "Hộp mực thải gần đầy (90% đầy - Cần chuẩn bị bình mới)",
+    "severity": "Warning",
+    "status": "Active",
+    "start": "2026-10-27T06:10:00.000Z",
+    "duration": "9h 35m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Active"
+  },
+  {
+    "id": "inc-10014-1",
+    "printer": "192.168.93.8",
+    "type": "Supply Alert",
+    "desc": "Mực đen sắp hết (10%) và hộp mực thải đạt 88% đầy",
+    "severity": "Warning",
+    "status": "Active",
+    "start": "2026-10-27T09:40:00.000Z",
+    "duration": "6h 05m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Active"
+  },
+  {
+    "id": "inc-10019-1",
+    "printer": "10.48.90.221",
+    "type": "Supply Alert",
+    "desc": "toner cartridge needs to be checked (black).",
+    "severity": "Warning",
+    "status": "Active",
+    "start": "2026-10-27T07:11:54.000Z",
+    "duration": "8h 33m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Active"
+  },
+  {
+    "id": "inc-10024-1",
+    "printer": "10.10.47.104",
+    "type": "Connectivity Loss",
+    "desc": "Mất kết nối mạng (ICMP ping timeout liên tục)",
+    "severity": "Critical",
+    "status": "Active",
+    "start": "2026-10-26T21:00:00.000Z",
+    "duration": "18h 45m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Active"
+  },
+  {
+    "id": "inc-hist-1",
+    "printer": "10.48.3.252",
+    "type": "Hardware Error",
+    "desc": "SC101: Lỗi đèn phơi sáng máy quét (Exposure Lamp Error)",
+    "severity": "Warning",
+    "status": "Resolved",
+    "start": "2026-10-25T08:15:00.000Z",
+    "endTime": "2026-10-25T09:45:00.000Z",
+    "duration": "1h 30m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Resolved",
+    "diagnostic": {
+      "rawCode": "SC101",
+      "errorName": "Lỗi đèn phơi sáng máy quét (Exposure Lamp Error)",
+      "description": "Mức độ phản xạ ánh sáng từ thang trắng chuẩn không đạt ngưỡng quy định.",
+      "subsystem": "Khối quét (Scanner)",
+      "severity": "Warning",
+      "isIdentified": true,
+      "vendor": "Ricoh"
+    },
+    "statusHistory": [
+      {
+        "time": "2026-10-25T08:15:00.000Z",
+        "status": "Active",
+        "note": "Cảm biến SBU phát hiện độ sáng đèn LED thấp"
+      },
+      {
+        "time": "2026-10-25T09:45:00.000Z",
+        "status": "Resolved",
+        "note": "Kỹ thuật viên vệ sinh dàn gương quét và kính phản xạ, máy hoạt động bình thường"
+      }
+    ]
+  },
+  {
+    "id": "inc-hist-2",
+    "printer": "10.48.10.15",
+    "type": "Hardware Error",
+    "desc": "E020-0001: Lỗi motor cấp mực (Toner Supply Motor Error)",
+    "severity": "Warning",
+    "status": "Resolved",
+    "start": "2026-10-24T14:00:00.000Z",
+    "endTime": "2026-10-24T15:10:00.000Z",
+    "duration": "1h 10m",
+    "notificationStatus": "Sent",
+    "lifecycle": "Resolved",
+    "diagnostic": {
+      "rawCode": "E020-0001",
+      "errorName": "Lỗi cụm cấp mực (Toner Supply Motor)",
+      "description": "Cụm mô-tơ cấp mực không đẩy mực vào phễu chứa hopper đúng chu kỳ.",
+      "subsystem": "Mực in & Vật tư",
+      "severity": "Warning",
+      "isIdentified": true,
+      "vendor": "Canon"
+    },
+    "statusHistory": [
+      {
+        "time": "2026-10-24T14:00:00.000Z",
+        "status": "Active",
+        "note": "Cảm biến mực phát hiện nghẽn phễu cấp mực"
+      },
+      {
+        "time": "2026-10-24T15:10:00.000Z",
+        "status": "Resolved",
+        "note": "Đã tháo lắp lại cụm phễu và reset cờ báo lỗi"
+      }
+    ]
+  }
+]
