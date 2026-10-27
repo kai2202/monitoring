@@ -1,0 +1,50 @@
+/**
+ * backend/src/diagnostics/vendors/canon.ts
+ *
+ * Từ điển chẩn đoán mã lỗi dòng máy in Canon (imageRUNNER ADVANCE, LBP).
+ * Căn cứ theo Canon Alarm & Error Code Table.
+ */
+
+import { VendorDiagnosticCatalog } from '../types.js';
+
+export const CANON_CATALOG: VendorDiagnosticCatalog = {
+  vendorName: 'Canon',
+  rules: [
+    {
+      pattern: /E00[0-4]/i,
+      code: 'E000-E004',
+      name: 'Lỗi nhiệt độ cụm sấy máy in Canon (Fixing Assembly Error)',
+      description: 'Nhiệt độ nung của cụm sấy không tăng lên trong thời gian quy định hoặc cảm biến nhiệt phát hiện nhiệt độ quá mức an toàn.',
+      subsystem: 'Cụm sấy (Fixing Assembly) / Thanh gia nhiệt Film',
+      actionGuidance: '1. Tắt công tắc nguồn chính, đợi 10 phút rồi bật lại.\n2. Kiểm tra nguồn điện lưới AC cấp cho máy.\n3. Nếu không hết, vào Chế độ Dịch vụ Canon (Service Mode: * 2 8 *) thực hiện COPIER > FUNCTION > CLEAR > ERR.',
+      severity: 'Critical',
+    },
+    {
+      pattern: /E01[0-4]/i,
+      code: 'E010-E014',
+      name: 'Lỗi động cơ truyền động chính hoặc động cơ sấy Canon',
+      description: 'Bộ cảm biến tốc độ động cơ chính (Main Motor) hoặc động cơ sấy không phát hiện tín hiệu đồng hồ quay.',
+      subsystem: 'Động cơ chính (Main Motor) / Cụm nhông truyền lực',
+      actionGuidance: 'Kiểm tra xem các khay giấy hoặc cụm trống drum có bị kẹt cơ khí làm quá tải động cơ không.',
+      severity: 'Critical',
+    },
+    {
+      pattern: /E1[0-1]0/i,
+      code: 'E100-E110',
+      name: 'Lỗi cụm quang hoặc gương xoay đa giác Laser Canon',
+      description: 'Tia phát quang laser hoặc motor gương đa giác polygon không đạt xung đồng bộ ban đầu.',
+      subsystem: 'Khối phát Laser / Motor đa giác',
+      actionGuidance: 'Tắt bật lại công tắc nguồn chính; kiểm tra cáp dẹt cụm quang laser.',
+      severity: 'Critical',
+    },
+    {
+      pattern: /E73[0-3]/i,
+      code: 'E730-E733',
+      name: 'Lỗi giao tiếp bo mạng PDL / Bo điều khiển trung tâm Canon',
+      description: 'Lỗi truyền dữ liệu nội bộ giữa bo điều khiển chính và bo xử lý lệnh in mạng.',
+      subsystem: 'Bo mạng PDL / Bo Controller Canon',
+      actionGuidance: '1. Khởi động lại máy in.\n2. Kiểm tra cáp kết nối bo mạch và cập nhật firmware hệ thống Canon.',
+      severity: 'Critical',
+    },
+  ],
+};

@@ -1,0 +1,417 @@
+zabbix_export:
+  version: "7.0"
+  template_groups:
+    - uuid: a205742d9e6b4e99ae36a5f7ed253c15
+      name: "Templates/Network Devices"
+  templates:
+    - uuid: 877541e070564341bfa3de1f2eb1bf32
+      template: "Template Ricoh Aficio MP 5002 SNMP"
+      name: "Template Ricoh Aficio MP 5002 SNMP"
+      description: |
+        Template Giám Sát Chuyên Biệt Ricoh Aficio MP 5002 (Mono Multifunction Printer - Phase 2 Verified).
+        Áp dụng cho các máy in 10.48.3.253 (AB1 Tầng 2 Kaizen) và 10.48.50.86 (AB1 Tầng 5).
+
+        Đặc tính kỹ thuật chuyên sâu:
+        1. Kết nối & Tính sẵn sàng (ICMP Ping, Uptime, Reset detection)
+        2. Định danh thiết bị & Firmware (sysDescr, sysName, ricohPrinterModel, ricohFirmwareVersion, ricohEngineSerialNumber)
+        3. Bộ đếm sản lượng chuyên biệt 4 thành phần: Tổng bản in trọn đời, In qua mạng (Print), Photocopy (Copy), Fax
+        4. Cảm biến phần cứng chuyên biệt: Scanner Share Status, Cảm biến giấy mặt kính, Bitmask lỗi MFP và Copier
+        5. Vật tư đơn sắc: Hộp mực đen (Black Toner %) và Hộp mực thải (Waste Toner Level)
+        6. Cảnh báo lỗi phần cứng thời gian thực: Tự động khám phá prtAlertTable (hết giấy khay nạp, lỗi cụm sấy)
+      groups:
+        - name: "Templates/Network Devices"
+      items:
+        # ----------------------------------------------------------------------
+        # 1. Connectivity
+        # ----------------------------------------------------------------------
+        - uuid: b2a0f2af2ab14a9fb878c2b2abb18e67
+          name: "Printer: ICMP ping"
+          type: SIMPLE
+          key: icmpping
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          description: "Kiểm tra tính sẵn sàng của máy in Ricoh Aficio MP 5002 qua ICMP Ping."
+          valuemap:
+            name: "Service state"
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - uuid: b57b832c1e854e6f912f513127bf65a6
+              expression: "max(/Template Ricoh Aficio MP 5002 SNMP/icmpping,#3)=0"
+              name: "Ricoh Aficio MP 5002 is unreachable (ICMP ping failed)"
+              priority: DISASTER
+              description: "Máy in không phản hồi ICMP Ping trong 3 lần kiểm tra liên tiếp."
+              tags:
+                - tag: class
+                  value: connectivity
+
+        - uuid: 12b3845ce28b455787abebe9ba76a75f
+          name: "Printer: ICMP response time"
+          type: SIMPLE
+          key: icmppingsec
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          units: s
+          description: "Thời gian phản hồi ICMP ping (Round-trip time)."
+          tags:
+            - tag: scope
+              value: performance
+
+        # ----------------------------------------------------------------------
+        # 2. Device Information & Identity
+        # ----------------------------------------------------------------------
+        - uuid: 05234b4a3a334125827a06456af3b8d2
+          name: "System: Device description"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.1.0
+          key: system.descr
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          description: "Mô tả chi tiết hệ thống từ sysDescr."
+          tags:
+            - tag: scope
+              value: identity
+
+        - uuid: 59b4cec7d4d34b1ca3f8d79f2ce7dc18
+          name: "System: Device name"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.5.0
+          key: system.name
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          description: "Tên định danh mạng của máy in (sysName)."
+          tags:
+            - tag: scope
+              value: identity
+
+        - uuid: 254d6c31e9174d1e84e89a49c7e700b2
+          name: "System: Uptime"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: system.uptime
+          delay: 5m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          units: uptime
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - "0.01"
+          description: "Thời gian máy in hoạt động liên tục (sysUpTime)."
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - uuid: 55dfb7b705bc4e9a8e99f9f1e7856124
+              expression: "change(/Template Ricoh Aficio MP 5002 SNMP/system.uptime)<0 and /Template Ricoh Aficio MP 5002 SNMP/system.uptime<300"
+              name: "Ricoh Aficio MP 5002 has just rebooted"
+              priority: INFO
+              description: "Máy in vừa được tắt bật lại nguồn hoặc khởi động lại."
+              manual_close: "YES"
+              tags:
+                - tag: class
+                  value: reboot
+
+        - uuid: 3186c35150dd48459f5b0c161c345dfa
+          name: "Printer: Serial number (RFC)"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.5.1.1.17.1
+          key: printer.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          description: "Số serial khung máy từ prtGeneralSerialNumber."
+          tags:
+            - tag: scope
+              value: identity
+
+        - uuid: 3249dd441adf48768fe4f7e863d93b0c
+          name: "Ricoh: Printer Model"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.1.0
+          key: ricoh.model
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          description: "Tên định danh model máy in Ricoh (Aficio MP 5002)."
+          tags:
+            - tag: scope
+              value: identity
+
+        - uuid: 1c601b8ad490480a849bb78d9d60a402
+          name: "Ricoh: Firmware Version"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.2.0
+          key: ricoh.firmware
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          description: "Phiên bản firmware điều khiển hệ thống Ricoh."
+          tags:
+            - tag: scope
+              value: identity
+
+        # ----------------------------------------------------------------------
+        # 3. Page Counters
+        # ----------------------------------------------------------------------
+        - uuid: 2f90a75969204c8999dd554025cbb3e1
+          name: "Printer: Total lifetime page counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.10.2.1.4.1.1
+          key: printer.counter.total
+          delay: 5m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          description: "Tổng số trang in tích lũy trọn đời (prtMarkerLifeCount)."
+          tags:
+            - tag: scope
+              value: telemetry
+
+        - uuid: dfc479d6b6264235b0b9cd8c7351ffaf
+          name: "Ricoh: Print Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.2.0
+          key: ricoh.counter.print
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          description: "Số trang in mạng gửi từ máy tính qua driver."
+          tags:
+            - tag: scope
+              value: telemetry
+
+        - uuid: b6cb43759ffc40f0bd3e3e6e9053f5b6
+          name: "Ricoh: Copier Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.4.0
+          key: ricoh.counter.copy
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          description: "Số trang sao chụp trực tiếp qua mặt kính."
+          tags:
+            - tag: scope
+              value: telemetry
+
+        - uuid: 4399e407be3848048edcd294cd1abb02
+          name: "Ricoh: Fax Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.3.0
+          key: ricoh.counter.fax
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          description: "Số trang in từ bản fax nhận được."
+          tags:
+            - tag: scope
+              value: telemetry
+
+        # ----------------------------------------------------------------------
+        # 4. Hardware Subsystem Health
+        # ----------------------------------------------------------------------
+        - uuid: 658efe6977bd4a6b956e0128589f3fda
+          name: "Ricoh: Scanner Share Status"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.11.0
+          key: ricoh.scanner.status
+          delay: 2m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          description: "Trạng thái sẵn sàng của khối quét Scanner (1=Available, 2=Busy, >2=Error)."
+          tags:
+            - tag: scope
+              value: hardware
+
+        - uuid: cea7f89f79bd48c7821754bf9c8c06af
+          name: "Ricoh: MFP Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.20.0
+          key: ricoh.mfp.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          description: "Bitmask lỗi hệ thống nền tảng MFP (0=Bình thường, >0=Lỗi hệ thống SC)."
+          tags:
+            - tag: scope
+              value: hardware
+          triggers:
+            - uuid: 5c7663079e7d4ca8891030ab7875178d
+              expression: "last(/Template Ricoh Aficio MP 5002 SNMP/ricoh.mfp.error.summary)>0"
+              name: "Ricoh Aficio MP 5002 MFP System Error Detected"
+              priority: HIGH
+              description: "Khối động cơ MFP phát hiện lỗi hệ thống phần cứng (Service Call SC)."
+              tags:
+                - tag: class
+                  value: hardware-error
+
+        - uuid: c07c5dc4e35e4c39878772bfae4ce530
+          name: "Ricoh: Copier Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.22.0
+          key: ricoh.copier.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          description: "Bitmask cảnh báo ứng dụng sao chụp Copier."
+          tags:
+            - tag: scope
+              value: hardware
+
+      # ------------------------------------------------------------------------
+      # 5. Supplies Discovery (LLD)
+      # ------------------------------------------------------------------------
+      discovery_rules:
+        - uuid: 6de01475116247fbbf66a8a740a70028
+          name: "Supplies Discovery"
+          type: SNMP_AGENT
+          snmp_oid: "discovery[{#SUPPLY_DESCR},1.3.6.1.2.1.43.11.1.1.6.1,{#SUPPLY_MAX},1.3.6.1.2.1.43.11.1.1.8.1,{#SUPPLY_TYPE},1.3.6.1.2.1.43.11.1.1.5.1]"
+          key: printer.supplies.discovery
+          delay: 1h
+          description: "Khám phá tự động hộp mực đen và hộp mực thải từ prtMarkerSuppliesTable."
+          item_prototypes:
+            - uuid: a95889db0c154473a800e3d30cf49efa
+              name: "Supply: {#SUPPLY_DESCR} (Level Raw)"
+              type: SNMP_AGENT
+              snmp_oid: "1.3.6.1.2.1.43.11.1.1.9.1.{#SNMPINDEX}"
+              key: "printer.supply.level.raw[{#SNMPINDEX}]"
+              delay: 10m
+              history: 7d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+
+            - uuid: 6a9a8c0c28c2428b870faf2b73d67577
+              name: "Supply: {#SUPPLY_DESCR} (Level %)"
+              type: CALCULATED
+              key: "printer.supply.level.percent[{#SNMPINDEX}]"
+              delay: 10m
+              history: 14d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              params: "last(//printer.supply.level.raw[{#SNMPINDEX}])"
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+              trigger_prototypes:
+                - uuid: f28ef338dd6b4c0693b47a6542ba811c
+                  expression: "last(/Template Ricoh Aficio MP 5002 SNMP/printer.supply.level.percent[{#SNMPINDEX}])<15 and last(/Template Ricoh Aficio MP 5002 SNMP/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4"
+                  name: "Supply level is low: {#SUPPLY_DESCR} (< 15%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+
+                - uuid: 115b4e864d2f4fbda4518422e9489ece
+                  expression: "last(/Template Ricoh Aficio MP 5002 SNMP/printer.supply.level.percent[{#SNMPINDEX}])<=2 and last(/Template Ricoh Aficio MP 5002 SNMP/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4"
+                  name: "Supply is empty: {#SUPPLY_DESCR} (<= 2%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+
+                - uuid: f523e411260e4ede9eccc842c3202f62
+                  expression: "last(/Template Ricoh Aficio MP 5002 SNMP/printer.supply.level.percent[{#SNMPINDEX}])<=10 and {#SUPPLY_TYPE}=4"
+                  name: "Waste toner container is almost full ({#SUPPLY_DESCR})"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: waste-toner
+
+        # ----------------------------------------------------------------------
+        # 6. Printer Alerts Discovery (LLD)
+        # ----------------------------------------------------------------------
+        - uuid: 1e03a73cc3944c14a9dbce0fb3f7a680
+          name: "Printer Alerts Discovery"
+          type: SNMP_AGENT
+          snmp_oid: "discovery[{#ALERT_CODE},1.3.6.1.2.1.43.18.1.1.7.1,{#ALERT_SEV},1.3.6.1.2.1.43.18.1.1.2.1,{#ALERT_GROUP},1.3.6.1.2.1.43.18.1.1.4.1]"
+          key: printer.alerts.discovery
+          delay: 1m
+          description: "Tự động phát hiện cảnh báo lỗi phần cứng từ prtAlertTable."
+          item_prototypes:
+            - uuid: 2a560d006109487bbe9fde8e8c5aadc0
+              name: "Alert [{#SNMPINDEX}]: Description"
+              type: SNMP_AGENT
+              snmp_oid: "1.3.6.1.2.1.43.18.1.1.8.1.{#SNMPINDEX}"
+              key: "printer.alert.description[{#SNMPINDEX}]"
+              delay: 1m
+              history: 7d
+              trends: "0"
+              value_type: CHAR
+              tags:
+                - tag: scope
+                  value: alerts
+
+            - uuid: aa988abce2444d459f5f3853fa05e8a7
+              name: "Alert [{#SNMPINDEX}]: Severity Level"
+              type: SNMP_AGENT
+              snmp_oid: "1.3.6.1.2.1.43.18.1.1.2.1.{#SNMPINDEX}"
+              key: "printer.alert.severity[{#SNMPINDEX}]"
+              delay: 1m
+              history: 7d
+              trends: 365d
+              value_type: UNSIGNED
+              tags:
+                - tag: scope
+                  value: alerts
+              trigger_prototypes:
+                - uuid: 0094169c0eee4f9cb4acc453323b02fa
+                  expression: "last(/Template Ricoh Aficio MP 5002 SNMP/printer.alert.severity[{#SNMPINDEX}])=3"
+                  name: "Ricoh Aficio MP 5002 Warning: {ITEM.VALUE1}"
+                  event_name: "Printer Warning: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-alert
+
+                - uuid: 43f51c5ee15346b5af4dcc0662ac2443
+                  expression: "last(/Template Ricoh Aficio MP 5002 SNMP/printer.alert.severity[{#SNMPINDEX}])>=4"
+                  name: "Ricoh Aficio MP 5002 Hardware Error: {ITEM.VALUE1}"
+                  event_name: "Printer Hardware Error: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: HIGH
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-error
+
+      valuemaps:
+        - uuid: cd344b2285ae488585aeac3a500c6554
+          name: "Service state"
+          mappings:
+            - value: "0"
+              newvalue: Down
+            - value: "1"
+              newvalue: Up

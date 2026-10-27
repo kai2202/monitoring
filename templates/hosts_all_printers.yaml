@@ -1,0 +1,2026 @@
+zabbix_export:
+  version: "7.0"
+  host_groups:
+    - uuid: 7df96b18c230490a9a0f9e2307226338
+      name: Applications
+  hosts:
+    - host: AB1_Tang_2_RDD
+      name: AB1_Tang_2_RDD (10.48.3.252 - Ricoh MP C6004)
+      description: May in Ricoh MP C6004 (Color MFP) - Serial G736M860609 - FW 1.43
+      status: ENABLED
+      groups:
+        - name: Applications
+      interfaces:
+        - default: "YES"
+          type: SNMP
+          useip: "YES"
+          ip: 10.48.3.252
+          dns: ""
+          port: "161"
+          details:
+            version: SNMPV2
+            community: "{$SNMP_COMMUNITY}"
+          interface_ref: if1
+      inventory_mode: DISABLED
+      macros:
+        - macro: "{$SNMP_COMMUNITY}"
+          value: public
+      items:
+        - name: "Printer: ICMP ping"
+          type: SIMPLE
+          key: icmpping
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Kiem tra tinh san sang cua may in qua ICMP Ping.
+          valuemap:
+            name: Service state
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - expression: max(/AB1_Tang_2_RDD/icmpping,#3)=0
+              name: AB1_Tang_2_RDD is unreachable (ICMP ping failed)
+              priority: DISASTER
+              description: May in khong phan hoi ICMP Ping trong 3 lan kiem tra lien tiep.
+              tags:
+                - tag: class
+                  value: connectivity
+        - name: "Printer: ICMP response time"
+          type: SIMPLE
+          key: icmppingsec
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          units: s
+          interface_ref: if1
+          description: Thoi gian phan hoi ICMP ping (Round-trip time).
+          tags:
+            - tag: scope
+              value: performance
+        - name: "System: Device description"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.1.0
+          key: system.descr
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Mo ta chi tiet he thong tu sysDescr.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "System: Device name"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.5.0
+          key: system.name
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Ten dinh danh mang cua may in (sysName).
+          tags:
+            - tag: scope
+              value: identity
+        - name: "System: Uptime"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: system.uptime
+          delay: 5m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          units: uptime
+          interface_ref: if1
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - "0.01"
+          description: Thoi gian may in hoat dong lien tuc (sysUpTime).
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - expression: change(/AB1_Tang_2_RDD/system.uptime)<0 and /AB1_Tang_2_RDD/system.uptime<300
+              name: AB1_Tang_2_RDD has just rebooted
+              priority: INFO
+              description: May in vua duoc khoi dong lai.
+              manual_close: "YES"
+              tags:
+                - tag: class
+                  value: reboot
+        - name: "Printer: Serial number (RFC)"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.5.1.1.17.1
+          key: printer.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: So serial khung may tu prtGeneralSerialNumber.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Printer Model"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.1.0
+          key: ricoh.model
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Ten dinh danh model may in Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Firmware Version"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.2.0
+          key: ricoh.firmware
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Phien ban firmware dieu khien he thong Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Engine Serial Number"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.1.4.0
+          key: ricoh.engine.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: So serial dong co in Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Printer: Total lifetime page counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.10.2.1.4.1.1
+          key: printer.counter.total
+          delay: 5m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: Tong so trang in tich luy tron doi (prtMarkerLifeCount).
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Print Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.2.0
+          key: ricoh.counter.print
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang in mang gui tu may tinh.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Copier Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.4.0
+          key: ricoh.counter.copy
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang sao chup truc tiep qua mat kinh.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Fax Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.3.0
+          key: ricoh.counter.fax
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang in tu ban fax nhan duoc.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Scanner Share Status"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.11.0
+          key: ricoh.scanner.status
+          delay: 2m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Trang thai san sang cua khoi quet Scanner (1=Available, 2=Busy, >2=Error).
+          tags:
+            - tag: scope
+              value: hardware
+        - name: "Ricoh: MFP Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.20.0
+          key: ricoh.mfp.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Bitmask loi he thong nen tang MFP (0=Binh thuong, >0=Loi he thong SC).
+          tags:
+            - tag: scope
+              value: hardware
+          triggers:
+            - expression: last(/AB1_Tang_2_RDD/ricoh.mfp.error.summary)>0
+              name: AB1_Tang_2_RDD MFP System Error Detected
+              priority: HIGH
+              description: Khoi dong co MFP phat hien loi he thong phan cung (Service Call SC).
+              tags:
+                - tag: class
+                  value: hardware-error
+        - name: "Ricoh: Copier Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.22.0
+          key: ricoh.copier.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Bitmask canh bao ung dung sao chup Copier.
+          tags:
+            - tag: scope
+              value: hardware
+        - name: "Ricoh: Black Toner Level %"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.24.1.1.5.1
+          key: ricoh.toner.black
+          delay: 10m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: "%"
+          interface_ref: if1
+          description: Phan tram muc den Black con lai.
+          tags:
+            - tag: scope
+              value: supplies
+        - name: "Ricoh: Cyan Toner Level %"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.24.1.1.5.2
+          key: ricoh.toner.cyan
+          delay: 10m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: "%"
+          interface_ref: if1
+          description: Phan tram muc xanh Cyan con lai.
+          tags:
+            - tag: scope
+              value: supplies
+        - name: "Ricoh: Magenta Toner Level %"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.24.1.1.5.3
+          key: ricoh.toner.magenta
+          delay: 10m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: "%"
+          interface_ref: if1
+          description: Phan tram muc do Magenta con lai.
+          tags:
+            - tag: scope
+              value: supplies
+        - name: "Ricoh: Yellow Toner Level %"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.24.1.1.5.4
+          key: ricoh.toner.yellow
+          delay: 10m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: "%"
+          interface_ref: if1
+          description: Phan tram muc vang Yellow con lai.
+          tags:
+            - tag: scope
+              value: supplies
+        - name: "Ricoh: Glass Original Sensor Status"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.12.0
+          key: ricoh.glass.sensor
+          delay: 2m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Cam bien giay dat tren mat kinh (1=Original Present, 2=Empty).
+          tags:
+            - tag: scope
+              value: hardware
+      discovery_rules:
+        - name: Supplies Discovery
+          type: SNMP_AGENT
+          snmp_oid: discovery[{#SUPPLY_DESCR},1.3.6.1.2.1.43.11.1.1.6.1,{#SUPPLY_MAX},1.3.6.1.2.1.43.11.1.1.8.1,{#SUPPLY_TYPE},1.3.6.1.2.1.43.11.1.1.5.1]
+          key: printer.supplies.discovery
+          delay: 1h
+          interface_ref: if1
+          description: Kham pha tu dong hop muc va hop muc thai tu prtMarkerSuppliesTable.
+          item_prototypes:
+            - name: "Supply: {#SUPPLY_DESCR} (Level Raw)"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.11.1.1.9.1.{#SNMPINDEX}
+              key: printer.supply.level.raw[{#SNMPINDEX}]
+              delay: 10m
+              history: 7d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+            - name: "Supply: {#SUPPLY_DESCR} (Level %)"
+              type: CALCULATED
+              key: printer.supply.level.percent[{#SNMPINDEX}]
+              delay: 10m
+              history: 14d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              params: last(//printer.supply.level.raw[{#SNMPINDEX}])
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+              trigger_prototypes:
+                - expression: last(/AB1_Tang_2_RDD/printer.supply.level.percent[{#SNMPINDEX}])<15 and last(/AB1_Tang_2_RDD/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4
+                  name: "Supply level is low: {#SUPPLY_DESCR} (< 15%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+                - expression: last(/AB1_Tang_2_RDD/printer.supply.level.percent[{#SNMPINDEX}])<=2 and last(/AB1_Tang_2_RDD/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4
+                  name: "Supply is empty: {#SUPPLY_DESCR} (<= 2%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+                - expression: last(/AB1_Tang_2_RDD/printer.supply.level.percent[{#SNMPINDEX}])<=10 and {#SUPPLY_TYPE}=4
+                  name: Waste toner container is almost full ({#SUPPLY_DESCR})
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: waste-toner
+        - name: Printer Alerts Discovery
+          type: SNMP_AGENT
+          snmp_oid: discovery[{#ALERT_CODE},1.3.6.1.2.1.43.18.1.1.7.1,{#ALERT_SEV},1.3.6.1.2.1.43.18.1.1.2.1,{#ALERT_GROUP},1.3.6.1.2.1.43.18.1.1.4.1]
+          key: printer.alerts.discovery
+          delay: 1m
+          interface_ref: if1
+          description: Tu dong phat hien canh bao loi phan cung tu prtAlertTable.
+          item_prototypes:
+            - name: "Alert [{#SNMPINDEX}]: Description"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.18.1.1.8.1.{#SNMPINDEX}
+              key: printer.alert.description[{#SNMPINDEX}]
+              delay: 1m
+              history: 7d
+              trends: "0"
+              value_type: CHAR
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: alerts
+            - name: "Alert [{#SNMPINDEX}]: Severity Level"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.18.1.1.2.1.{#SNMPINDEX}
+              key: printer.alert.severity[{#SNMPINDEX}]
+              delay: 1m
+              history: 7d
+              trends: 365d
+              value_type: UNSIGNED
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: alerts
+              trigger_prototypes:
+                - expression: last(/AB1_Tang_2_RDD/printer.alert.severity[{#SNMPINDEX}])=3
+                  name: "AB1_Tang_2_RDD Warning: {ITEM.VALUE1}"
+                  event_name: "Printer Warning: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-alert
+                - expression: last(/AB1_Tang_2_RDD/printer.alert.severity[{#SNMPINDEX}])>=4
+                  name: "AB1_Tang_2_RDD Hardware Error: {ITEM.VALUE1}"
+                  event_name: "Printer Hardware Error: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: HIGH
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-error
+      valuemaps:
+        - name: Service state
+          mappings:
+            - value: "0"
+              newvalue: Down
+            - value: "1"
+              newvalue: Up
+    - host: AB1_Tang_2_Kaizen
+      name: AB1_Tang_2_Kaizen (10.48.3.253 - Ricoh Aficio MP 5002)
+      description: May in Ricoh Aficio MP 5002 (Mono MFP) - Serial W525L200282 - FW 2.16
+      status: ENABLED
+      groups:
+        - name: Applications
+      interfaces:
+        - default: "YES"
+          type: SNMP
+          useip: "YES"
+          ip: 10.48.3.253
+          dns: ""
+          port: "161"
+          details:
+            version: SNMPV2
+            community: "{$SNMP_COMMUNITY}"
+          interface_ref: if1
+      inventory_mode: DISABLED
+      macros:
+        - macro: "{$SNMP_COMMUNITY}"
+          value: public
+      items:
+        - name: "Printer: ICMP ping"
+          type: SIMPLE
+          key: icmpping
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Kiem tra tinh san sang cua may in qua ICMP Ping.
+          valuemap:
+            name: Service state
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - expression: max(/AB1_Tang_2_Kaizen/icmpping,#3)=0
+              name: AB1_Tang_2_Kaizen is unreachable (ICMP ping failed)
+              priority: DISASTER
+              description: May in khong phan hoi ICMP Ping trong 3 lan kiem tra lien tiep.
+              tags:
+                - tag: class
+                  value: connectivity
+        - name: "Printer: ICMP response time"
+          type: SIMPLE
+          key: icmppingsec
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          units: s
+          interface_ref: if1
+          description: Thoi gian phan hoi ICMP ping (Round-trip time).
+          tags:
+            - tag: scope
+              value: performance
+        - name: "System: Device description"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.1.0
+          key: system.descr
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Mo ta chi tiet he thong tu sysDescr.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "System: Device name"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.5.0
+          key: system.name
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Ten dinh danh mang cua may in (sysName).
+          tags:
+            - tag: scope
+              value: identity
+        - name: "System: Uptime"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: system.uptime
+          delay: 5m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          units: uptime
+          interface_ref: if1
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - "0.01"
+          description: Thoi gian may in hoat dong lien tuc (sysUpTime).
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - expression: change(/AB1_Tang_2_Kaizen/system.uptime)<0 and /AB1_Tang_2_Kaizen/system.uptime<300
+              name: AB1_Tang_2_Kaizen has just rebooted
+              priority: INFO
+              description: May in vua duoc khoi dong lai.
+              manual_close: "YES"
+              tags:
+                - tag: class
+                  value: reboot
+        - name: "Printer: Serial number (RFC)"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.5.1.1.17.1
+          key: printer.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: So serial khung may tu prtGeneralSerialNumber.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Printer Model"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.1.0
+          key: ricoh.model
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Ten dinh danh model may in Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Firmware Version"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.2.0
+          key: ricoh.firmware
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Phien ban firmware dieu khien he thong Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Engine Serial Number"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.1.4.0
+          key: ricoh.engine.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: So serial dong co in Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Printer: Total lifetime page counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.10.2.1.4.1.1
+          key: printer.counter.total
+          delay: 5m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: Tong so trang in tich luy tron doi (prtMarkerLifeCount).
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Print Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.2.0
+          key: ricoh.counter.print
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang in mang gui tu may tinh.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Copier Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.4.0
+          key: ricoh.counter.copy
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang sao chup truc tiep qua mat kinh.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Fax Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.3.0
+          key: ricoh.counter.fax
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang in tu ban fax nhan duoc.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Scanner Share Status"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.11.0
+          key: ricoh.scanner.status
+          delay: 2m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Trang thai san sang cua khoi quet Scanner (1=Available, 2=Busy, >2=Error).
+          tags:
+            - tag: scope
+              value: hardware
+        - name: "Ricoh: MFP Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.20.0
+          key: ricoh.mfp.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Bitmask loi he thong nen tang MFP (0=Binh thuong, >0=Loi he thong SC).
+          tags:
+            - tag: scope
+              value: hardware
+          triggers:
+            - expression: last(/AB1_Tang_2_Kaizen/ricoh.mfp.error.summary)>0
+              name: AB1_Tang_2_Kaizen MFP System Error Detected
+              priority: HIGH
+              description: Khoi dong co MFP phat hien loi he thong phan cung (Service Call SC).
+              tags:
+                - tag: class
+                  value: hardware-error
+        - name: "Ricoh: Copier Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.22.0
+          key: ricoh.copier.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Bitmask canh bao ung dung sao chup Copier.
+          tags:
+            - tag: scope
+              value: hardware
+        - name: "Ricoh: Black Toner Level %"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.24.1.1.5.1
+          key: ricoh.toner.black
+          delay: 10m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: "%"
+          interface_ref: if1
+          description: Phan tram hop muc den Black con lai.
+          tags:
+            - tag: scope
+              value: supplies
+      discovery_rules:
+        - name: Supplies Discovery
+          type: SNMP_AGENT
+          snmp_oid: discovery[{#SUPPLY_DESCR},1.3.6.1.2.1.43.11.1.1.6.1,{#SUPPLY_MAX},1.3.6.1.2.1.43.11.1.1.8.1,{#SUPPLY_TYPE},1.3.6.1.2.1.43.11.1.1.5.1]
+          key: printer.supplies.discovery
+          delay: 1h
+          interface_ref: if1
+          description: Kham pha tu dong hop muc va hop muc thai tu prtMarkerSuppliesTable.
+          item_prototypes:
+            - name: "Supply: {#SUPPLY_DESCR} (Level Raw)"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.11.1.1.9.1.{#SNMPINDEX}
+              key: printer.supply.level.raw[{#SNMPINDEX}]
+              delay: 10m
+              history: 7d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+            - name: "Supply: {#SUPPLY_DESCR} (Level %)"
+              type: CALCULATED
+              key: printer.supply.level.percent[{#SNMPINDEX}]
+              delay: 10m
+              history: 14d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              params: last(//printer.supply.level.raw[{#SNMPINDEX}])
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+              trigger_prototypes:
+                - expression: last(/AB1_Tang_2_Kaizen/printer.supply.level.percent[{#SNMPINDEX}])<15 and last(/AB1_Tang_2_Kaizen/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4
+                  name: "Supply level is low: {#SUPPLY_DESCR} (< 15%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+                - expression: last(/AB1_Tang_2_Kaizen/printer.supply.level.percent[{#SNMPINDEX}])<=2 and last(/AB1_Tang_2_Kaizen/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4
+                  name: "Supply is empty: {#SUPPLY_DESCR} (<= 2%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+                - expression: last(/AB1_Tang_2_Kaizen/printer.supply.level.percent[{#SNMPINDEX}])<=10 and {#SUPPLY_TYPE}=4
+                  name: Waste toner container is almost full ({#SUPPLY_DESCR})
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: waste-toner
+        - name: Printer Alerts Discovery
+          type: SNMP_AGENT
+          snmp_oid: discovery[{#ALERT_CODE},1.3.6.1.2.1.43.18.1.1.7.1,{#ALERT_SEV},1.3.6.1.2.1.43.18.1.1.2.1,{#ALERT_GROUP},1.3.6.1.2.1.43.18.1.1.4.1]
+          key: printer.alerts.discovery
+          delay: 1m
+          interface_ref: if1
+          description: Tu dong phat hien canh bao loi phan cung tu prtAlertTable.
+          item_prototypes:
+            - name: "Alert [{#SNMPINDEX}]: Description"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.18.1.1.8.1.{#SNMPINDEX}
+              key: printer.alert.description[{#SNMPINDEX}]
+              delay: 1m
+              history: 7d
+              trends: "0"
+              value_type: CHAR
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: alerts
+            - name: "Alert [{#SNMPINDEX}]: Severity Level"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.18.1.1.2.1.{#SNMPINDEX}
+              key: printer.alert.severity[{#SNMPINDEX}]
+              delay: 1m
+              history: 7d
+              trends: 365d
+              value_type: UNSIGNED
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: alerts
+              trigger_prototypes:
+                - expression: last(/AB1_Tang_2_Kaizen/printer.alert.severity[{#SNMPINDEX}])=3
+                  name: "AB1_Tang_2_Kaizen Warning: {ITEM.VALUE1}"
+                  event_name: "Printer Warning: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-alert
+                - expression: last(/AB1_Tang_2_Kaizen/printer.alert.severity[{#SNMPINDEX}])>=4
+                  name: "AB1_Tang_2_Kaizen Hardware Error: {ITEM.VALUE1}"
+                  event_name: "Printer Hardware Error: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: HIGH
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-error
+      valuemaps:
+        - name: Service state
+          mappings:
+            - value: "0"
+              newvalue: Down
+            - value: "1"
+              newvalue: Up
+    - host: AB1_Tang_5
+      name: AB1_Tang_5 (10.48.50.86 - Ricoh Aficio MP 5002)
+      description: May in Ricoh Aficio MP 5002 (Mono MFP) - Serial W534L900954 - FW 2.18
+      status: ENABLED
+      groups:
+        - name: Applications
+      interfaces:
+        - default: "YES"
+          type: SNMP
+          useip: "YES"
+          ip: 10.48.50.86
+          dns: ""
+          port: "161"
+          details:
+            version: SNMPV2
+            community: "{$SNMP_COMMUNITY}"
+          interface_ref: if1
+      inventory_mode: DISABLED
+      macros:
+        - macro: "{$SNMP_COMMUNITY}"
+          value: public
+      items:
+        - name: "Printer: ICMP ping"
+          type: SIMPLE
+          key: icmpping
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Kiem tra tinh san sang cua may in qua ICMP Ping.
+          valuemap:
+            name: Service state
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - expression: max(/AB1_Tang_5/icmpping,#3)=0
+              name: AB1_Tang_5 is unreachable (ICMP ping failed)
+              priority: DISASTER
+              description: May in khong phan hoi ICMP Ping trong 3 lan kiem tra lien tiep.
+              tags:
+                - tag: class
+                  value: connectivity
+        - name: "Printer: ICMP response time"
+          type: SIMPLE
+          key: icmppingsec
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          units: s
+          interface_ref: if1
+          description: Thoi gian phan hoi ICMP ping (Round-trip time).
+          tags:
+            - tag: scope
+              value: performance
+        - name: "System: Device description"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.1.0
+          key: system.descr
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Mo ta chi tiet he thong tu sysDescr.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "System: Device name"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.5.0
+          key: system.name
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Ten dinh danh mang cua may in (sysName).
+          tags:
+            - tag: scope
+              value: identity
+        - name: "System: Uptime"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: system.uptime
+          delay: 5m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          units: uptime
+          interface_ref: if1
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - "0.01"
+          description: Thoi gian may in hoat dong lien tuc (sysUpTime).
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - expression: change(/AB1_Tang_5/system.uptime)<0 and /AB1_Tang_5/system.uptime<300
+              name: AB1_Tang_5 has just rebooted
+              priority: INFO
+              description: May in vua duoc khoi dong lai.
+              manual_close: "YES"
+              tags:
+                - tag: class
+                  value: reboot
+        - name: "Printer: Serial number (RFC)"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.5.1.1.17.1
+          key: printer.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: So serial khung may tu prtGeneralSerialNumber.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Printer Model"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.1.0
+          key: ricoh.model
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Ten dinh danh model may in Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Firmware Version"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.2.0
+          key: ricoh.firmware
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Phien ban firmware dieu khien he thong Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Engine Serial Number"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.1.4.0
+          key: ricoh.engine.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: So serial dong co in Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Printer: Total lifetime page counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.10.2.1.4.1.1
+          key: printer.counter.total
+          delay: 5m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: Tong so trang in tich luy tron doi (prtMarkerLifeCount).
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Print Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.2.0
+          key: ricoh.counter.print
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang in mang gui tu may tinh.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Copier Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.4.0
+          key: ricoh.counter.copy
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang sao chup truc tiep qua mat kinh.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Fax Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.3.0
+          key: ricoh.counter.fax
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang in tu ban fax nhan duoc.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Scanner Share Status"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.11.0
+          key: ricoh.scanner.status
+          delay: 2m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Trang thai san sang cua khoi quet Scanner (1=Available, 2=Busy, >2=Error).
+          tags:
+            - tag: scope
+              value: hardware
+        - name: "Ricoh: MFP Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.20.0
+          key: ricoh.mfp.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Bitmask loi he thong nen tang MFP (0=Binh thuong, >0=Loi he thong SC).
+          tags:
+            - tag: scope
+              value: hardware
+          triggers:
+            - expression: last(/AB1_Tang_5/ricoh.mfp.error.summary)>0
+              name: AB1_Tang_5 MFP System Error Detected
+              priority: HIGH
+              description: Khoi dong co MFP phat hien loi he thong phan cung (Service Call SC).
+              tags:
+                - tag: class
+                  value: hardware-error
+        - name: "Ricoh: Copier Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.22.0
+          key: ricoh.copier.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Bitmask canh bao ung dung sao chup Copier.
+          tags:
+            - tag: scope
+              value: hardware
+        - name: "Ricoh: Black Toner Level %"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.24.1.1.5.1
+          key: ricoh.toner.black
+          delay: 10m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: "%"
+          interface_ref: if1
+          description: Phan tram hop muc den Black con lai.
+          tags:
+            - tag: scope
+              value: supplies
+      discovery_rules:
+        - name: Supplies Discovery
+          type: SNMP_AGENT
+          snmp_oid: discovery[{#SUPPLY_DESCR},1.3.6.1.2.1.43.11.1.1.6.1,{#SUPPLY_MAX},1.3.6.1.2.1.43.11.1.1.8.1,{#SUPPLY_TYPE},1.3.6.1.2.1.43.11.1.1.5.1]
+          key: printer.supplies.discovery
+          delay: 1h
+          interface_ref: if1
+          description: Kham pha tu dong hop muc va hop muc thai tu prtMarkerSuppliesTable.
+          item_prototypes:
+            - name: "Supply: {#SUPPLY_DESCR} (Level Raw)"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.11.1.1.9.1.{#SNMPINDEX}
+              key: printer.supply.level.raw[{#SNMPINDEX}]
+              delay: 10m
+              history: 7d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+            - name: "Supply: {#SUPPLY_DESCR} (Level %)"
+              type: CALCULATED
+              key: printer.supply.level.percent[{#SNMPINDEX}]
+              delay: 10m
+              history: 14d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              params: last(//printer.supply.level.raw[{#SNMPINDEX}])
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+              trigger_prototypes:
+                - expression: last(/AB1_Tang_5/printer.supply.level.percent[{#SNMPINDEX}])<15 and last(/AB1_Tang_5/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4
+                  name: "Supply level is low: {#SUPPLY_DESCR} (< 15%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+                - expression: last(/AB1_Tang_5/printer.supply.level.percent[{#SNMPINDEX}])<=2 and last(/AB1_Tang_5/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4
+                  name: "Supply is empty: {#SUPPLY_DESCR} (<= 2%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+                - expression: last(/AB1_Tang_5/printer.supply.level.percent[{#SNMPINDEX}])<=10 and {#SUPPLY_TYPE}=4
+                  name: Waste toner container is almost full ({#SUPPLY_DESCR})
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: waste-toner
+        - name: Printer Alerts Discovery
+          type: SNMP_AGENT
+          snmp_oid: discovery[{#ALERT_CODE},1.3.6.1.2.1.43.18.1.1.7.1,{#ALERT_SEV},1.3.6.1.2.1.43.18.1.1.2.1,{#ALERT_GROUP},1.3.6.1.2.1.43.18.1.1.4.1]
+          key: printer.alerts.discovery
+          delay: 1m
+          interface_ref: if1
+          description: Tu dong phat hien canh bao loi phan cung tu prtAlertTable.
+          item_prototypes:
+            - name: "Alert [{#SNMPINDEX}]: Description"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.18.1.1.8.1.{#SNMPINDEX}
+              key: printer.alert.description[{#SNMPINDEX}]
+              delay: 1m
+              history: 7d
+              trends: "0"
+              value_type: CHAR
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: alerts
+            - name: "Alert [{#SNMPINDEX}]: Severity Level"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.18.1.1.2.1.{#SNMPINDEX}
+              key: printer.alert.severity[{#SNMPINDEX}]
+              delay: 1m
+              history: 7d
+              trends: 365d
+              value_type: UNSIGNED
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: alerts
+              trigger_prototypes:
+                - expression: last(/AB1_Tang_5/printer.alert.severity[{#SNMPINDEX}])=3
+                  name: "AB1_Tang_5 Warning: {ITEM.VALUE1}"
+                  event_name: "Printer Warning: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-alert
+                - expression: last(/AB1_Tang_5/printer.alert.severity[{#SNMPINDEX}])>=4
+                  name: "AB1_Tang_5 Hardware Error: {ITEM.VALUE1}"
+                  event_name: "Printer Hardware Error: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: HIGH
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-error
+      valuemaps:
+        - name: Service state
+          mappings:
+            - value: "0"
+              newvalue: Down
+            - value: "1"
+              newvalue: Up
+    - host: AC_Kaizen
+      name: AC_Kaizen (192.168.93.7 - Ricoh Aficio MP 4002)
+      description: May in Ricoh Aficio MP 4002 (Mono MFP) - Serial W533LB00080 - FW 2.24
+      status: ENABLED
+      groups:
+        - name: Applications
+      interfaces:
+        - default: "YES"
+          type: SNMP
+          useip: "YES"
+          ip: 192.168.93.7
+          dns: ""
+          port: "161"
+          details:
+            version: SNMPV2
+            community: "{$SNMP_COMMUNITY}"
+          interface_ref: if1
+      inventory_mode: DISABLED
+      macros:
+        - macro: "{$SNMP_COMMUNITY}"
+          value: public
+      items:
+        - name: "Printer: ICMP ping"
+          type: SIMPLE
+          key: icmpping
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Kiem tra tinh san sang cua may in qua ICMP Ping.
+          valuemap:
+            name: Service state
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - expression: max(/AC_Kaizen/icmpping,#3)=0
+              name: AC_Kaizen is unreachable (ICMP ping failed)
+              priority: DISASTER
+              description: May in khong phan hoi ICMP Ping trong 3 lan kiem tra lien tiep.
+              tags:
+                - tag: class
+                  value: connectivity
+        - name: "Printer: ICMP response time"
+          type: SIMPLE
+          key: icmppingsec
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          units: s
+          interface_ref: if1
+          description: Thoi gian phan hoi ICMP ping (Round-trip time).
+          tags:
+            - tag: scope
+              value: performance
+        - name: "System: Device description"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.1.0
+          key: system.descr
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Mo ta chi tiet he thong tu sysDescr.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "System: Device name"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.5.0
+          key: system.name
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Ten dinh danh mang cua may in (sysName).
+          tags:
+            - tag: scope
+              value: identity
+        - name: "System: Uptime"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: system.uptime
+          delay: 5m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          units: uptime
+          interface_ref: if1
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - "0.01"
+          description: Thoi gian may in hoat dong lien tuc (sysUpTime).
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - expression: change(/AC_Kaizen/system.uptime)<0 and /AC_Kaizen/system.uptime<300
+              name: AC_Kaizen has just rebooted
+              priority: INFO
+              description: May in vua duoc khoi dong lai.
+              manual_close: "YES"
+              tags:
+                - tag: class
+                  value: reboot
+        - name: "Printer: Serial number (RFC)"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.5.1.1.17.1
+          key: printer.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: So serial khung may tu prtGeneralSerialNumber.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Printer Model"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.1.0
+          key: ricoh.model
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Ten dinh danh model may in Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Firmware Version"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.2.0
+          key: ricoh.firmware
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Phien ban firmware dieu khien he thong Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Engine Serial Number"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.1.4.0
+          key: ricoh.engine.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: So serial dong co in Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Printer: Total lifetime page counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.10.2.1.4.1.1
+          key: printer.counter.total
+          delay: 5m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: Tong so trang in tich luy tron doi (prtMarkerLifeCount).
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Print Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.2.0
+          key: ricoh.counter.print
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang in mang gui tu may tinh.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Copier Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.4.0
+          key: ricoh.counter.copy
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang sao chup truc tiep qua mat kinh.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Fax Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.3.0
+          key: ricoh.counter.fax
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang in tu ban fax nhan duoc.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Scanner Share Status"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.11.0
+          key: ricoh.scanner.status
+          delay: 2m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Trang thai san sang cua khoi quet Scanner (1=Available, 2=Busy, >2=Error).
+          tags:
+            - tag: scope
+              value: hardware
+        - name: "Ricoh: MFP Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.20.0
+          key: ricoh.mfp.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Bitmask loi he thong nen tang MFP (0=Binh thuong, >0=Loi he thong SC).
+          tags:
+            - tag: scope
+              value: hardware
+          triggers:
+            - expression: last(/AC_Kaizen/ricoh.mfp.error.summary)>0
+              name: AC_Kaizen MFP System Error Detected
+              priority: HIGH
+              description: Khoi dong co MFP phat hien loi he thong phan cung (Service Call SC).
+              tags:
+                - tag: class
+                  value: hardware-error
+        - name: "Ricoh: Copier Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.22.0
+          key: ricoh.copier.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Bitmask canh bao ung dung sao chup Copier.
+          tags:
+            - tag: scope
+              value: hardware
+        - name: "Ricoh: Black Toner Level %"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.24.1.1.5.1
+          key: ricoh.toner.black
+          delay: 10m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: "%"
+          interface_ref: if1
+          description: Phan tram hop muc den Black con lai.
+          tags:
+            - tag: scope
+              value: supplies
+      discovery_rules:
+        - name: Supplies Discovery
+          type: SNMP_AGENT
+          snmp_oid: discovery[{#SUPPLY_DESCR},1.3.6.1.2.1.43.11.1.1.6.1,{#SUPPLY_MAX},1.3.6.1.2.1.43.11.1.1.8.1,{#SUPPLY_TYPE},1.3.6.1.2.1.43.11.1.1.5.1]
+          key: printer.supplies.discovery
+          delay: 1h
+          interface_ref: if1
+          description: Kham pha tu dong hop muc va hop muc thai tu prtMarkerSuppliesTable.
+          item_prototypes:
+            - name: "Supply: {#SUPPLY_DESCR} (Level Raw)"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.11.1.1.9.1.{#SNMPINDEX}
+              key: printer.supply.level.raw[{#SNMPINDEX}]
+              delay: 10m
+              history: 7d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+            - name: "Supply: {#SUPPLY_DESCR} (Level %)"
+              type: CALCULATED
+              key: printer.supply.level.percent[{#SNMPINDEX}]
+              delay: 10m
+              history: 14d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              params: last(//printer.supply.level.raw[{#SNMPINDEX}])
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+              trigger_prototypes:
+                - expression: last(/AC_Kaizen/printer.supply.level.percent[{#SNMPINDEX}])<15 and last(/AC_Kaizen/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4
+                  name: "Supply level is low: {#SUPPLY_DESCR} (< 15%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+                - expression: last(/AC_Kaizen/printer.supply.level.percent[{#SNMPINDEX}])<=2 and last(/AC_Kaizen/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4
+                  name: "Supply is empty: {#SUPPLY_DESCR} (<= 2%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+                - expression: last(/AC_Kaizen/printer.supply.level.percent[{#SNMPINDEX}])<=10 and {#SUPPLY_TYPE}=4
+                  name: Waste toner container is almost full ({#SUPPLY_DESCR})
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: waste-toner
+        - name: Printer Alerts Discovery
+          type: SNMP_AGENT
+          snmp_oid: discovery[{#ALERT_CODE},1.3.6.1.2.1.43.18.1.1.7.1,{#ALERT_SEV},1.3.6.1.2.1.43.18.1.1.2.1,{#ALERT_GROUP},1.3.6.1.2.1.43.18.1.1.4.1]
+          key: printer.alerts.discovery
+          delay: 1m
+          interface_ref: if1
+          description: Tu dong phat hien canh bao loi phan cung tu prtAlertTable.
+          item_prototypes:
+            - name: "Alert [{#SNMPINDEX}]: Description"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.18.1.1.8.1.{#SNMPINDEX}
+              key: printer.alert.description[{#SNMPINDEX}]
+              delay: 1m
+              history: 7d
+              trends: "0"
+              value_type: CHAR
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: alerts
+            - name: "Alert [{#SNMPINDEX}]: Severity Level"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.18.1.1.2.1.{#SNMPINDEX}
+              key: printer.alert.severity[{#SNMPINDEX}]
+              delay: 1m
+              history: 7d
+              trends: 365d
+              value_type: UNSIGNED
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: alerts
+              trigger_prototypes:
+                - expression: last(/AC_Kaizen/printer.alert.severity[{#SNMPINDEX}])=3
+                  name: "AC_Kaizen Warning: {ITEM.VALUE1}"
+                  event_name: "Printer Warning: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-alert
+                - expression: last(/AC_Kaizen/printer.alert.severity[{#SNMPINDEX}])>=4
+                  name: "AC_Kaizen Hardware Error: {ITEM.VALUE1}"
+                  event_name: "Printer Hardware Error: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: HIGH
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-error
+      valuemaps:
+        - name: Service state
+          mappings:
+            - value: "0"
+              newvalue: Down
+            - value: "1"
+              newvalue: Up
+    - host: TTLK_Tra_Vinh
+      name: TTLK_Tra_Vinh (192.168.85.200 - Ricoh Network Printer)
+      description: May in chi nhanh TTLK Tra Vinh - 192.168.85.200
+      status: ENABLED
+      groups:
+        - name: Applications
+      interfaces:
+        - default: "YES"
+          type: SNMP
+          useip: "YES"
+          ip: 192.168.85.200
+          dns: ""
+          port: "161"
+          details:
+            version: SNMPV2
+            community: "{$SNMP_COMMUNITY}"
+          interface_ref: if1
+      inventory_mode: DISABLED
+      macros:
+        - macro: "{$SNMP_COMMUNITY}"
+          value: public
+      items:
+        - name: "Printer: ICMP ping"
+          type: SIMPLE
+          key: icmpping
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Kiem tra tinh san sang cua may in qua ICMP Ping.
+          valuemap:
+            name: Service state
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - expression: max(/TTLK_Tra_Vinh/icmpping,#3)=0
+              name: TTLK_Tra_Vinh is unreachable (ICMP ping failed)
+              priority: DISASTER
+              description: May in khong phan hoi ICMP Ping trong 3 lan kiem tra lien tiep.
+              tags:
+                - tag: class
+                  value: connectivity
+        - name: "Printer: ICMP response time"
+          type: SIMPLE
+          key: icmppingsec
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          units: s
+          interface_ref: if1
+          description: Thoi gian phan hoi ICMP ping (Round-trip time).
+          tags:
+            - tag: scope
+              value: performance
+        - name: "System: Device description"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.1.0
+          key: system.descr
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Mo ta chi tiet he thong tu sysDescr.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "System: Device name"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.5.0
+          key: system.name
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Ten dinh danh mang cua may in (sysName).
+          tags:
+            - tag: scope
+              value: identity
+        - name: "System: Uptime"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: system.uptime
+          delay: 5m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          units: uptime
+          interface_ref: if1
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - "0.01"
+          description: Thoi gian may in hoat dong lien tuc (sysUpTime).
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - expression: change(/TTLK_Tra_Vinh/system.uptime)<0 and /TTLK_Tra_Vinh/system.uptime<300
+              name: TTLK_Tra_Vinh has just rebooted
+              priority: INFO
+              description: May in vua duoc khoi dong lai.
+              manual_close: "YES"
+              tags:
+                - tag: class
+                  value: reboot
+        - name: "Printer: Serial number (RFC)"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.5.1.1.17.1
+          key: printer.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: So serial khung may tu prtGeneralSerialNumber.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Printer Model"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.1.0
+          key: ricoh.model
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Ten dinh danh model may in Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Firmware Version"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.2.0
+          key: ricoh.firmware
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: Phien ban firmware dieu khien he thong Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Ricoh: Engine Serial Number"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.1.4.0
+          key: ricoh.engine.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          interface_ref: if1
+          description: So serial dong co in Ricoh.
+          tags:
+            - tag: scope
+              value: identity
+        - name: "Printer: Total lifetime page counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.10.2.1.4.1.1
+          key: printer.counter.total
+          delay: 5m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: Tong so trang in tich luy tron doi (prtMarkerLifeCount).
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Print Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.2.0
+          key: ricoh.counter.print
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang in mang gui tu may tinh.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Copier Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.4.0
+          key: ricoh.counter.copy
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang sao chup truc tiep qua mat kinh.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Fax Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.3.0
+          key: ricoh.counter.fax
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          interface_ref: if1
+          description: So trang in tu ban fax nhan duoc.
+          tags:
+            - tag: scope
+              value: telemetry
+        - name: "Ricoh: Scanner Share Status"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.11.0
+          key: ricoh.scanner.status
+          delay: 2m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Trang thai san sang cua khoi quet Scanner (1=Available, 2=Busy, >2=Error).
+          tags:
+            - tag: scope
+              value: hardware
+        - name: "Ricoh: MFP Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.20.0
+          key: ricoh.mfp.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Bitmask loi he thong nen tang MFP (0=Binh thuong, >0=Loi he thong SC).
+          tags:
+            - tag: scope
+              value: hardware
+          triggers:
+            - expression: last(/TTLK_Tra_Vinh/ricoh.mfp.error.summary)>0
+              name: TTLK_Tra_Vinh MFP System Error Detected
+              priority: HIGH
+              description: Khoi dong co MFP phat hien loi he thong phan cung (Service Call SC).
+              tags:
+                - tag: class
+                  value: hardware-error
+        - name: "Ricoh: Copier Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.22.0
+          key: ricoh.copier.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          interface_ref: if1
+          description: Bitmask canh bao ung dung sao chup Copier.
+          tags:
+            - tag: scope
+              value: hardware
+        - name: "Ricoh: Black Toner Level %"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.24.1.1.5.1
+          key: ricoh.toner.black
+          delay: 10m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: "%"
+          interface_ref: if1
+          description: Phan tram hop muc den Black con lai.
+          tags:
+            - tag: scope
+              value: supplies
+      discovery_rules:
+        - name: Supplies Discovery
+          type: SNMP_AGENT
+          snmp_oid: discovery[{#SUPPLY_DESCR},1.3.6.1.2.1.43.11.1.1.6.1,{#SUPPLY_MAX},1.3.6.1.2.1.43.11.1.1.8.1,{#SUPPLY_TYPE},1.3.6.1.2.1.43.11.1.1.5.1]
+          key: printer.supplies.discovery
+          delay: 1h
+          interface_ref: if1
+          description: Kham pha tu dong hop muc va hop muc thai tu prtMarkerSuppliesTable.
+          item_prototypes:
+            - name: "Supply: {#SUPPLY_DESCR} (Level Raw)"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.11.1.1.9.1.{#SNMPINDEX}
+              key: printer.supply.level.raw[{#SNMPINDEX}]
+              delay: 10m
+              history: 7d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+            - name: "Supply: {#SUPPLY_DESCR} (Level %)"
+              type: CALCULATED
+              key: printer.supply.level.percent[{#SNMPINDEX}]
+              delay: 10m
+              history: 14d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              params: last(//printer.supply.level.raw[{#SNMPINDEX}])
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+              trigger_prototypes:
+                - expression: last(/TTLK_Tra_Vinh/printer.supply.level.percent[{#SNMPINDEX}])<15 and last(/TTLK_Tra_Vinh/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4
+                  name: "Supply level is low: {#SUPPLY_DESCR} (< 15%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+                - expression: last(/TTLK_Tra_Vinh/printer.supply.level.percent[{#SNMPINDEX}])<=2 and last(/TTLK_Tra_Vinh/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4
+                  name: "Supply is empty: {#SUPPLY_DESCR} (<= 2%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+                - expression: last(/TTLK_Tra_Vinh/printer.supply.level.percent[{#SNMPINDEX}])<=10 and {#SUPPLY_TYPE}=4
+                  name: Waste toner container is almost full ({#SUPPLY_DESCR})
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: waste-toner
+        - name: Printer Alerts Discovery
+          type: SNMP_AGENT
+          snmp_oid: discovery[{#ALERT_CODE},1.3.6.1.2.1.43.18.1.1.7.1,{#ALERT_SEV},1.3.6.1.2.1.43.18.1.1.2.1,{#ALERT_GROUP},1.3.6.1.2.1.43.18.1.1.4.1]
+          key: printer.alerts.discovery
+          delay: 1m
+          interface_ref: if1
+          description: Tu dong phat hien canh bao loi phan cung tu prtAlertTable.
+          item_prototypes:
+            - name: "Alert [{#SNMPINDEX}]: Description"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.18.1.1.8.1.{#SNMPINDEX}
+              key: printer.alert.description[{#SNMPINDEX}]
+              delay: 1m
+              history: 7d
+              trends: "0"
+              value_type: CHAR
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: alerts
+            - name: "Alert [{#SNMPINDEX}]: Severity Level"
+              type: SNMP_AGENT
+              snmp_oid: 1.3.6.1.2.1.43.18.1.1.2.1.{#SNMPINDEX}
+              key: printer.alert.severity[{#SNMPINDEX}]
+              delay: 1m
+              history: 7d
+              trends: 365d
+              value_type: UNSIGNED
+              interface_ref: if1
+              tags:
+                - tag: scope
+                  value: alerts
+              trigger_prototypes:
+                - expression: last(/TTLK_Tra_Vinh/printer.alert.severity[{#SNMPINDEX}])=3
+                  name: "TTLK_Tra_Vinh Warning: {ITEM.VALUE1}"
+                  event_name: "Printer Warning: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-alert
+                - expression: last(/TTLK_Tra_Vinh/printer.alert.severity[{#SNMPINDEX}])>=4
+                  name: "TTLK_Tra_Vinh Hardware Error: {ITEM.VALUE1}"
+                  event_name: "Printer Hardware Error: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: HIGH
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-error
+      valuemaps:
+        - name: Service state
+          mappings:
+            - value: "0"
+              newvalue: Down
+            - value: "1"
+              newvalue: Up

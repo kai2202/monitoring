@@ -1,0 +1,417 @@
+zabbix_export:
+  version: "7.0"
+  template_groups:
+    - uuid: a205742d9e6b4e99ae36a5f7ed253c15
+      name: "Templates/Network Devices"
+  templates:
+    - uuid: e58e2c8ffa884b5298fd6d97ebaa6902
+      template: "Template Ricoh MP C6004 SNMP"
+      name: "Template Ricoh MP C6004 SNMP"
+      description: |
+        Template Giám Sát Chuyên Biệt Ricoh MP C6004 (Color MFP - Phase 1 Reference Device).
+        Kết hợp chuẩn RFC 3805 Printer-MIB, RFC 1213 MIB-II và nhánh Ricoh Enterprise OID .1.3.6.1.4.1.367.
+
+        Thành phần giám sát bao gồm:
+        1. Kết nối & Tính sẵn sàng (ICMP Ping, Round-trip time, Uptime)
+        2. Định danh thiết bị & Firmware (sysDescr, sysName, ricohPrinterModel, ricohFirmwareVersion, ricohEngineSerialNumber)
+        3. Bộ đếm sản lượng bóc tách (Tổng trang in, In mạng, Photocopy, Fax)
+        4. Cảm biến phần cứng chuyên biệt (Scanner share status, Cảm biến mặt kính, Bitmask lỗi MFP/Copier)
+        5. Vật tư 4 màu (LLD Discovery RFC 3805 & Ricoh Private Toner %)
+        6. Cảnh báo lỗi phần cứng thời gian thực (LLD Discovery prtAlertTable)
+      groups:
+        - name: "Templates/Network Devices"
+      items:
+        # ----------------------------------------------------------------------
+        # 1. Connectivity
+        # ----------------------------------------------------------------------
+        - uuid: 20e64da4e7fd46edb03d4ab9af776106
+          name: "Printer: ICMP ping"
+          type: SIMPLE
+          key: icmpping
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          description: "Kiểm tra tính sẵn sàng của máy in Ricoh MP C6004 qua ICMP Ping."
+          valuemap:
+            name: "Service state"
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - uuid: ffe379c548bd407280e868c58f0f18b8
+              expression: "max(/Template Ricoh MP C6004 SNMP/icmpping,#3)=0"
+              name: "Ricoh MP C6004 is unreachable (ICMP ping failed)"
+              priority: DISASTER
+              description: "Máy in không phản hồi ICMP Ping trong 3 lần liên tiếp."
+              tags:
+                - tag: class
+                  value: connectivity
+
+        - uuid: 841ea33da6554cbc9ecdef25f0e18631
+          name: "Printer: ICMP response time"
+          type: SIMPLE
+          key: icmppingsec
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          units: s
+          description: "Thời gian phản hồi ICMP ping (Round-trip time)."
+          tags:
+            - tag: scope
+              value: performance
+
+        # ----------------------------------------------------------------------
+        # 2. Device Information & Identity
+        # ----------------------------------------------------------------------
+        - uuid: 3b7081213410426da6d70ce302aae52e
+          name: "System: Device description"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.1.0
+          key: system.descr
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          description: "Mô tả chi tiết hệ thống từ sysDescr."
+          tags:
+            - tag: scope
+              value: identity
+
+        - uuid: 266083b458664fbda7f3e7719e630edb
+          name: "System: Device name"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.5.0
+          key: system.name
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          description: "Tên định danh mạng của máy in (sysName)."
+          tags:
+            - tag: scope
+              value: identity
+
+        - uuid: c6a0574b006c4623b5731bcdf3fc1aa6
+          name: "System: Uptime"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: system.uptime
+          delay: 5m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          units: uptime
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - "0.01"
+          description: "Thời gian máy in hoạt động liên tục (sysUpTime)."
+          tags:
+            - tag: scope
+              value: availability
+          triggers:
+            - uuid: e8e8b58482f24eba814f7fe2b12c1dd4
+              expression: "change(/Template Ricoh MP C6004 SNMP/system.uptime)<0 and /Template Ricoh MP C6004 SNMP/system.uptime<300"
+              name: "Ricoh MP C6004 has just rebooted"
+              priority: INFO
+              description: "Máy in vừa được tắt bật lại nguồn hoặc khởi động lại."
+              manual_close: "YES"
+              tags:
+                - tag: class
+                  value: reboot
+
+        - uuid: a05c5b7a1e9c46dc8c89e1fdbb7b2c4d
+          name: "Printer: Serial number (RFC)"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.5.1.1.17.1
+          key: printer.serial
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          description: "Số serial khung máy từ prtGeneralSerialNumber."
+          tags:
+            - tag: scope
+              value: identity
+
+        - uuid: adf82af65afa40879f63f687770ac6ba
+          name: "Ricoh: Printer Model"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.1.0
+          key: ricoh.model
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          description: "Tên định danh model máy in Ricoh (MP C6004)."
+          tags:
+            - tag: scope
+              value: identity
+
+        - uuid: f503b5749412443ab61fbde1cda120f1
+          name: "Ricoh: Firmware Version"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.1.1.2.0
+          key: ricoh.firmware
+          delay: 1h
+          history: 7d
+          trends: "0"
+          value_type: CHAR
+          description: "Phiên bản firmware điều khiển hệ thống Ricoh."
+          tags:
+            - tag: scope
+              value: identity
+
+        # ----------------------------------------------------------------------
+        # 3. Page Counters
+        # ----------------------------------------------------------------------
+        - uuid: 95eb3277a28c409db55421e25219a40f
+          name: "Printer: Total lifetime page counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.43.10.2.1.4.1.1
+          key: printer.counter.total
+          delay: 5m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          description: "Tổng số trang in tích lũy trọn đời (prtMarkerLifeCount)."
+          tags:
+            - tag: scope
+              value: telemetry
+
+        - uuid: 7555443e229d4c80872d69d6caa8654a
+          name: "Ricoh: Print Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.2.0
+          key: ricoh.counter.print
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          description: "Số trang in mạng gửi từ máy tính qua driver."
+          tags:
+            - tag: scope
+              value: telemetry
+
+        - uuid: 602ddba778be4acebe118d3fa209e81b
+          name: "Ricoh: Copier Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.4.0
+          key: ricoh.counter.copy
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          description: "Số trang sao chụp trực tiếp qua mặt kính."
+          tags:
+            - tag: scope
+              value: telemetry
+
+        - uuid: d653e2e505184a9f99fe33ab8fc24cc9
+          name: "Ricoh: Fax Mode Counter"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.19.3.0
+          key: ricoh.counter.fax
+          delay: 15m
+          history: 14d
+          trends: 365d
+          value_type: UNSIGNED
+          units: pages
+          description: "Số trang in từ bản fax nhận được."
+          tags:
+            - tag: scope
+              value: telemetry
+
+        # ----------------------------------------------------------------------
+        # 4. Hardware Subsystem Health
+        # ----------------------------------------------------------------------
+        - uuid: 8735dca725fe42f1987cd5fcb91c8464
+          name: "Ricoh: Scanner Share Status"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.11.0
+          key: ricoh.scanner.status
+          delay: 2m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          description: "Trạng thái sẵn sàng của khối quét Scanner (1=Available, 2=Busy, >2=Error)."
+          tags:
+            - tag: scope
+              value: hardware
+
+        - uuid: 82caf49a7d0541be8673eb93386f4bd4
+          name: "Ricoh: MFP Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.20.0
+          key: ricoh.mfp.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          description: "Bitmask lỗi hệ thống nền tảng MFP (0=Bình thường, >0=Lỗi hệ thống SC)."
+          tags:
+            - tag: scope
+              value: hardware
+          triggers:
+            - uuid: a23cce843daa442f8773e4cb2aae1896
+              expression: "last(/Template Ricoh MP C6004 SNMP/ricoh.mfp.error.summary)>0"
+              name: "Ricoh MP C6004 MFP System Error Detected"
+              priority: HIGH
+              description: "Khối động cơ MFP phát hiện lỗi hệ thống phần cứng (Service Call SC)."
+              tags:
+                - tag: class
+                  value: hardware-error
+
+        - uuid: 0257b3cf57454735b1892626c7acd6a4
+          name: "Ricoh: Copier Error Summary Bitmask"
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.367.3.2.1.2.2.22.0
+          key: ricoh.copier.error.summary
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: UNSIGNED
+          description: "Bitmask cảnh báo ứng dụng sao chụp Copier."
+          tags:
+            - tag: scope
+              value: hardware
+
+      # ------------------------------------------------------------------------
+      # 5. Supplies Discovery (LLD)
+      # ------------------------------------------------------------------------
+      discovery_rules:
+        - uuid: 647dab367f714f508c57b6340b80e4ea
+          name: "Supplies Discovery"
+          type: SNMP_AGENT
+          snmp_oid: "discovery[{#SUPPLY_DESCR},1.3.6.1.2.1.43.11.1.1.6.1,{#SUPPLY_MAX},1.3.6.1.2.1.43.11.1.1.8.1,{#SUPPLY_TYPE},1.3.6.1.2.1.43.11.1.1.5.1]"
+          key: printer.supplies.discovery
+          delay: 1h
+          description: "Khám phá tự động toàn bộ 4 màu mực và mực thải từ prtMarkerSuppliesTable."
+          item_prototypes:
+            - uuid: 5ed67b48dec34f3b9107756d38ee995d
+              name: "Supply: {#SUPPLY_DESCR} (Level Raw)"
+              type: SNMP_AGENT
+              snmp_oid: "1.3.6.1.2.1.43.11.1.1.9.1.{#SNMPINDEX}"
+              key: "printer.supply.level.raw[{#SNMPINDEX}]"
+              delay: 10m
+              history: 7d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+
+            - uuid: 163126d030a441cc96ffd395e20101c2
+              name: "Supply: {#SUPPLY_DESCR} (Level %)"
+              type: CALCULATED
+              key: "printer.supply.level.percent[{#SNMPINDEX}]"
+              delay: 10m
+              history: 14d
+              trends: 365d
+              value_type: FLOAT
+              units: "%"
+              params: "last(//printer.supply.level.raw[{#SNMPINDEX}])"
+              tags:
+                - tag: scope
+                  value: supplies
+                - tag: supply
+                  value: "{#SUPPLY_DESCR}"
+              trigger_prototypes:
+                - uuid: a3ab53e29a1d426b94103666becf0d84
+                  expression: "last(/Template Ricoh MP C6004 SNMP/printer.supply.level.percent[{#SNMPINDEX}])<15 and last(/Template Ricoh MP C6004 SNMP/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4"
+                  name: "Supply level is low: {#SUPPLY_DESCR} (< 15%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+
+                - uuid: cdbf17043467403fb99c4227bf29bd1e
+                  expression: "last(/Template Ricoh MP C6004 SNMP/printer.supply.level.percent[{#SNMPINDEX}])<=2 and last(/Template Ricoh MP C6004 SNMP/printer.supply.level.percent[{#SNMPINDEX}])>=0 and {#SUPPLY_TYPE}<>4"
+                  name: "Supply is empty: {#SUPPLY_DESCR} (<= 2%)"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: supplies
+
+                - uuid: 47ff836ed9e8483ea1f52f4845b19c58
+                  expression: "last(/Template Ricoh MP C6004 SNMP/printer.supply.level.percent[{#SNMPINDEX}])<=10 and {#SUPPLY_TYPE}=4"
+                  name: "Waste toner container is almost full ({#SUPPLY_DESCR})"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: waste-toner
+
+        # ----------------------------------------------------------------------
+        # 6. Printer Alerts Discovery (LLD)
+        # ----------------------------------------------------------------------
+        - uuid: a9138b77792042c8ae73e56a2e4cad20
+          name: "Printer Alerts Discovery"
+          type: SNMP_AGENT
+          snmp_oid: "discovery[{#ALERT_CODE},1.3.6.1.2.1.43.18.1.1.7.1,{#ALERT_SEV},1.3.6.1.2.1.43.18.1.1.2.1,{#ALERT_GROUP},1.3.6.1.2.1.43.18.1.1.4.1]"
+          key: printer.alerts.discovery
+          delay: 1m
+          description: "Tự động phát hiện cảnh báo lỗi phần cứng từ prtAlertTable."
+          item_prototypes:
+            - uuid: fed67f5887404bd8bb8df34009339e7b
+              name: "Alert [{#SNMPINDEX}]: Description"
+              type: SNMP_AGENT
+              snmp_oid: "1.3.6.1.2.1.43.18.1.1.8.1.{#SNMPINDEX}"
+              key: "printer.alert.description[{#SNMPINDEX}]"
+              delay: 1m
+              history: 7d
+              trends: "0"
+              value_type: CHAR
+              tags:
+                - tag: scope
+                  value: alerts
+
+            - uuid: b0afd587c31d453c8dc37f46263dff96
+              name: "Alert [{#SNMPINDEX}]: Severity Level"
+              type: SNMP_AGENT
+              snmp_oid: "1.3.6.1.2.1.43.18.1.1.2.1.{#SNMPINDEX}"
+              key: "printer.alert.severity[{#SNMPINDEX}]"
+              delay: 1m
+              history: 7d
+              trends: 365d
+              value_type: UNSIGNED
+              tags:
+                - tag: scope
+                  value: alerts
+              trigger_prototypes:
+                - uuid: d7750e81074b460d89d281978a81601b
+                  expression: "last(/Template Ricoh MP C6004 SNMP/printer.alert.severity[{#SNMPINDEX}])=3"
+                  name: "Ricoh MP C6004 Warning: {ITEM.VALUE1}"
+                  event_name: "Printer Warning: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: WARNING
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-alert
+
+                - uuid: 338399ed26d84ad690a3e23a24fbfaa0
+                  expression: "last(/Template Ricoh MP C6004 SNMP/printer.alert.severity[{#SNMPINDEX}])>=4"
+                  name: "Ricoh MP C6004 Hardware Error: {ITEM.VALUE1}"
+                  event_name: "Printer Hardware Error: {?last(//printer.alert.description[{#SNMPINDEX}])}"
+                  priority: HIGH
+                  manual_close: "YES"
+                  tags:
+                    - tag: class
+                      value: hardware-error
+
+      valuemaps:
+        - uuid: cd344b2285ae488585aeac3a500c6554
+          name: "Service state"
+          mappings:
+            - value: "0"
+              newvalue: Down
+            - value: "1"
+              newvalue: Up
