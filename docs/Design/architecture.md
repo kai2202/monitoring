@@ -176,6 +176,35 @@ CREATE INDEX idx_printer_monthly_lookup ON printer_monthly_volume (year_month, t
   - Kiểm tra nếu `start_counter > 4,200,000,000` và `end_counter < 100,000`: Xử lý theo thuật toán 32-bit Rollover: $\text{delta} = (2^{32} - \text{start\_counter}) + \text{end\_counter}$.
   - Nếu không thỏa mãn mốc rollover (ví dụ kỹ thuật viên thay mainboard làm reset counter về 0): Ghi nhận cờ `is_counter_reset = TRUE`, lấy mốc `end_counter` làm cơ sở chu kỳ mới, tuyệt đối không tạo số âm hoặc số liệu giả.
 
+### 2.3. Thuật Toán Tính Toán Backend & Điều Kiện Biên Cốt Lõi
+
+Nhằm đảm bảo dữ liệu hiển thị trung thực tuyệt đối theo nguyên tắc AGENTS.md, Backend phải thực thi các thuật toán tính toán và điều kiện biên sau:
+
+1. **Thuật toán Dự báo Cạn kiệt Vật tư (Days-to-Empty D-Day) theo Tốc độ tiêu hao trượt 7 ngày (7-Day Rolling Burn Rate):**
+   - *Tốc độ tiêu hao trung bình ngày:* $\Delta C_{avg} = \frac{C_{t-7} - C_t}{7}$ (%/ngày).
+   - *Số ngày còn lại ước tính:* $D = \frac{C_t}{\Delta C_{avg}}$ (ngày).
+   - *Phân loại huy hiệu D-Day:*
+     + $[D \le 5]$: **Khẩn cấp (Rose `#ef4444`)** — Cần thay thế trong tuần.
+     + $[5 < D \le 14]$: **Cần lưu ý (Amber `#f59e0b`)** — Dự trù linh kiện đệm kho.
+     + $[D > 14]$: **An toàn (Green `#10b981`)** — Mức vật tư ổn định.
+   - *Quy chuẩn xử lý điều kiện biên (Edge Cases — Rule 5 AGENTS.md):*
+     + **Máy mới (< 3 ngày dữ liệu) hoặc Không in trong tuần ($\Delta C_{avg} \le 0$):** Trả về `null` (hiển thị `—` hoặc `Chưa đủ dữ liệu`), **tuyệt đối không chia cho 0** tạo ra $\infty$ hoặc số âm giả mạo.
+     + **Khi thay mực mới ($C_t > C_{prev}$):** Backend tự động phát hiện bước nhảy tăng % và reset cửa sổ tính toán từ thời điểm thay mới.
+     + **Máy in đơn sắc (Monochrome):** Các trường `cyan`, `magenta`, `yellow` bắt buộc trả về `null` (hiển thị `—`), chỉ tính toán cho mực đen K.
+     + **Hộp mực thải (Waste Toner Box):** Chuẩn hóa đa hãng về 3 trạng thái: `'OK'`, `'Sắp đầy'` (khi $\ge 80\%$ hoặc nhận SNMP Warning), `'Đầy'` (khi $= 100\%$ hoặc nhận SNMP Critical).
+
+2. **Tỷ lệ Khả dụng Toàn Đội Máy (Fleet Uptime SLA %):**
+   - $Uptime\% = \frac{T_{window} - T_{offline}}{T_{window}} \times 100\%$.
+   - Khi mất kết nối Zabbix, thiết bị không tự động coi là Offline mà chuyển trạng thái `isStale = true` kèm mốc thời gian scrape thành công gần nhất.
+
+3. **Chỉ số Độ Tin Cậy Vận Hành (MTBF & MTTR):**
+   - *MTBF (Thời gian chạy ổn định trung bình):* $MTBF = \frac{\sum T_{online}}{\text{Incident Count}}$ (giờ/máy).
+   - *MTTR (Thời gian khắc phục trung bình):* $MTTR = \frac{\sum T_{repair}}{\text{Resolved Repair Count}}$ (phút/vụ).
+
+4. **Hạch Toán Chi Phí Trang In (Cost Per Page - CPP):**
+   - $\text{Total Maintenance Cost} = \text{Parts Cost (VNĐ)} + \text{Labor Cost (VNĐ)}$.
+   - $CPP = \frac{\text{Total Maintenance Cost}}{\text{Delta Printed Pages}}$ (VNĐ/trang). Nếu không phát sinh trang in, CPP trả về `null`.
+
 ---
 
 ## 3. Đặc Tả Hạng Mục 2: Maintenance Management (Quản Lý Bảo Trì)
@@ -385,6 +414,43 @@ FM-OPT-01,OPT,Lỗi động cơ gương đa giác Polygon Motor,Động cơ quay
 FM-FED-01,FED,Kẹt giấy liên tục tại khay kéo giấy,Bánh xe cao su kéo giấy mòn hoặc cảm biến lệch,Warning,Ricoh,SC990,*,Paper feed jam sensor error,Thay bánh xe kéo giấy (Pick-up roller) và vệ sinh sensor
 ```
 
+### 4.4. Cơ Chế Xử Lý Mã Lỗi Không Hỗ Trợ, Chưa Ánh Xạ & Raw Fallback Engine
+
+Trong môi trường vận hành thực tế hạm đội ~100 máy in, hệ thống có thể tiếp nhận các mã lỗi mà bảng `vendor_error_mappings` chưa ghi nhận (mã lỗi mới của firmware, mã nội bộ đặc thù chưa nạp CSV, hoặc chuỗi raw hexadecimal từ SNMP trap). Nhằm ngăn chặn crash hệ thống và bảo toàn dữ liệu gốc theo nguyên tắc Rule 6 AGENTS.md, Backend thực thi cơ chế Fallback Engine như sau:
+
+```mermaid
+flowchart TD
+    Trigger["Zabbix SNMP Trigger / Trap Phát Hiện Lỗi"] --> CheckMapping{"Tìm kiếm trong\nvendor_error_mappings?"}
+    CheckMapping -->|Tìm thấy| KnownCode["Gán mã nội bộ chuẩn FM-<SUBSYSTEM>-<INDEX>\nLấy mô tả & quy trình khuyến nghị từ MIB/CSV"]
+    CheckMapping -->|Không tìm thấy| Fallback["Kích hoạt Fallback Engine\n(Unmapped Error Handler)"]
+    
+    Fallback --> ParseSubsystem{"Nhận diện được Subsystem\ntừ Trigger Name / OID?"}
+    ParseSubsystem -->|Có nhận diện| SubsystemCode["Gán mã FM-<SUBSYSTEM>-99\n(Ví dụ: FM-FUS-99, FM-FED-99)"]
+    ParseSubsystem -->|Không nhận diện| GenericCode["Gán mã dự phòng toàn cục FM-UNK-01\n(Lỗi phần cứng chưa xác định)"]
+    
+    SubsystemCode --> Preserve["Lưu nguyên vẹn raw_vendor_code & chuỗi mô tả gốc của hãng\nKế thừa severity từ Zabbix Trigger"]
+    GenericCode --> Preserve
+    
+    Preserve --> SetFlag["Gắn cờ needs_mapping_review = TRUE trong Ticket/Incident"]
+    SetFlag --> NOCAlert["Cảnh báo Kỹ sư NOC trên giao diện /settings\nĐề xuất bổ sung ánh xạ vào từ điển CSV"]
+    KnownCode --> CreateTicket["Tạo hoặc Cập nhật Ticket & Incident Khép Kín"]
+    NOCAlert --> CreateTicket
+```
+
+1. **Nguyên Tắc Bảo Toàn Chuỗi Lỗi Gốc (`raw_vendor_code`):**
+   - Tuyệt đối không xóa bỏ, làm tròn hoặc thay thế chuỗi lỗi gốc của hãng.
+   - Trường `raw_vendor_code` trong bảng `maintenance_tickets` lưu trữ chính xác mã hãng gửi về (ví dụ: `SC990-00`, `0x80041001`, `E999`).
+2. **Quy Tắc Định Danh Mã Dự Phòng:**
+   - Nếu nhận diện được phân hệ cơ điện tử từ tên trigger Zabbix (ví dụ chứa từ khóa *Fuser, Heater, Thermistor* $\to$ `FUS`): Gán mã `FM-<SUBSYSTEM>-99` (Ví dụ: `FM-FUS-99`).
+   - Nếu không nhận diện được phân hệ: Gán mã dự phòng toàn cục `FM-UNK-01` (*Lỗi phần cứng chưa xác định phân hệ*).
+3. **Mức Độ Nghiêm Trọng Kế Thừa (Severity Inheritance):**
+   - Độ nghiêm trọng của Ticket (`Critical`, `Warning`, `Info`) được kế thừa trực tiếp từ mức ưu tiên của Zabbix Trigger, không tự ý hạ cấp hoặc nâng cấp vô lý.
+4. **Cơ Chế Gắn Cờ Kiểm Duyệt (`needs_mapping_review = TRUE`):**
+   - Khi có mã lỗi unmapped xuất hiện, hệ thống gắn cờ `needs_mapping_review = TRUE`.
+   - Tại phân hệ Cài đặt (`/settings`), hiển thị danh sách các mã lỗi đang chờ ánh xạ (Unmapped Errors Queue) để Kỹ sư NOC tra cứu Service Manual, điền bổ sung vào file CSV và nạp lại vào PostgreSQL.
+
+---
+
 ---
 
 ## 5. Đặc Tả Hạng Mục 4: Role-Based Dashboard & RBAC
@@ -460,3 +526,56 @@ FM-FED-01,FED,Kẹt giấy liên tục tại khay kéo giấy,Bánh xe cao su k�
 | **Bảo mật & Phân quyền** | RBAC 4 cấp kết hợp Data Scope tiêm tự động tại Backend, không phụ thuộc Frontend ẩn nút. | ✅ Tuân thủ 100% mục 4 |
 | **Giới hạn File Code** | Tất cả file mã nguồn `.tsx`/`.ts` tuân thủ nghiêm ngặt quy định $< 300\text{ LOC}$. | ✅ Tuân thủ 100% mục 7.1 |
 | **Chuẩn biểu tượng** | Sử dụng duy nhất FontAwesome (`@/shared/icons/`), cấm thư viện icon khác. | ✅ Tuân thủ 100% mục 7.1 |
+
+---
+
+## 7. Bộ Tiêu Chuẩn Kiểm Duyệt 6 Cổng (6-Gate Cutover Checklist) Trước Khi Nối Backend Thật & Xóa Mock Data
+
+> **Tài liệu tham chiếu chi tiết:** Xem đặc tả toàn bộ OIDs và các điểm mã nguồn cần refactor tại [Bản Ánh Xạ Dữ Liệu Mock Sang OIDs & APIs](file:///f:/Code/Github/Monitoring/docs/Design/frontend_mock_to_oid_mapping.md).
+
+Để tuân thủ tuyệt đối nguyên tắc toàn vẹn dữ liệu trong AGENTS.md (Đặc biệt: *Không được tự ý bịa đặt dữ liệu, không âm thầm dùng mock data khi mất kết nối backend, và chỉ chuyển cờ khi có bằng chứng kiểm thử thực tế*), toàn bộ hệ thống phải vượt qua **Bộ 6 Cổng Kiểm Soát (6-Gate Checklist)** trước khi xóa các file mock và kích hoạt `DATA_SOURCE = "api"`:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   BỘ 6 CỔNG KIỂM DUYỆT CẮT CHUYỂN DỮ LIỆU                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ [ ] CỔNG 1: DATABASE & SCHEMA PRISMA POSTGRESQL 16                          │
+│     - Chạy Prisma migration tạo trọn vẹn 10 bảng dữ liệu (Printers,         │
+│       Daily/Monthly Rollup, Tickets, Tasks, Work Logs, Attachments, Mappings)│
+│     - Kiểm tra toàn vẹn ràng buộc CHECK, FOREIGN KEY và B-Tree Indexes.     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ [ ] CỔNG 2: TỪ ĐIỂN MÃ LỖI 6 HÃNG & KIỂM THỬ FALLBACK FM-UNK-01             │
+│     - Import thành công file CSV từ điển gốc cho Ricoh, Canon, HP, Brother,  │
+│       Epson, Xerox vào PostgreSQL.                                          │
+│     - Unit test kịch bản mã lỗi không hỗ trợ (unmapped/raw hex): kiểm tra   │
+│       hệ thống tự gán FM-UNK-01, giữ nguyên raw_vendor_code và gắn cờ       │
+│       needs_mapping_review = TRUE, không làm crash server.                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ [ ] CỔNG 3: ZABBIX POLLER GATEWAY (FAST 30S / SLOW 1H) & TEST ROLLOVER 32-BIT│
+│     - Kết nối Zabbix 7.0 JSON-RPC API thành công với token hợp lệ.          │
+│     - Quét chu kỳ 30s lấy ICMP Ping & Triggers cho ~100 hosts không timeout.│
+│     - Quét chu kỳ 1h lấy Counters & Supplies, tính đúng Delta Rollup.       │
+│     - Unit test kịch bản Counter Rollover 32-bit và Bo mạch Reset: xác nhận │
+│       không phát sinh delta âm hoặc số liệu giả.                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ [ ] CỔNG 4: IN-MEMORY CACHE TTL 60S & XỬ LÝ SỰ CỐ MẤT MẠNG (STALE DATA)      │
+│     - In-Memory Cache TTL 60s hoạt động, độ trễ API < 10ms (vượt chuẩn 50ms)│
+│     - Khi Zabbix API bị ngắt: Backend trả dữ liệu đệm cũ kèm isStale = true.│
+│     - Khi cache hết hạn và Zabbix vẫn lỗi: Trả mã HTTP 503 chi tiết,        │
+│       TUYỆT ĐỐI KHÔNG tự động chuyển sang mock data ngầm (AGENTS.md Rule 5).│
+├─────────────────────────────────────────────────────────────────────────────┤
+│ [ ] CỔNG 5: ĐỒNG BỘ 100% TYPE CONTRACTS (FRONTEND <-> BACKEND)              │
+│     - Khớp 100% TypeScript interfaces giữa Express API và Redux RTK Query.  │
+│     - Tất cả giá trị đo lường tuân thủ MetricValue = number | null; thiếu dữ│
+│       liệu hiển thị '—' (không thay bằng 0).                                │
+│     - Tuyệt đối không xuất hiện trường actionGuidance trong payload API.    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ [ ] CỔNG 6: KIỂM THỬ TÍCH HỢP E2E & KÍCH HOẠT LIVE API AN TOÀN              │
+│     - Vận hành thử nghiệm liên tục tối thiểu 2 chu kỳ scrape 30s và 1 chu kỳ │
+│       rollup 1h với thiết bị in ấn thực tế.                                 │
+│     - Chuyển đổi cờ cấu hình DATA_SOURCE = "api" trong Service Provider.    │
+│     - Lưu trữ an toàn (archive) thư mục mock data sang archive/ thay vì xóa │
+│       đột ngột, phục vụ rollback dự phòng nếu Zabbix môi trường gặp sự cố.  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+

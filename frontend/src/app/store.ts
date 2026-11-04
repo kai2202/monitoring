@@ -10,12 +10,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import { baseApi } from './api/baseApi';
 import uiReducer from './slices/uiSlice';
 import comparisonReducer from './slices/comparisonSlice';
+import authReducer from './slices/authSlice';
 
 export const store = configureStore({
   reducer: {
     [baseApi.reducerPath]: baseApi.reducer,
     ui: uiReducer,
     comparison: comparisonReducer,
+    auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

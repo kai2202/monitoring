@@ -29,6 +29,7 @@
 | **TASK-FE-02** | Printers | [Danh Mục Thiết Bị, Lịch Trình Gantt & Lệnh Bảo Trì](file:///f:/Code/Github/Monitoring/docs/Tasks/Printers/TASK-FE-02_printers_diagnostics_and_tasks.MD) | ✅ Hoàn thành | Bảng danh sách 100 máy in phân trang 10-25 dòng lọc Tầng T1-T5, Gantt Timeline nới ô 240px tự xóa task khi hoàn thành, Bảng Lệnh bảo trì CMMS, Drawer 2 tab (OID CMYK, Dynamic Stepper tự tính %, Accordion Kho lịch sử, lưu liên hệ hãng & chi phí) |
 | **TASK-FE-03** | Analytics | [Biểu Đồ Sản Lượng, Dự Báo Vật Tư & SLA Chi Phí](file:///f:/Code/Github/Monitoring/docs/Tasks/Analytics/TASK-FE-03_analytics_charts_and_rankings.MD) | ✅ Hoàn thành | 100% Pure React SVG, Soft Spline 2.25px đỉnh tải, Cột Ngang Mono/Color kèm Pinned Comparison Sandbox cùng thang đo, Slide-over so sánh 1:1, Bảng Dự báo vật tư D-Day viên nang `[D-4]` & theo dõi Hộp mực thải, Vòng cung chi phí 180°, Ma trận nhiệt sự cố 5 tầng x 7 tuần |
 | **TASK-FE-04** | Settings | [Quy Tắc Vận Hành NOC, Auto-Closure & Từ Điển Mã Lỗi CSV](file:///f:/Code/Github/Monitoring/docs/Tasks/Settings/TASK-FE-04_settings_error_dictionary_rules.MD) | ✅ Hoàn thành | Quy tắc Safe Window 10m, Critical Protection, Cache TTL 60s, Single-Operator NOC, Tra cứu & nạp CSV từ điển mã lỗi phần cứng 6 hãng kèm Audit Trail |
+| **TASK-FE-05** | Auth & RBAC | [Xác Thực Người Dùng & Phân Quyền 3 Vai Trò UI](file:///f:/Code/Github/Monitoring/docs/Design/rbac_roles_and_ui_permissions_spec.md) | ✅ Hoàn thành | Trang Login Bento, 3 Thẻ 1-Click Role Login, Lọc Sidebar theo quyền (Admin IT/NOC, Field Tech, HR Kiểm kê tài sản), Route Guard ProtectedRoute, Role Switcher tại chân Sidebar |
 
 ---
 
@@ -36,12 +37,12 @@
 
 | Mã Task | Phân hệ | Tên Nhiệm Vụ & Tài Liệu | Trạng thái | Phạm Vi Kỹ Thuật Đặc Tả Cho ~100 Thiết Bị |
 | :--- | :--- | :--- | :---: | :--- |
-| **TASK-BE-01** | Gateway | Backend Zabbix 7.0 JSON-RPC Client & SNMP Collector Gateway | ⏳ Sẵn sàng | Polling 2 chu kỳ: Fast Polling 30s (~3.3 req/s) cho ICMP Ping & Triggers; Slow Polling 1h cho Bộ đếm counter & Mức vật tư |
-| **TASK-BE-02** | Core | In-Memory Caching 60s & Hardware Error Classification Engine | ⏳ Sẵn sàng | Lưu đệm in-memory TTL 60s (RAM < 1MB, UI < 10ms), chuẩn hóa mã lỗi vendor (SC, E-code), phân loại mức độ sự cố |
-| **TASK-BE-03** | Operations | Maintenance Management: Ticket, Task, Work Log & MinIO Storage | ⏳ Sẵn sàng | Quản lý vòng đời 3 tầng (Ticket -> Task -> Work Log), chi phí vật tư & nhân công VNĐ, lưu ảnh MinIO S3, tái sử dụng tri thức giải pháp |
-| **TASK-BE-04** | Telemetry | Printer Analytics (~100 máy) & Daily Rollup Aggregator API | ⏳ Sẵn sàng | Bảng Rollup ngày `printer_daily_volume` (~36.5k rows/năm, ~5MB/năm), tính delta (bắt rollover 32-bit/reset), cung cấp dữ liệu cho Pure SVG Charts |
-| **TASK-BE-05** | Settings | Error Code Standardization (6 Hãng) & CSV Import Engine | ⏳ Sẵn sàng | Nạp CSV từ điển mã lỗi qua giao diện Settings, ánh xạ 6 hãng (Ricoh, HP, Canon, Epson, Brother, Xerox) sang `FM-...`, audit logs |
-| **TASK-BE-06** | Security | Multi-User RBAC 4 Cấp & Data Scope Middleware | ⏳ Sẵn sàng | Phân quyền 4 vai trò (Fleet Manager, NOC, Field Tech, HR), tự động tiêm lọc SQL theo Tầng/Phòng ban, lưu cấu hình widget người dùng |
+| **TASK-BE-01** | Gateway | [Zabbix 7.0 JSON-RPC Client & SNMP Collector Gateway](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-01_zabbix_gateway.MD) | ⏳ Sẵn sàng | Polling 2 chu kỳ: Fast Polling 30s (~3.3 req/s) cho ICMP Ping & Triggers; Slow Polling 1h cho Bộ đếm counter & Mức vật tư; Safe Window 10m chống flapping |
+| **TASK-BE-02** | Core | [In-Memory Caching 60s & Hardware Error Classification Engine](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-02_cache_and_error_classification.MD) | ⏳ Sẵn sàng | Lưu đệm in-memory TTL 60s (RAM < 10MB, UI < 5ms), xử lý Stale khi Zabbix ngắt kết nối (không mock ngầm), bộ phân loại lỗi fallback `FM-UNK-01` & `needs_mapping_review: true` |
+| **TASK-BE-03** | Operations | [Maintenance Management: Ticket, Task, Work Log & MinIO Storage](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-03_maintenance_cmms.MD) | ⏳ Sẵn sàng | Quản lý vòng đời 3 tầng (Ticket -> Task -> Work Log), chi phí vật tư & nhân công VNĐ, lưu ảnh MinIO S3 qua Presigned URLs, tái sử dụng tri thức giải pháp |
+| **TASK-BE-04** | Telemetry | [Printer Analytics (~100 máy) & Rollup Aggregator API](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-04_analytics_rollup_engine.MD) | ⏳ Sẵn sàng | Bảng Rollup giờ/ngày (~36.5k rows/năm, ~5MB/năm), thuật toán 3 trạng thái tính delta (bắt rollover 32-bit/reset), D-Day trượt 7 ngày, cung cấp API cho Pure SVG Charts |
+| **TASK-BE-05** | Settings | [Error Code Standardization (6 Hãng) & CSV Import Engine](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-05_error_dictionary_csv.MD) | ⏳ Sẵn sàng | Nạp CSV từ điển mã lỗi qua giao diện Settings, kiểm duyệt Dry-Run 2 bước & commit nguyên tử, ánh xạ 6 hãng sang `FM-...`, hàng đợi duyệt mã chưa ánh xạ (Unmapped Queue) |
+| **TASK-BE-06** | Security | [Multi-User RBAC 4 Cấp & Data Scope Middleware](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-06_rbac_data_scope.MD) | ⏳ Sẵn sàng | Phân quyền 4 vai trò (Fleet Manager, NOC, Field Tech, HR), tự động tiêm lọc SQL theo Tầng/Phòng ban, lưu cấu hình widget và máy in ghim so sánh |
 
 ---
 
@@ -68,6 +69,14 @@
 │ [ ] TASK-BE-04: API Endpoint Telemetry Rollup & Delta Counter               │
 │ [ ] TASK-BE-05: CSV Import Engine & Bảng Ánh Xạ Mã Lỗi                      │
 │ [ ] TASK-BE-06: RBAC 4 Cấp & Data Scope Middleware                          │
-│ [ ] Chuyển đổi cờ DATA_SOURCE = "api" trong Service Provider Layer          │
+│                                                                             │
+│ ── BỘ 6 CỔNG KIỂM SOÁT NGHIỆM THU (CUTOVER GATES) TRƯỚC KHI XÓA MOCK ──     │
+│ [ ] Cổng 1: Schema Prisma PostgreSQL 16 hoàn tất migration                  │
+│ [ ] Cổng 2: Nạp CSV từ điển 6 hãng + Test mã unmapped fallback FM-UNK-01    │
+│ [ ] Cổng 3: Zabbix Poller 30s/1h + Test Rollover 32-bit & Reset bo mạch     │
+│ [ ] Cổng 4: Cache TTL 60s + Xử lý Stale khi Zabbix ngắt (không mock ngầm)   │
+│ [ ] Cổng 5: Khớp 100% Type Contracts (MetricValue = number | null, no actionGuidance)│
+│ [ ] Cổng 6: Test E2E thành công -> Bật DATA_SOURCE='api' & Archive Mock Data│
+│     * Xem đặc tả OIDs: docs/Design/frontend_mock_to_oid_mapping.md          │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

@@ -7,6 +7,8 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../app/store';
 import {
   FontAwesomeIcon,
   faPrint,
@@ -43,11 +45,12 @@ export const PrintersPage: React.FC<PrintersPageProps> = ({
   activeSubTab,
   onSubTabChange,
 }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [internalTab, setInternalTab] = useState<'printers' | 'timeline' | 'history'>(
-    activeSubTab || 'printers'
+    activeSubTab || (user?.role === 'FIELD_TECH' || user?.role === 'FIELD_TECHNICIAN' ? 'timeline' : 'printers')
   );
 
   useEffect(() => {
@@ -162,11 +165,27 @@ export const PrintersPage: React.FC<PrintersPageProps> = ({
             )}
           </div>
           <div>
-            <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-              {mainTab === 'printers' ? 'Danh Sách Máy In' : mainTab === 'timeline' ? 'Lịch Trình Bảo Trì' : 'Lệnh Bảo Trì (Work Orders)'}
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                {mainTab === 'printers' ? (user?.role === 'ASSET_HR' ? 'Danh Mục Kiểm Kê Tài Sản' : 'Danh Sách Máy In') : mainTab === 'timeline' ? 'Lịch Trình Bảo Trì' : 'Xử Lý Kỹ Thuật'}
+              </h1>
+              {user && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    backgroundColor: user.role === 'ADMIN' ? 'rgba(37, 99, 235, 0.1)' : (user.role === 'FIELD_TECH' || user.role === 'FIELD_TECHNICIAN') ? 'rgba(245, 158, 11, 0.1)' : 'rgba(236, 72, 153, 0.1)',
+                    color: user.role === 'ADMIN' ? '#2563eb' : (user.role === 'FIELD_TECH' || user.role === 'FIELD_TECHNICIAN') ? '#d97706' : '#db2777',
+                  }}
+                >
+                  {user.roleNameVi}
+                </span>
+              )}
+            </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-              {mainTab === 'printers' ? `Quản lý toàn diện ${printers.length} thiết bị và chẩn đoán kỹ thuật` : mainTab === 'timeline' ? 'Quan sát hạn hoàn thành và tiến độ công việc' : `Theo dõi ${allTasks.length} lệnh bảo trì`}
+              {mainTab === 'printers' ? (user?.role === 'ASSET_HR' ? `Kiểm kê toàn bộ ${printers.length} thiết bị, số serial và vị trí bàn giao 5 tầng` : `Quản lý toàn diện ${printers.length} thiết bị và chẩn đoán kỹ thuật`) : mainTab === 'timeline' ? 'Quan sát hạn hoàn thành và tiến độ công việc' : `Theo dõi ${allTasks.length} lệnh bảo trì`}
             </p>
           </div>
         </div>

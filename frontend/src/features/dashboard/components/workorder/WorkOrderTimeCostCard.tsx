@@ -7,6 +7,8 @@
  */
 
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../../app/store';
 import { FontAwesomeIcon, faClock } from '../../../../shared/icons';
 import { TimeAndCostSummary } from '../../../../types/task';
 import { TimeDurationPicker, formatDurationVi } from './TimeDurationPicker';
@@ -22,6 +24,9 @@ export const WorkOrderTimeCostCard: React.FC<WorkOrderTimeCostCardProps> = ({
   estimatedTimeAndCost,
   onSaveTimeCost,
 }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isTech = user?.role === 'FIELD_TECH' || user?.role === 'FIELD_TECHNICIAN';
+  const isHr = user?.role === 'ASSET_HR';
   const [isEditing, setIsEditing] = useState(false);
 
   // States khi chỉnh sửa
@@ -47,8 +52,8 @@ export const WorkOrderTimeCostCard: React.FC<WorkOrderTimeCostCardProps> = ({
   const handleSave = () => {
     const totalRepairHours = editRepairH + editRepairM / 60;
     const totalWaitHours = editWaitH + editWaitM / 60;
-    const labor = editLaborCost ? parseFloat(editLaborCost) || null : null;
-    const parts = editPartsCost ? parseFloat(editPartsCost) || null : null;
+    const labor = isTech ? timeAndCost.laborCostVnd : (editLaborCost ? parseFloat(editLaborCost) || null : null);
+    const parts = isTech ? timeAndCost.partsCostVnd : (editPartsCost ? parseFloat(editPartsCost) || null : null);
     const totalCost = (labor || 0) + (parts || 0) || null;
 
     if (onSaveTimeCost) {
@@ -64,7 +69,7 @@ export const WorkOrderTimeCostCard: React.FC<WorkOrderTimeCostCardProps> = ({
     setIsEditing(false);
   };
 
-  const rows = [
+  const allRows = [
     {
       label: 'Thời gian sửa chữa (Repair)',
       val: formatDurationVi(timeAndCost.repairTimeHours),
@@ -89,12 +94,14 @@ export const WorkOrderTimeCostCard: React.FC<WorkOrderTimeCostCardProps> = ({
       val: timeAndCost.laborCostVnd != null ? `${timeAndCost.laborCostVnd.toLocaleString('vi-VN')} đ` : '—',
       est: estimatedTimeAndCost?.laborCostVnd != null ? `${estimatedTimeAndCost.laborCostVnd.toLocaleString('vi-VN')} đ` : '—',
       color: '#0891b2',
+      isCost: true,
     },
     {
       label: 'Chi phí linh kiện thay thế',
       val: timeAndCost.partsCostVnd != null ? `${timeAndCost.partsCostVnd.toLocaleString('vi-VN')} đ` : '—',
       est: estimatedTimeAndCost?.partsCostVnd != null ? `${estimatedTimeAndCost.partsCostVnd.toLocaleString('vi-VN')} đ` : '—',
       color: '#8b5cf6',
+      isCost: true,
     },
     {
       label: 'Tổng chi phí thực tế',
@@ -102,8 +109,11 @@ export const WorkOrderTimeCostCard: React.FC<WorkOrderTimeCostCardProps> = ({
       est: estimatedTimeAndCost?.totalCostVnd != null ? `${estimatedTimeAndCost.totalCostVnd.toLocaleString('vi-VN')} đ` : '—',
       color: '#16a34a',
       isBold: true,
+      isCost: true,
     },
   ];
+
+  const rows = isTech ? allRows.filter((r) => !r.isCost) : allRows;
 
   return (
     <div
@@ -121,23 +131,25 @@ export const WorkOrderTimeCostCard: React.FC<WorkOrderTimeCostCardProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FontAwesomeIcon icon={faClock} style={{ fontSize: '15px', color: '#2563eb' }} />
           <h4 style={{ fontSize: '13px', fontWeight: 700, margin: 0, color: 'var(--text-primary, #0f172a)' }}>
-            Hạch Toán Thời Gian &amp; Chi Phí Bảo Trì
+            {isTech ? 'Hạch Toán Thời Gian Thực Tế' : 'Hạch Toán Thời Gian & Chi Phí Bảo Trì'}
           </h4>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsEditing(!isEditing)}
-          style={{
-            fontSize: '11px',
-            color: '#2563eb',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: 600,
-          }}
-        >
-          {isEditing ? 'Đóng' : 'Chỉnh sửa'}
-        </button>
+        {!isHr && (
+          <button
+            type="button"
+            onClick={() => setIsEditing(!isEditing)}
+            style={{
+              fontSize: '11px',
+              color: '#2563eb',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            {isEditing ? 'Đóng' : isTech ? 'Ghi nhận giờ làm' : 'Chỉnh sửa'}
+          </button>
+        )}
       </div>
 
       {isEditing ? (
@@ -158,26 +170,28 @@ export const WorkOrderTimeCostCard: React.FC<WorkOrderTimeCostCardProps> = ({
             onChangeMinutes={setEditWaitM}
             compact
           />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <div>
-              <label style={{ fontSize: '10.5px', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Chi phí nhân công (VNĐ):</label>
-              <input
-                type="number"
-                value={editLaborCost}
-                onChange={(e) => setEditLaborCost(e.target.value)}
-                style={{ width: '100%', padding: '5px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
-              />
+          {!isTech && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div>
+                <label style={{ fontSize: '10.5px', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Chi phí nhân công (VNĐ):</label>
+                <input
+                  type="number"
+                  value={editLaborCost}
+                  onChange={(e) => setEditLaborCost(e.target.value)}
+                  style={{ width: '100%', padding: '5px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '10.5px', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Chi phí linh kiện (VNĐ):</label>
+                <input
+                  type="number"
+                  value={editPartsCost}
+                  onChange={(e) => setEditPartsCost(e.target.value)}
+                  style={{ width: '100%', padding: '5px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
+                />
+              </div>
             </div>
-            <div>
-              <label style={{ fontSize: '10.5px', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Chi phí linh kiện (VNĐ):</label>
-              <input
-                type="number"
-                value={editPartsCost}
-                onChange={(e) => setEditPartsCost(e.target.value)}
-                style={{ width: '100%', padding: '5px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
-              />
-            </div>
-          </div>
+          )}
           <button
             type="button"
             onClick={handleSave}
@@ -193,7 +207,7 @@ export const WorkOrderTimeCostCard: React.FC<WorkOrderTimeCostCardProps> = ({
               marginTop: '4px',
             }}
           >
-            Lưu cập nhật chi phí
+            {isTech ? 'Lưu thời gian thực tế' : 'Lưu cập nhật chi phí'}
           </button>
         </div>
       ) : (

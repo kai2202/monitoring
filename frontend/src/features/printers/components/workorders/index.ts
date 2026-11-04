@@ -6,4 +6,4 @@ export * from './WorkOrdersFilterBar';
 export * from './WorkOrderTableRow';
 export * from './WorkOrdersSubStepsRow';
 export * from './WorkOrdersTable';
-
+export * from './TechnicianPerformanceCard';

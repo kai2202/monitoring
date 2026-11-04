@@ -2,12 +2,15 @@
  * Frontend/src/components/layout/Sidebar.tsx
  *
  * Thanh điều hướng chính của FleetMonitor theo chuẩn Soft Modern SaaS:
+ * - Phân quyền hiển thị Menu tự động theo UserRole (Fleet Manager, NOC, Tech, Dept Head).
  * - 100% FontAwesome Icons (AGENTS.md Rule 7.1).
- * - Cây phân nhánh (Treeview Connector Lines) trực quan theo mockup.
- * - Module hóa cao độ, chia nhỏ thành SidebarNavItem & SidebarNavGroup (<300 dòng/file).
+ * - Cây phân nhánh (Treeview Connector Lines) trực quan.
+ * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
 import {
   FontAwesomeIcon,
   faPrint,
@@ -15,10 +18,10 @@ import {
   faChartLine,
   faGear,
   faChevronLeft,
-  faChevronRight,
 } from '../../shared/icons';
 import { SidebarNavItem } from './SidebarNavItem';
 import { SidebarNavGroup, SubItemConfig } from './SidebarNavGroup';
+import { SidebarProfileFooter } from './SidebarProfileFooter';
 
 export type NavTabId =
   | 'dashboard'
@@ -43,6 +46,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   onToggleCollapse,
 }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const role = user?.role || 'ADMIN';
+
+  // Điều kiện hiển thị phân hệ theo 3 vai trò chuẩn hoá (/grill-me consensus)
+  const isFieldTech = role === 'FIELD_TECH' || role === 'FIELD_TECHNICIAN';
+  const isAssetHr = role === 'ASSET_HR' || role === 'DEPARTMENT_HEAD';
+  const isAdmin = !isFieldTech && !isAssetHr;
+
+  const canAccessDashboard = true; // Cả 3 vai trò đều xem Dashboard tổng quan
+  const canAccessAnalytics = true; // Cả 3 vai trò đều xem Phân tích (nhưng sub-items khác nhau)
+  const canAccessSettings = isAdmin; // Chỉ Admin mới có quyền vào Cấu hình hệ thống & CSV
+
   const [isPrintersOpen, setIsPrintersOpen] = useState(true);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(true);
 
@@ -64,17 +79,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (isAnalyticsActive && !isAnalyticsOpen) setIsAnalyticsOpen(true);
   }, [isAnalyticsActive]);
 
-  const printerSubItems: SubItemConfig[] = [
-    { id: 'printers', label: 'Danh sách', badge: 35 },
-    { id: 'printers-timeline', label: 'Lịch trình' },
-    { id: 'printers-history', label: 'Bảo trì' },
-  ];
+  // Cấu hình menu Máy in dựa theo vai trò
+  const printerSubItems: SubItemConfig[] = useMemo(() => {
+    if (isFieldTech) {
+      return [
+        { id: 'printers-timeline', label: 'Lịch trình bảo trì' },
+        { id: 'printers-history', label: 'Lệnh bảo trì' },
+        { id: 'printers', label: 'Danh sách máy' },
+      ];
+    }
+    if (isAssetHr) {
+      return [
+        { id: 'printers', label: 'Danh mục tài sản', badge: 35 },
+        { id: 'printers-timeline', label: 'Lịch bảo dưỡng' },
+      ];
+    }
+    return [
+      { id: 'printers', label: 'Danh sách', badge: 35 },
+      { id: 'printers-timeline', label: 'Lịch trình' },
+      { id: 'printers-history', label: 'Bảo trì' },
+    ];
+  }, [isFieldTech, isAssetHr]);
 
-  const analyticsSubItems: SubItemConfig[] = [
-    { id: 'analytics', label: 'Sản lượng in' },
-    { id: 'analytics-supplies', label: 'Vật tư', badge: 4 },
-    { id: 'analytics-sla-cost', label: 'SLA & Chi phí' },
-  ];
+  // Cấu hình menu Phân tích dựa theo vai trò
+  const analyticsSubItems: SubItemConfig[] = useMemo(() => {
+    if (isFieldTech) {
+      return [
+        { id: 'analytics', label: 'Sản lượng in' },
+        { id: 'analytics-supplies', label: 'Vật tư', badge: 4 },
+      ];
+    }
+    if (isAssetHr) {
+      return [
+        { id: 'analytics', label: 'Sản lượng in' },
+        { id: 'analytics-supplies', label: 'Vật tư D-Day', badge: 4 },
+        { id: 'analytics-sla-cost', label: 'Hạch toán chi phí' },
+      ];
+    }
+    return [
+      { id: 'analytics', label: 'Sản lượng in' },
+      { id: 'analytics-supplies', label: 'Vật tư', badge: 4 },
+      { id: 'analytics-sla-cost', label: 'SLA & Chi phí' },
+    ];
+  }, [isFieldTech, isAssetHr]);
 
   return (
     <aside
@@ -163,17 +210,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         )}
 
-        <SidebarNavItem
-          id="dashboard"
-          label="Dashboard"
-          icon={faTableColumns}
-          activeTab={activeTab}
-          collapsed={collapsed}
-          onSelectTab={onSelectTab}
-        />
+        {/* Dashboard: Không hiển thị cho Kỹ thuật viên bảo trì */}
+        {canAccessDashboard && (
+          <SidebarNavItem
+            id="dashboard"
+            label="Dashboard"
+            icon={faTableColumns}
+            activeTab={activeTab}
+            collapsed={collapsed}
+            onSelectTab={onSelectTab}
+          />
+        )}
 
+        {/* Máy in: Hiển thị cho toàn bộ vai trò */}
         <SidebarNavGroup
-          label="Máy in"
+          label={role === 'FIELD_TECHNICIAN' ? 'Bảo trì máy in' : 'Máy in'}
           icon={faPrint}
           isOpen={isPrintersOpen}
           onToggleOpen={() => setIsPrintersOpen((prev) => !prev)}
@@ -183,93 +234,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onSelectTab={onSelectTab}
         />
 
-        <SidebarNavGroup
-          label="Phân tích"
-          icon={faChartLine}
-          isOpen={isAnalyticsOpen}
-          onToggleOpen={() => setIsAnalyticsOpen((prev) => !prev)}
-          collapsed={collapsed}
-          activeTab={activeTab}
-          subItems={analyticsSubItems}
-          onSelectTab={onSelectTab}
-        />
+        {/* Phân tích: Không hiển thị cho Kỹ thuật viên bảo trì */}
+        {canAccessAnalytics && (
+          <SidebarNavGroup
+            label="Phân tích"
+            icon={faChartLine}
+            isOpen={isAnalyticsOpen}
+            onToggleOpen={() => setIsAnalyticsOpen((prev) => !prev)}
+            collapsed={collapsed}
+            activeTab={activeTab}
+            subItems={analyticsSubItems}
+            onSelectTab={onSelectTab}
+          />
+        )}
 
-        <SidebarNavItem
-          id="settings"
-          label="Cấu hình"
-          icon={faGear}
-          activeTab={activeTab}
-          collapsed={collapsed}
-          onSelectTab={onSelectTab}
-        />
+        {/* Cấu hình: Chỉ hiển thị cho Fleet Manager và Kỹ sư NOC */}
+        {canAccessSettings && (
+          <SidebarNavItem
+            id="settings"
+            label="Cấu hình"
+            icon={faGear}
+            activeTab={activeTab}
+            collapsed={collapsed}
+            onSelectTab={onSelectTab}
+          />
+        )}
       </nav>
 
-      {/* Footer Profile */}
-      <div
-        style={{
-          padding: '16px',
-          borderTop: '1px solid var(--border-color, #e2e8f0)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'space-between',
-          gap: '10px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              backgroundColor: '#e0e7ff',
-              color: '#4338ca',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '12px',
-              flexShrink: 0,
-              border: '2px solid #ffffff',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
-            }}
-          >
-            OP
-          </div>
-          {!collapsed && (
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                Người vận hành
-              </span>
-              <span style={{ fontSize: '10.5px', color: 'var(--text-muted, #64748b)' }}>
-                Kỹ sư NOC
-              </span>
-            </div>
-          )}
-        </div>
-
-        {collapsed && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            title="Mở rộng menu"
-            style={{
-              width: '26px',
-              height: '26px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-muted, #64748b)',
-              backgroundColor: 'var(--bg-subtle, rgba(0, 0, 0, 0.04))',
-              border: '1px solid var(--border-color, #e2e8f0)',
-              cursor: 'pointer',
-              fontSize: '10px',
-            }}
-          >
-            <FontAwesomeIcon icon={faChevronRight} />
-          </button>
-        )}
-      </div>
+      {/* Footer Profile & Quick Role Switcher */}
+      <SidebarProfileFooter collapsed={collapsed} onToggleCollapse={onToggleCollapse} />
     </aside>
   );
 };

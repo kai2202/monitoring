@@ -8,6 +8,8 @@
  */
 
 import React from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../../app/store';
 import {
   FontAwesomeIcon,
   faChevronLeft,
@@ -50,6 +52,9 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
   printersWithTasksCount,
   onOpenCreateModal,
 }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isAdmin = user?.role === 'ADMIN';
+
   return (
     <div
       style={{
@@ -219,27 +224,29 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
           </span>
         </button>
 
-        <button
-          type="button"
-          onClick={onOpenCreateModal}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 14px',
-            borderRadius: '10px',
-            backgroundColor: '#16a34a',
-            color: '#ffffff',
-            fontSize: '12px',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
-          }}
-        >
-          <FontAwesomeIcon icon={faPlus} style={{ fontSize: '12px' }} />
-          <span>Tạo việc mới</span>
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={onOpenCreateModal}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '10px',
+              backgroundColor: '#16a34a',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+            }}
+          >
+            <FontAwesomeIcon icon={faPlus} style={{ fontSize: '12px' }} />
+            <span>Tạo việc mới</span>
+          </button>
+        )}
       </div>
     </div>
   );

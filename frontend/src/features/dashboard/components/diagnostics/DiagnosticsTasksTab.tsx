@@ -8,6 +8,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../../app/store';
 import {
   FontAwesomeIcon,
   faPlus,
@@ -43,6 +45,8 @@ export const DiagnosticsTasksTab: React.FC<DiagnosticsTasksTabProps> = ({
   onToggleStep,
   onAddActivityNote,
 }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isAdmin = user?.role === 'ADMIN';
   const [filterMode, setFilterMode] = useState<'active' | 'history'>('active');
   const [expandedHistoryIds, setExpandedHistoryIds] = useState<Record<string, boolean>>({});
 
@@ -104,26 +108,28 @@ export const DiagnosticsTasksTab: React.FC<DiagnosticsTasksTabProps> = ({
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenCreateTask}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 14px',
-            borderRadius: '10px',
-            backgroundColor: '#16a34a',
-            color: '#ffffff',
-            fontSize: '11.5px',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          <FontAwesomeIcon icon={faPlus} style={{ fontSize: '12px' }} />
-          <span>Tạo công việc mới</span>
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={onOpenCreateTask}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '10px',
+              backgroundColor: '#16a34a',
+              color: '#ffffff',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <FontAwesomeIcon icon={faPlus} style={{ fontSize: '12px' }} />
+            <span>Tạo công việc mới</span>
+          </button>
+        )}
       </div>
 
       {/* 2. CHẾ ĐỘ 1: ĐANG XỬ LÝ (Active Tasks) */}

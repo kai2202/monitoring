@@ -2,20 +2,23 @@
  * Frontend/src/routes/AppRoutes.tsx
  *
  * Định tuyến toàn ứng dụng với React Router v6 & Feature Route Manifest:
- * - Áp dụng Rule 7.1: Phân tán định tuyến cho từng feature module (dashboard, printers, analytics, settings).
+ * - Tích hợp Trang Đăng nhập & Route Guard kiểm tra quyền hạn 4 vai trò (RBAC).
  * - Suspense Skeleton Fallback chống Layout Shift.
- * - Hạn chế tối đa Git merge conflicts khi thêm nhiều phân hệ mới trong tương lai.
+ * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
  */
 
 import React, { Suspense, useMemo } from 'react';
 import { useRoutes, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../app/store';
 import { AppShell } from '../components/layout/AppShell';
+import { LoginPage } from '../features/auth';
+import { ProtectedRoute } from './ProtectedRoute';
 import { getDashboardRoutes } from '../features/dashboard';
 import { getPrintersRoutes } from '../features/printers';
 import { getAnalyticsRoutes } from '../features/analytics';
 import { getSettingsRoutes } from '../features/settings';
 
-// Fallback Loading Skeleton mượt mà
 const RouteLoadingFallback: React.FC = () => (
   <div className="flex flex-col gap-6 p-6 w-full animate-pulse">
     <div className="h-14 rounded-2xl bg-secondary/60 w-full" />
@@ -32,6 +35,10 @@ const RouteLoadingFallback: React.FC = () => (
 export const AppRoutes: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+
+  const role = user?.role;
+  const isLoginPage = location.pathname === '/login';
 
   // Map path hiện tại về activeTab cho Sidebar
   const getActiveTab = () => {
@@ -46,7 +53,6 @@ export const AppRoutes: React.FC = () => {
     return 'dashboard';
   };
 
-  // Handler khi click chọn tab trên Sidebar
   const handleSelectTab = (tab: string) => {
     switch (tab) {
       case 'dashboard':
@@ -78,31 +84,75 @@ export const AppRoutes: React.FC = () => {
     }
   };
 
+  // Trang đích mặc định tùy vai trò người dùng
+  const defaultHomePath = role === 'FIELD_TECHNICIAN' ? '/printers/timeline' : '/dashboard';
+
   const routes = useMemo(
     () => [
-      { path: '/', element: <Navigate to="/dashboard" replace /> },
+      {
+        path: '/login',
+        element: isAuthenticated ? <Navigate to={defaultHomePath} replace /> : <LoginPage />,
+      },
+      {
+        path: '/',
+        element: <Navigate to={defaultHomePath} replace />,
+      },
       ...getDashboardRoutes({
         onNavigateModule: (tab) => handleSelectTab(tab),
         onCreateTaskForPrinter: () => navigate('/printers/list'),
-      }),
+      }).map((r) => ({
+        ...r,
+        element: <ProtectedRoute>{r.element as React.ReactElement}</ProtectedRoute>,
+      })),
       ...getPrintersRoutes({
         onSubTabChange: (sub) => navigate(`/printers/${sub}`),
         onNavigateModule: (tab) => handleSelectTab(tab),
         onCreateTaskForPrinter: () => navigate('/printers/list'),
-      }),
+      }).map((r) => ({
+        ...r,
+        element: <ProtectedRoute>{r.element as React.ReactElement}</ProtectedRoute>,
+      })),
       ...getAnalyticsRoutes({
         onSubTabChange: (sub) => navigate(`/analytics/${sub}`),
         onNavigateModule: (tab) => handleSelectTab(tab),
         onCreateTaskForPrinter: () => navigate('/printers/list'),
+      }).map((r) => {
+        const isSlaCostRoute = r.path?.includes('sla-cost');
+        const allowedRoles = isSlaCostRoute
+          ? (['ADMIN', 'ASSET_HR', 'FLEET_MANAGER', 'NOC_ENGINEER', 'DEPARTMENT_HEAD'] as any[])
+          : undefined;
+        return {
+          ...r,
+          element: (
+            <ProtectedRoute allowedRoles={allowedRoles}>
+              {r.element as React.ReactElement}
+            </ProtectedRoute>
+          ),
+        };
       }),
-      ...getSettingsRoutes(),
-      { path: '*', element: <Navigate to="/dashboard" replace /> },
+      ...getSettingsRoutes().map((r) => ({
+        ...r,
+        element: (
+          <ProtectedRoute allowedRoles={['ADMIN', 'FLEET_MANAGER', 'NOC_ENGINEER']}>
+            {r.element as React.ReactElement}
+          </ProtectedRoute>
+        ),
+      })),
+      {
+        path: '*',
+        element: <Navigate to={defaultHomePath} replace />,
+      },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [isAuthenticated, role, defaultHomePath]
   );
 
   const routeElements = useRoutes(routes);
+
+  // Nếu đang ở màn hình Đăng nhập -> không bọc AppShell
+  if (isLoginPage) {
+    return <Suspense fallback={<RouteLoadingFallback />}>{routeElements}</Suspense>;
+  }
 
   return (
     <AppShell activeTab={getActiveTab() as any} onSelectTab={handleSelectTab as any}>

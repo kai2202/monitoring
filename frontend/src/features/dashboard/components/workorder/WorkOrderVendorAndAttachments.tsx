@@ -102,7 +102,7 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FontAwesomeIcon icon={faPhone} style={{ fontSize: '13px', color: '#8b5cf6' }} />
             <strong style={{ fontSize: '12.5px', color: 'var(--text-primary, #0f172a)' }}>
-              Liên Hệ Hãng &amp; Chuyên Gia ({vendorLogs.length})
+              Liên Hệ Hãng ({vendorLogs.length})
             </strong>
           </div>
           <FontAwesomeIcon icon={isVendorOpen ? faChevronUp : faChevronDown} style={{ fontSize: '12px' }} />
@@ -171,7 +171,7 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FontAwesomeIcon icon={faPaperclip} style={{ fontSize: '13px', color: '#2563eb' }} />
             <strong style={{ fontSize: '12.5px', color: 'var(--text-primary, #0f172a)' }}>
-              Tài Liệu Đính Kèm &amp; Sơ Đồ ({attachments.length})
+              Tài Liệu Đính Kèm ({attachments.length})
             </strong>
           </div>
           <FontAwesomeIcon icon={isAttachmentsOpen ? faChevronUp : faChevronDown} style={{ fontSize: '12px' }} />

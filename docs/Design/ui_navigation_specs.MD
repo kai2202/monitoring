@@ -66,15 +66,20 @@ Phân hệ cốt lõi quản lý hạm đội ~100 máy in, chia thành 3 Sub-ta
 - **Thanh công cụ Toolbar:** Ô tìm kiếm tức thì theo tên/model/IP, bộ lọc theo Hãng sản xuất (Ricoh, Canon, HP, Brother, Epson, Xerox), bộ lọc theo Tầng (Tất cả, T1–T5) và trạng thái kết nối.
 - **Bảng Danh mục Thiết bị (PrinterTableView):**
   + 7 cột thông tin chuẩn mực: Tên & Model thiết bị, Địa chỉ IP (hỗ trợ copy nhanh 1-click), Vị trí (Tầng - Phòng ban), Trạng thái kết nối (Online / Offline), Sức khỏe phần cứng (Healthy / Warning / Critical), Số lệnh bảo trì đang mở, Thao tác chẩn đoán.
+  + **Phân quyền thao tác theo JD:** Chỉ `ADMIN` mới có quyền điều chuyển/cập nhật vị trí & phòng ban; `ASSET_HR` chỉ xem số Serial, Model và Vị trí để kiểm kê đối soát định kỳ; `FIELD_TECH` xem IP & vị trí để định vị thiết bị cần khắc phục.
   + Phân trang thu gọn (10–25 dòng/trang), nạp toàn bộ danh mục ~100 máy in (< 50KB) vào bộ nhớ client để tìm kiếm và lọc tức thì $< 5\text{ms}$.
 
 #### Sub-Tab 2: Lịch Trình Tiến Độ Gantt (`/printers/timeline`)
 - **Khung thời gian (View Duration):** Tùy chọn 7 ngày, 14 ngày, hoặc 30 ngày. Khắc phục triệt để lỗi lệch múi giờ bằng định dạng chuẩn Local Date `YYYY-MM-DD`.
 - **Cơ chế nới rộng ô tự động (Expandable Day Width):** Tự động nới rộng chiều ngang ô ngày lên **240px** khi có công việc để thẻ task hiển thị trọn vẹn (tiêu đề, người phụ trách, tiến độ %) mà không bị tràn ô hoặc chồng lấn.
 - **Quy tắc chuyển dịch trạng thái tự động:** Khi một task hoàn thành (`status = 'Completed'`), task đó lập tức được chuyển sang Kho lịch sử và **tự động xóa khỏi biểu đồ Gantt** để người vận hành chỉ tập trung vào các công việc đang xử lý.
-- **Nút hành động nhanh:** `[+ Tạo việc mới]` mở modal tạo nhanh công việc bảo trì.
+- **Nút hành động nhanh:** `[+ Tạo việc mới]` chỉ hiển thị với vai trò `ADMIN` để đảm bảo tính kỷ luật ban hành lệnh bảo trì.
 
 #### Sub-Tab 3: Lệnh Bảo Trì CMMS (`/printers/history`)
+- **Bảng Đối Chiếu Hiệu Suất Kỹ Thuật Viên (TechnicianPerformanceCard):**
+  + Tích hợp ngay đầu trang dành cho HR và Quản lý đối chiếu dữ liệu đánh giá hiệu suất, duyệt thưởng KPI và đối soát nghiệm thu SOP.
+  + Thống kê 4 chỉ số: Khối lượng lệnh đã xong (Completed/Total), Tỷ lệ tuân thủ SLA (chuẩn $\ge 90\%$), Thời gian xử lý trung bình MTTR (phút/lệnh), và Tỷ lệ có ảnh nghiệm thu in test MinIO (`100% PASSED`).
+  + Với `FIELD_TECH`, hiển thị tóm tắt năng suất cá nhân để tự theo dõi tiến độ.
 - **Bảng Quản Lý Lệnh Bảo Trì (WorkOrdersTable):**
   + Theo dõi toàn diện vòng đời công việc 3 tầng `Ticket -> Task -> Work Log`.
   + Bộ lọc phạm vi: `Tất cả`, `Đang xử lý` (Planned, In Progress, Waiting), và `Kho lịch sử` (Completed).
@@ -84,8 +89,9 @@ Phân hệ cốt lõi quản lý hạm đội ~100 máy in, chia thành 3 Sub-ta
 Khung trượt từ cạnh phải màn hình, hỗ trợ phím tắt `Esc` và điều hướng nhanh giữa các máy:
 - **Tab 1: Chẩn đoán & Vật tư (DiagnosticsCmykTab):** Đồng hồ đo mức mực CMYK thực tế (0–100%), tuổi thọ Cụm Trống (Drum Life), Cụm Sấy (Fuser Life), tình trạng Hộp mực thải (Waste Toner Box) và các bộ đếm OID SNMP Zabbix.
 - **Tab 2: Lệnh Bảo Trì & Tiến Độ (DiagnosticsTasksTab):**
+  + *Quyền tạo lệnh:* Nút `[+ Tạo công việc mới]` chỉ hiển thị đối với vai trò `ADMIN`.
   + *Bộ chuyển đổi chế độ:* `Đang xử lý` vs `Kho lịch sử`.
-  + *Đang xử lý:* Khối Thời gian & Chi phí (Time & Cost) cho phép tick bật/tắt trường và nhập nhanh giờ/phút (+15p/+30p/+1h); Khối Liên hệ hãng sản xuất (Vendor Communication); Khối File đính kèm MinIO S3; Dynamic Stepper SOP tự động tính % tiến độ (đạt 100% tự động chuyển sang Completed).
+  + *Đang xử lý:* Khối Thời gian & Chi phí (WorkOrderTimeCostCard) tự động phân quyền theo vai trò: `FIELD_TECH` chỉ xem và ghi nhận thời gian sửa/chờ thực tế (ẩn hoàn toàn các trường tiền tệ VNĐ); `ASSET_HR` xem đầy đủ chi phí để hạch toán (Read-only); `ADMIN` toàn quyền hiệu chỉnh.
   + *Kho lịch sử (Accordion Collapsible):* Hiển thị dạng thẻ đóng/mở tóm tắt (chọn tới đâu hiện tới đó), tích hợp biên bản nghiệm thu và kết quả in thử.
 
 ---

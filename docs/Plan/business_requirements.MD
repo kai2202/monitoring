@@ -67,8 +67,10 @@ FleetMonitor phục vụ 4 nhóm chức danh với trách nhiệm và phạm vi 
     + Căn chỉnh các máy được chọn trên **cùng thang đo (common scale)** để so sánh trực diện độ dài thanh tải, độ chênh lệch sản lượng (% so với máy dẫn đầu), tốc độ PPM và chỉ số MTBF.
     + Nút mở modal phân tích đối chiếu chuyên sâu 1:1.
   - *Dự Báo Cạn Kiệt Vật Tư [D-Day] (Supplies Forecasting):*
+    + Thuật toán tính toán Tốc độ tiêu hao trung bình trượt 7 ngày: $\Delta C_{avg} = (C_{t-7} - C_t) / 7$ (%/ngày); Số ngày còn lại $D = C_t / \Delta C_{avg}$.
     + Huy hiệu viên nang đếm ngược hạn chót: `[D-4]` (Đỏ $\le 5$ ngày), `[D-7]` (Vàng $\le 14$ ngày), `[D-25]` (Xanh an toàn).
-    + Hiển thị trực quan: Máy in đơn sắc hiển thị chấm đen ⚫ + % mực K; Máy in màu hiển thị 4 vạch thanh đứng siêu nhỏ (CMYK).
+    + Quy chuẩn điều kiện biên (Rule 5 AGENTS.md): Máy mới (< 3 ngày dữ liệu) hoặc máy không in trong tuần ($\Delta C_{avg} \le 0$) bắt buộc trả về `null` (hiển thị `—`, tuyệt đối không bịa số ngày); Khi thay mực mới ($C_t > C_{prev}$), tự động reset cửa sổ tính toán.
+    + Hiển thị trực quan: Máy in đơn sắc hiển thị chấm đen ⚫ + % mực K (C, M, Y trả về `null` hiển thị `—`); Máy in màu hiển thị 4 vạch thanh đứng siêu nhỏ (CMYK).
     + Theo dõi riêng trạng thái Hộp mực thải (Waste Toner Box: Bình thường, Sắp đầy ⚠️, Đầy 🛑).
     + Nút hành động nhanh: Tạo lệnh cấp phát vật tư chuyển thẳng sang Lệnh bảo trì.
   - *Phân Bổ Chi Phí & Ma Trận Điểm Nóng Sự Cố (SLA & Cost):*
@@ -106,6 +108,12 @@ FleetMonitor phục vụ 4 nhóm chức danh với trách nhiệm và phạm vi 
   - Quản trị viên tải tệp CSV mẫu, điền danh mục mã lỗi của 6 hãng (Ricoh, HP, Canon, Epson, Brother, Xerox) và upload lên hệ thống.
   - Backend kiểm tra tính hợp lệ và cập nhật vào bảng PostgreSQL `internal_error_definitions` và `vendor_error_mappings`.
   - Toàn bộ lịch sử thêm/sửa/xóa mã lỗi được ghi nhận bất biến trong bảng `error_code_audit_logs`.
+- **Cơ chế Xử lý Mã Lỗi Không Hỗ Trợ & Chưa Ánh Xạ (Fallback Engine):**
+  - Khi phát hiện mã lỗi từ Zabbix/SNMP chưa có trong từ điển:
+    + Gán mã dự phòng chuẩn `FM-UNK-01` (hoặc `FM-<SUBSYSTEM>-99` nếu nhận diện được phân hệ cơ bản từ tên trigger Zabbix).
+    + Lưu nguyên vẹn chuỗi lỗi hãng vào `raw_vendor_code` (ví dụ `SC990-00`, `0x80041001`), không xóa hoặc làm tròn.
+    + Kế thừa mức độ nghiêm trọng từ Zabbix Trigger (`Critical`, `Warning`, `Info`).
+    + Tự động gắn cờ `needs_mapping_review: true` trong Ticket/Incident để Kỹ sư NOC tra cứu Service Manual và bổ sung vào từ điển CSV tại `/settings`.
 
 ### 3.4. Phân Hệ Dashboard Theo Vai Trò (Role-Based Dashboard)
 
@@ -131,3 +139,4 @@ FleetMonitor phục vụ 4 nhóm chức danh với trách nhiệm và phạm vi 
 5. **Giao diện thuần Việt chuẩn mực:** Sử dụng thuật ngữ tiếng Việt chuẩn kỹ thuật vận hành: *Danh sách máy in, Lịch trình, Lệnh bảo trì, Sản lượng theo thiết bị, Vật tư máy tải cao, Điểm nóng sự cố, Hộp mực thải*.
 6. **Hệ thống Icon chuẩn duy nhất:** 100% sử dụng FontAwesome (`@/shared/icons/`), nghiêm cấm các thư viện icon khác (AGENTS.md Rule 7.1).
 7. **Giới hạn độ dài tệp tin mã nguồn:** Mọi tệp `.tsx`/`.ts` duy trì nghiêm ngặt $< 300\text{ LOC}$ (tối ưu 150–250 LOC).
+8. **Tuân thủ Bộ Tiêu Chuẩn 6 Cổng (6-Gate Checklist) Trước Khi Nối Backend & Xóa Mock:** Bắt buộc vượt qua 6 cổng kiểm duyệt (Schema Prisma PostgreSQL 16, Nạp từ điển 6 hãng + Test unmapped fallback, Zabbix poller 30s/1h + Test Rollover 32-bit, Cache 60s + Xử lý Stale không dùng mock ngầm, Đồng bộ 100% Type Contracts `MetricValue = number | null`, và Kiểm thử E2E) trước khi chuyển cờ `DATA_SOURCE = "api"`. Mock data phải được lưu trữ dự phòng (archive) thay vì xóa đột ngột.

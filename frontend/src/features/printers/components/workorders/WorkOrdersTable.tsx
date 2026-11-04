@@ -13,6 +13,7 @@ import { Printer } from '../../../../types/printer';
 import { WorkOrdersFilterBar } from './WorkOrdersFilterBar';
 import { WorkOrderTableRow } from './WorkOrderTableRow';
 import { WorkOrdersSubStepsRow } from './WorkOrdersSubStepsRow';
+import { TechnicianPerformanceCard } from './TechnicianPerformanceCard';
 
 export interface WorkOrdersTableProps {
   tasks: Task[];
@@ -89,6 +90,20 @@ export const WorkOrdersTable: React.FC<WorkOrdersTableProps> = ({
         overflow: 'hidden',
       }}
     >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* KPI Performance Card for HR & Management Audit */}
+      <TechnicianPerformanceCard tasks={tasks} />
+      </div>
+
+      <div
+        style={{
+          borderRadius: '20px',
+          backgroundColor: 'var(--bg-card, #ffffff)',
+          border: '1px solid var(--border-color, #e2e8f0)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+          overflow: 'hidden',
+        }}
+      >
       {/* Filter Bar */}
       <WorkOrdersFilterBar
         searchQuery={searchQuery}
@@ -110,7 +125,7 @@ export const WorkOrdersTable: React.FC<WorkOrdersTableProps> = ({
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '980px' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-subtle, #f8fafc)', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748b)' }}>
-              <th style={{ padding: '12px 16px', width: '320px' }}>TÊN LỆNH BẢO TRÌ &amp; MÃ</th>
+              <th style={{ padding: '12px 16px', width: '320px' }}>MÃ &amp; NỘI DUNG XỬ LÝ</th>
               <th style={{ padding: '12px 16px', width: '150px' }}>PHỤ TRÁCH</th>
               <th style={{ padding: '12px 16px', width: '130px' }}>TRẠNG THÁI</th>
               <th style={{ padding: '12px 16px', width: '110px' }}>ƯU TIÊN</th>
@@ -155,6 +170,7 @@ export const WorkOrdersTable: React.FC<WorkOrdersTableProps> = ({
         </table>
       </div>
     </div>
+  </div>
   );
 };
 
