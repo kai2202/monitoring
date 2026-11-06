@@ -5,6 +5,7 @@
 export * from './DiagnosticsDrawerHeader';
 export * from './DiagnosticsCmykTab';
 export * from './DiagnosticsTasksTab';
+export * from './DiagnosticsSopChecklistBuilder';
 export * from './DiagnosticsCreateTaskForm';
 export * from './PrinterDiagnosticsDrawer';
 

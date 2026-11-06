@@ -41,14 +41,14 @@ docs/Tasks/
 | **TASK-FE-03** | Analytics | [TASK-FE-03.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Frontend/TASK-FE-03_analytics_charts_and_rankings.MD) | ✅ Hoàn thành | Single Source of Truth, Cột Ngang 100%, Pinned Sandbox, D-Day `[D-4]`, Arc 180°. |
 | **TASK-FE-04** | Settings | [TASK-FE-04.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Frontend/TASK-FE-04_settings_error_dictionary_rules.MD) | ✅ Hoàn thành | 4 Sub-tabs điều hướng, Live Ping Latency, RBAC 3 vai trò, Từ điển CSV UTF-8. |
 
-### Phân Hệ Backend (Chuẩn Bị Tích Hợp Cơ Sở Dữ Liệu & Zabbix)
+### Phân Hệ Backend (Đã Hoàn Thành & Tích Hợp Đầy Đủ)
 
 | Mã Task | Phân Hệ | Tài Liệu Chi Tiết | Trạng Thái | Tiêu Chuẩn Kỹ Thuật |
 | :--- | :--- | :--- | :---: | :--- |
-| **TASK-BE-01** | Gateway | [TASK-BE-01.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-01_zabbix_gateway.MD) | ⏳ Sẵn sàng | Fast Polling 30s ICMP/Triggers, Slow Polling 1h Counters, Safe Window 10m. |
-| **TASK-BE-02** | Core | [TASK-BE-02.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-02_cache_and_error_classification.MD) | ⏳ Sẵn sàng | In-Memory Cache TTL 60s (<10MB RAM, <5ms UI), Fallback `FM-UNK-01`. |
-| **TASK-BE-03** | Operations | [TASK-BE-03.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-03_maintenance_cmms.MD) | ⏳ Sẵn sàng | CMMS 3 tầng (Ticket -> Task -> Work Log), MinIO S3 Presigned URLs, Chi phí VNĐ. |
-| **TASK-BE-04** | Telemetry | [TASK-BE-04.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-04_analytics_rollup_engine.MD) | ⏳ Sẵn sàng | Rollup giờ/ngày, Thuật toán 3 trạng thái tính delta (32-bit rollover), D-Day trượt 7 ngày. |
-| **TASK-BE-05** | Settings | [TASK-BE-05.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-05_error_dictionary_csv.MD) | ⏳ Sẵn sàng | Nạp CSV 6 hãng, kiểm duyệt Dry-Run 2 bước & Giao dịch nguyên tử (Atomic Commit). |
-| **TASK-BE-06** | Security | [TASK-BE-06.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-06_rbac_data_scope.MD) | ⏳ Sẵn sàng | Multi-User RBAC (3 Roles: `ADMIN`, `FIELD_TECH`, `ASSET_HR`), Tiêm SQL Data Scope. |
+| **TASK-BE-01** | Gateway | [TASK-BE-01.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-01_zabbix_gateway.MD) | ✅ Hoàn thành | Fast Polling 30s ICMP/Triggers, Slow Polling 1h Counters, Safe Window 10m. |
+| **TASK-BE-02** | Core | [TASK-BE-02.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-02_cache_and_error_classification.MD) | ✅ Hoàn thành | In-Memory Cache TTL 60s (<10MB RAM, <5ms UI), Fallback `FM-UNK-01`. |
+| **TASK-BE-03** | Operations | [TASK-BE-03.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-03_maintenance_cmms.MD) | ✅ Hoàn thành | CMMS 3 tầng (Ticket -> Task -> Work Log), MinIO S3 Presigned URLs, Chi phí VNĐ. |
+| **TASK-BE-04** | Telemetry | [TASK-BE-04.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-04_analytics_rollup_engine.MD) | ✅ Hoàn thành | Rollup giờ/ngày, Thuật toán 3 trạng thái tính delta (32-bit rollover), D-Day trượt 7 ngày. |
+| **TASK-BE-05** | Settings | [TASK-BE-05.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-05_error_dictionary_csv.MD) | ✅ Hoàn thành | Nạp CSV 6 hãng, lưu vết `CsvImportJob` và `AuditLog`, kiểm duyệt UTF-8 BOM. |
+| **TASK-BE-06** | Security | [TASK-BE-06.MD](file:///f:/Code/Github/Monitoring/docs/Tasks/Backend/TASK-BE-06_rbac_data_scope.MD) | ✅ Hoàn thành | Multi-User RBAC (3 Roles: `ADMIN`, `FIELD_TECH`, `ASSET_HR`), Middleware ẩn chi phí KTV. |
 

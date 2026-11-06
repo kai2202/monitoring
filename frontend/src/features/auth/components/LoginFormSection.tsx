@@ -1,45 +1,58 @@
 /**
  * Frontend/src/features/auth/components/LoginFormSection.tsx
  *
- * Biểu Mẫu Đăng Nhập Hệ Thống Doanh Nghiệp (Enterprise NOC Login Form):
- * - Chuẩn hóa cho hệ thống nội bộ FleetMonitor: Chỉ gồm Tên đăng nhập/Email và Mật khẩu.
- * - Loại bỏ hoàn toàn trường tự đăng ký tài khoản (First/Last name) và chọn vai trò giả lập.
- * - Tuân thủ AGENTS.md Rule 7 & Rule 7.1 (< 300 LOC, FontAwesome duy nhất).
+ * Cột Biểu Mẫu Tạo Tài Khoản & Đăng Nhập Chuẩn Ảnh Mẫu (Soft Minimalist Split-View Form):
+ * - Tái tạo chính xác 100% bố cục typography, nested labels và các nút pill từ ảnh mẫu (Image 3).
+ * - Thanh trên: Logo chấm tròn xanh Anywhere app. cùng 2 liên kết Home, Join.
+ * - Tiêu đề: Kicker "START FOR FREE", "Create new account.", "Already A Member? Log In".
+ * - Hàng 1: First name & Last name side-by-side 50-50 với icon thẻ căn cước.
+ * - Hàng 2: Email với icon phong bì thư.
+ * - Hàng 3: Password với con mắt ẩn/hiện và viền focus ring xanh dương sắc nét.
+ * - Hàng nút kép: [Change method] (pill xám) và [Create account] (pill xanh viền bóng mềm).
+ * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC, FontAwesome duy nhất).
  */
 
 import React, { useState } from 'react';
 import {
   FontAwesomeIcon,
+  faAddressCard,
   faEnvelope,
   faEye,
   faEyeSlash,
-  faRightToBracket,
-  faShieldCheck,
-  faLock,
 } from '../../../shared/icons';
 import { LoginFloatingInput } from './LoginFloatingInput';
 
-interface LoginFormSectionProps {
-  identifier: string;
-  onIdentifierChange: (val: string) => void;
+export interface LoginFormSectionProps {
+  firstName: string;
+  onFirstNameChange: (val: string) => void;
+  lastName: string;
+  onLastNameChange: (val: string) => void;
+  email: string;
+  onEmailChange: (val: string) => void;
   password: string;
   onPasswordChange: (val: string) => void;
+  onOpenRolePicker: () => void;
   onSubmit: (e: React.FormEvent) => void;
   isSubmitting?: boolean;
   errorMsg?: string | null;
 }
 
 export const LoginFormSection: React.FC<LoginFormSectionProps> = ({
-  identifier,
-  onIdentifierChange,
+  firstName,
+  onFirstNameChange,
+  lastName,
+  onLastNameChange,
+  email,
+  onEmailChange,
   password,
   onPasswordChange,
+  onOpenRolePicker,
   onSubmit,
   isSubmitting = false,
   errorMsg,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>('identifier');
+  const [focusedField, setFocusedField] = useState<string | null>('password');
 
   return (
     <div
@@ -47,84 +60,91 @@ export const LoginFormSection: React.FC<LoginFormSectionProps> = ({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '38px 44px',
+        padding: '36px 44px',
         height: '100%',
         minHeight: '560px',
         boxSizing: 'border-box',
       }}
     >
-      {/* 1. Header Thương Hiệu Doanh Nghiệp */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+      {/* 1. Thanh Header Thương Hiệu & Menu Điều Hướng Phẳng */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span
             style={{
-              width: '20px',
-              height: '20px',
-              borderRadius: '6px',
-              backgroundColor: '#2563eb',
-              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)',
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              backgroundColor: '#0284c7',
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.4)',
               display: 'inline-block',
             }}
           />
           <span
             style={{
-              fontSize: '15.5px',
+              fontSize: '15px',
               fontWeight: 800,
               color: '#0f172a',
               letterSpacing: '-0.3px',
+              fontFamily: "'Segoe UI', -apple-system, sans-serif",
             }}
           >
-            FleetMonitor Enterprise
+            Anywhere app.
           </span>
         </div>
 
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            padding: '4px 10px',
-            borderRadius: '9999px',
-            backgroundColor: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            color: '#1d4ed8',
-            fontSize: '11px',
-            fontWeight: 700,
-          }}
-        >
-          <FontAwesomeIcon icon={faShieldCheck} style={{ fontSize: '11px' }} />
-          <span>Xác thực nội bộ</span>
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 500, color: '#94a3b8', cursor: 'pointer' }}>
+            Home
+          </span>
+          <span style={{ fontSize: '13px', fontWeight: 500, color: '#94a3b8', cursor: 'pointer' }}>
+            Join
+          </span>
+        </div>
       </div>
 
-      {/* 2. Tiêu Đề Đăng Nhập */}
-      <div style={{ marginTop: '28px', marginBottom: '12px' }}>
+      {/* 2. Tiêu Đề Chính & Dẫn Nhập Chuẩn Typography */}
+      <div style={{ marginTop: '20px', marginBottom: '14px' }}>
         <div
           style={{
             fontSize: '10.5px',
             fontWeight: 800,
-            color: '#64748b',
+            color: '#94a3b8',
             textTransform: 'uppercase',
-            letterSpacing: '0.8px',
+            letterSpacing: '1.2px',
           }}
         >
-          TRUNG TÂM GIÁM SÁT &amp; ĐIỀU PHỐI HẠM ĐỘI MÁY IN
+          START FOR FREE
         </div>
         <h1
           style={{
-            fontSize: '30px',
+            fontSize: '32px',
             fontWeight: 900,
             color: '#0f172a',
-            letterSpacing: '-0.7px',
-            margin: '6px 0 0 0',
-            lineHeight: 1.2,
+            letterSpacing: '-0.8px',
+            margin: '6px 0 6px 0',
+            lineHeight: 1.15,
           }}
         >
-          Đăng nhập hệ thống<span style={{ color: '#2563eb' }}>.</span>
+          Create new account<span style={{ color: '#0284c7' }}>.</span>
         </h1>
-        <p style={{ fontSize: '12.5px', color: '#64748b', margin: '8px 0 0 0', lineHeight: 1.5 }}>
-          Nhập tài khoản vận hành (IT NOC, Kỹ thuật viên hiện trường hoặc Quản trị tài sản) để tiếp tục.
-        </p>
+        <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '6px' }}>
+          Already A Member?{' '}
+          <button
+            type="button"
+            onClick={onSubmit as any}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#0284c7',
+              fontWeight: 700,
+              cursor: 'pointer',
+              padding: 0,
+              fontSize: '13px',
+            }}
+          >
+            Log In
+          </button>
+        </div>
       </div>
 
       {/* 3. Thông Báo Lỗi Nếu Có */}
@@ -146,39 +166,65 @@ export const LoginFormSection: React.FC<LoginFormSectionProps> = ({
         </div>
       )}
 
-      {/* 4. Biểu Mẫu Đăng Nhập */}
+      {/* 4. Khối Form Nhập Liệu 4 Trường Chuẩn Mẫu */}
       <form
         onSubmit={onSubmit}
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '14px',
+          gap: '12px',
           flex: 1,
           justifyContent: 'center',
         }}
       >
+        {/* Hàng 1: First Name & Last Name (50% - 50%) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <LoginFloatingInput
+            label="First name"
+            value={firstName}
+            onChange={onFirstNameChange}
+            isFocused={focusedField === 'firstName'}
+            onFocus={() => setFocusedField('firstName')}
+            onBlur={() => setFocusedField(null)}
+            placeholder="Michał"
+            icon={faAddressCard}
+          />
+          <LoginFloatingInput
+            label="Last name"
+            value={lastName}
+            onChange={onLastNameChange}
+            isFocused={focusedField === 'lastName'}
+            onFocus={() => setFocusedField('lastName')}
+            onBlur={() => setFocusedField(null)}
+            placeholder="Masiak"
+            icon={faAddressCard}
+          />
+        </div>
+
+        {/* Hàng 2: Email (Full Width) */}
         <LoginFloatingInput
-          label="Tên đăng nhập hoặc Email"
-          type="text"
-          value={identifier}
-          onChange={onIdentifierChange}
-          isFocused={focusedField === 'identifier'}
-          onFocus={() => setFocusedField('identifier')}
+          label="Email"
+          type="email"
+          value={email}
+          onChange={onEmailChange}
+          isFocused={focusedField === 'email'}
+          onFocus={() => setFocusedField('email')}
           onBlur={() => setFocusedField(null)}
-          placeholder="admin hoặc email@fleetmonitor.vn"
+          placeholder="michal.masiak@anywhere.co"
           icon={faEnvelope}
         />
 
+        {/* Hàng 3: Password Với Focus Ring Màu Xanh Dương & Nút Con Mắt */}
         <LoginFloatingInput
-          label="Mật khẩu"
+          label="Password"
           type={showPassword ? 'text' : 'password'}
           value={password}
           onChange={onPasswordChange}
           isFocused={focusedField === 'password'}
           onFocus={() => setFocusedField('password')}
           onBlur={() => setFocusedField(null)}
-          placeholder="Nhập mật khẩu bảo mật"
-          letterSpacing={showPassword ? 'normal' : '2px'}
+          placeholder="••••••••"
+          letterSpacing={showPassword ? 'normal' : '2.5px'}
           rightAction={
             <button
               type="button"
@@ -186,7 +232,7 @@ export const LoginFormSection: React.FC<LoginFormSectionProps> = ({
               style={{
                 background: 'none',
                 border: 'none',
-                color: showPassword ? '#2563eb' : '#94a3b8',
+                color: showPassword ? '#0284c7' : '#94a3b8',
                 cursor: 'pointer',
                 padding: '4px',
                 fontSize: '13px',
@@ -201,57 +247,48 @@ export const LoginFormSection: React.FC<LoginFormSectionProps> = ({
           }
         />
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          style={{
-            width: '100%',
-            marginTop: '12px',
-            padding: '13px 24px',
-            borderRadius: '14px',
-            backgroundColor: isSubmitting ? '#94a3b8' : '#2563eb',
-            border: 'none',
-            color: '#ffffff',
-            fontSize: '13.5px',
-            fontWeight: 800,
-            cursor: isSubmitting ? 'not-allowed' : 'pointer',
-            boxShadow: '0 6px 18px rgba(37, 99, 235, 0.28)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          {isSubmitting ? (
-            <span>Đang xác thực phiên đăng nhập...</span>
-          ) : (
-            <>
-              <span>Đăng nhập hệ thống</span>
-              <FontAwesomeIcon icon={faRightToBracket} style={{ fontSize: '12px' }} />
-            </>
-          )}
-        </button>
-      </form>
+        {/* Hàng 4: Bộ Đôi Nút Hành Động Pill Kép */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '16px' }}>
+          <button
+            type="button"
+            onClick={onOpenRolePicker}
+            style={{
+              padding: '12px 26px',
+              borderRadius: '9999px',
+              backgroundColor: '#f1f5f9',
+              border: 'none',
+              color: '#64748b',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Change method
+          </button>
 
-      {/* 5. Chân Trang Bảo Mật */}
-      <div
-        style={{
-          marginTop: '20px',
-          paddingTop: '14px',
-          borderTop: '1px solid #f1f5f9',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontSize: '11.5px',
-          color: '#64748b',
-        }}
-      >
-        <FontAwesomeIcon icon={faLock} style={{ fontSize: '11px', color: '#94a3b8' }} />
-        <span>
-          Tài khoản được cấp phát và quản lý tập trung bởi Quản trị viên IT tại phân hệ Cấu hình RBAC.
-        </span>
-      </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            style={{
+              padding: '12px 34px',
+              borderRadius: '9999px',
+              backgroundColor: isSubmitting ? '#94a3b8' : '#0284c7',
+              border: 'none',
+              color: '#ffffff',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              boxShadow: '0 8px 22px rgba(2, 132, 199, 0.35)',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {isSubmitting ? 'Processing...' : 'Create account'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

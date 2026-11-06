@@ -2,13 +2,18 @@
  * Backend/src/services/csvImportService.ts
  *
  * Dịch Vụ Xử Lý & Kiểm Duyệt Nạp Dữ Liệu CSV (TASK-BE-05):
- * - Hỗ trợ chuẩn RFC 4180, xử lý ký tự UTF-8 BOM (\uFEFF).
- * - Lưu vết lịch sử đợt nạp vào bảng CsvImportJob (PENDING -> VALIDATING -> COMPLETED / FAILED).
- * - Ghi nhận nhật ký an ninh vận hành AuditLog (Action: IMPORT_CSV).
- * - Tuân thủ AGENTS.md Rule 5 & Rule 7.1 (< 300 LOC).
+ * - Hỗ trợ chuẩn RFC 4180 (dấu phẩy & chấm phẩy), xử lý ký tự UTF-8 BOM (\uFEFF).
+ * - Ghi trực tiếp vào bảng `ErrorDictionary` khớp 100% schema Prisma (`descriptionVi`, `canonicalCode`...).
+ * - Tự động gọi `errorDictLifecycleService.reconcileIncidentsWithDictionary()` để đối chiếu và tự ẩn
+ *   các thông báo mã lỗi chưa tích hợp CSV tương ứng ngay sau khi nạp.
+ * - Tuân thủ AGENTS.md Rule 4, Rule 5 & Rule 7.1 (< 300 LOC).
  */
 
 import { prisma } from '../lib/prisma';
+import {
+  errorDictLifecycleService,
+  ErrorDictionaryLifecycleStatus,
+} from './errorDictLifecycleService';
 
 export interface CsvRowError {
   rowNumber: number;
@@ -26,11 +31,24 @@ export interface CsvImportExecutionResult {
   errorRows: number;
   errors: CsvRowError[];
   status: 'COMPLETED' | 'FAILED';
+  importedAt: string;
+  resolvedUnmappedCount: number;
+  lifecycle?: ErrorDictionaryLifecycleStatus;
 }
 
-// Bộ nhớ đệm dự phòng khi database chưa khởi chạy
-const inMemoryJobs: any[] = [];
-const inMemoryAuditLogs: any[] = [];
+function normalizeVendorDisplay(rawVendor: string): string {
+  const clean = rawVendor.trim();
+  const lower = clean.toLowerCase();
+  if (lower.includes('ricoh')) return 'Ricoh';
+  if (lower.includes('canon')) return 'Canon';
+  if (lower.includes('hp') || lower.includes('hewlett')) return 'HP';
+  if (lower.includes('epson')) return 'Epson';
+  if (lower.includes('brother')) return 'Brother';
+  if (lower.includes('toshiba')) return 'Toshiba';
+  if (lower.includes('xerox')) return 'Xerox';
+  if (lower.includes('general') || lower.includes('chung')) return 'General';
+  return clean ? clean.charAt(0).toUpperCase() + clean.slice(1) : 'General';
+}
 
 export class CsvImportService {
   /**
@@ -40,11 +58,12 @@ export class CsvImportService {
     const cleanContent = rawContent.replace(/^\uFEFF/, '').trim();
     if (!cleanContent) return [];
 
-    const lines = cleanContent.split(/\r?\n/);
+    const lines = cleanContent.split(/\r?\n/).filter((l) => l.trim().length > 0);
     return lines.map((line) => {
       const row: string[] = [];
       let inQuotes = false;
       let currentVal = '';
+      const delimiter = line.includes(';') && !line.includes(',') ? ';' : ',';
 
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
@@ -55,7 +74,7 @@ export class CsvImportService {
           } else {
             inQuotes = !inQuotes;
           }
-        } else if (char === ',' && !inQuotes) {
+        } else if (char === delimiter && !inQuotes) {
           row.push(currentVal.trim());
           currentVal = '';
         } else {
@@ -68,7 +87,7 @@ export class CsvImportService {
   }
 
   /**
-   * Nạp và kiểm duyệt Từ điển mã lỗi đa hãng (ErrorDictionary).
+   * Nạp và kiểm duyệt Từ điển mã lỗi đa hãng (ErrorDictionary) vào PostgreSQL.
    */
   public async importErrorDictionary(
     fileName: string,
@@ -76,56 +95,93 @@ export class CsvImportService {
     userId?: string,
     ipAddress?: string
   ): Promise<CsvImportExecutionResult> {
+    const importedAt = new Date();
     const matrix = this.parseCsv(rawCsv);
     const totalRows = Math.max(0, matrix.length - 1);
     const errors: CsvRowError[] = [];
-    const validData: any[] = [];
 
     if (matrix.length <= 1) {
       return {
-        jobId: `job-mock-${Date.now()}`,
+        jobId: `job-invalid-${Date.now()}`,
         fileName,
         entityType: 'ERROR_DICT',
         totalRows: 0,
         validRows: 0,
-        errorRows: 0,
+        errorRows: 1,
         errors: [{ rowNumber: 1, field: 'file', value: '', message: 'File CSV không có dòng dữ liệu hợp lệ' }],
         status: 'FAILED',
+        importedAt: importedAt.toISOString(),
+        resolvedUnmappedCount: 0,
       };
     }
 
-    const headers = matrix[0].map((h) => h.toLowerCase().trim());
-    const vendorIdx = headers.findIndex((h) => h.includes('vendor') || h.includes('hãng'));
-    const codeIdx = headers.findIndex((h) => h.includes('code') || h.includes('mã'));
-    const nameIdx = headers.findIndex((h) => h.includes('name') || h.includes('tên'));
-    const subsystemIdx = headers.findIndex((h) => h.includes('subsystem') || h.includes('khối'));
-    const severityIdx = headers.findIndex((h) => h.includes('severity') || h.includes('mức độ'));
-    const descIdx = headers.findIndex((h) => h.includes('desc') || h.includes('mô tả'));
+    const headers = matrix[0].map((h) => h.toLowerCase().trim().replace(/[\s_-]+/g, ''));
+    const vendorIdx = headers.findIndex((h) => ['vendor', 'hang', 'hangsanxuat', 'brand'].includes(h));
+    const codeIdx = headers.findIndex((h) => ['errorcode', 'code', 'maloi', 'malo'].includes(h));
+    const nameIdx = headers.findIndex((h) => ['errorname', 'name', 'tenloi', 'canonicalcode'].includes(h));
+    const subsystemIdx = headers.findIndex((h) => ['affectedsubsystem', 'subsystem', 'phanhe', 'khoi'].includes(h));
+    const severityIdx = headers.findIndex((h) => ['severity', 'mucdo', 'mucdonghiemtrong'].includes(h));
+    const descIdx = headers.findIndex((h) => ['description', 'mota', 'chitiet'].includes(h));
+
+    const validData: Array<{
+      vendor: string;
+      rawCode: string;
+      canonicalCode: string;
+      subsystem: string;
+      descriptionVi: string;
+      severity: string;
+      isPaperJam: boolean;
+      isCoverOpen: boolean;
+      isConsumable: boolean;
+    }> = [];
 
     for (let i = 1; i < matrix.length; i++) {
       const row = matrix[i];
-      if (row.length === 1 && !row[0]) continue;
+      if (row.length === 0 || row.every((c) => !c.trim())) continue;
 
-      const vendor = vendorIdx >= 0 ? row[vendorIdx] : 'Ricoh';
-      const rawCode = codeIdx >= 0 ? row[codeIdx] : '';
-      const name = nameIdx >= 0 ? row[nameIdx] : '';
-      const subsystem = subsystemIdx >= 0 ? row[subsystemIdx] : 'General';
-      const severity = severityIdx >= 0 ? row[severityIdx] : 'warning';
-      const desc = descIdx >= 0 ? row[descIdx] : '';
+      const rawVendor = (vendorIdx >= 0 ? row[vendorIdx] : row[0]) || '';
+      const rawCode = ((codeIdx >= 0 ? row[codeIdx] : row[1]) || '').trim();
+      const rawName = ((nameIdx >= 0 ? row[nameIdx] : row[2]) || '').trim();
+      const rawSubsystem = ((subsystemIdx >= 0 ? row[subsystemIdx] : row[3]) || 'General').trim();
+      const rawSeverity = ((severityIdx >= 0 ? row[severityIdx] : row[4]) || 'Warning').trim();
+      const rawDesc = ((descIdx >= 0 ? row[descIdx] : row[5]) || '').trim();
 
       if (!rawCode) {
         errors.push({ rowNumber: i + 1, field: 'errorCode', value: '', message: 'Mã lỗi không được để trống' });
         continue;
       }
 
+      const vendor = normalizeVendorDisplay(rawVendor || 'General');
+      const subClean = rawSubsystem.toUpperCase() || 'GENERAL';
+      const subShort = subClean.replace(/[^A-Z0-9]/g, '').slice(0, 3) || 'SYS';
+      const canonicalCode = rawName.startsWith('FM-')
+        ? rawName
+        : `FM-${subShort}-${String(i).padStart(2, '0')}`;
+
+      const sevLower = rawSeverity.toLowerCase();
+      const severity =
+        sevLower === 'critical' || sevLower.includes('nguy')
+          ? 'critical'
+          : sevLower === 'info' || sevLower.includes('thông')
+          ? 'info'
+          : 'warning';
+
+      const combinedText = `${rawName} ${rawDesc} ${rawSubsystem}`.toLowerCase();
+      const descriptionVi =
+        rawDesc && rawName && !rawName.startsWith('FM-') && !rawDesc.includes(rawName)
+          ? `${rawName}: ${rawDesc}`
+          : rawDesc || rawName || `Mã lỗi chuẩn hóa ${rawCode} (${vendor})`;
+
       validData.push({
-        vendor: vendor || 'General',
+        vendor,
         rawCode,
-        canonicalCode: `FM-${(subsystem || 'SYS').toUpperCase().slice(0, 3)}-${String(i).padStart(3, '0')}`,
-        name: name || rawCode,
-        subsystem: (subsystem || 'GENERAL').toUpperCase(),
-        severity: severity.toLowerCase() === 'critical' ? 'critical' : 'warning',
-        description: desc || 'Mô tả nạp từ CSV',
+        canonicalCode,
+        subsystem: rawSubsystem || 'General',
+        descriptionVi,
+        severity,
+        isPaperJam: combinedText.includes('jam') || combinedText.includes('kẹt giấy'),
+        isCoverOpen: combinedText.includes('cover') || combinedText.includes('mở nắp'),
+        isConsumable: combinedText.includes('toner') || combinedText.includes('mực'),
       });
     }
 
@@ -133,103 +189,91 @@ export class CsvImportService {
     const errorRows = errors.length;
     const status = validRows > 0 ? 'COMPLETED' : 'FAILED';
 
-    let jobId = `job-${Date.now()}`;
-    try {
-      const dbJob = await prisma.csvImportJob.create({
-        data: {
-          fileName,
-          uploadedById: userId || undefined,
-          entityType: 'ERROR_DICT',
-          totalRows,
-          validRows,
-          errorRows,
-          errorLog: errors as any,
-          status: status as any,
-          completedAt: new Date(),
-        },
-      });
-      jobId = dbJob.id;
-
-      // Lưu nhật ký kiểm toán AuditLog
-      await prisma.auditLog.create({
-        data: {
-          userId: userId || undefined,
-          action: 'IMPORT_CSV',
-          targetId: jobId,
-          ipAddress: ipAddress || '127.0.0.1',
-          diffJson: { fileName, entityType: 'ERROR_DICT', totalRows, validRows, errorRows },
-        },
-      });
-
-      // Upsert các mã lỗi vào ErrorDictionary
-      for (const item of validData) {
-        await prisma.errorDictionary.upsert({
-          where: { vendor_rawCode: { vendor: item.vendor, rawCode: item.rawCode } },
-          update: {
-            name: item.name,
-            subsystem: item.subsystem,
-            severity: item.severity,
-            description: item.description,
-          },
-          create: item,
-        });
-      }
-    } catch {
-      // Fallback in-memory
-      inMemoryJobs.unshift({
-        id: jobId,
+    const dbJob = await prisma.csvImportJob.create({
+      data: {
         fileName,
+        uploadedById: userId || null,
         entityType: 'ERROR_DICT',
         totalRows,
         validRows,
         errorRows,
-        status,
-        createdAt: new Date().toISOString(),
-      });
-      inMemoryAuditLogs.unshift({
-        id: `audit-${Date.now()}`,
+        errorLog: errors as any,
+        status: status as any,
+        completedAt: importedAt,
+      },
+    });
+
+    if (validData.length > 0) {
+      await prisma.$transaction(
+        validData.map((item) =>
+          prisma.errorDictionary.upsert({
+            where: { vendor_rawCode: { vendor: item.vendor, rawCode: item.rawCode } },
+            update: {
+              canonicalCode: item.canonicalCode,
+              subsystem: item.subsystem,
+              descriptionVi: item.descriptionVi,
+              severity: item.severity,
+              isPaperJam: item.isPaperJam,
+              isCoverOpen: item.isCoverOpen,
+              isConsumable: item.isConsumable,
+            },
+            create: item,
+          })
+        )
+      );
+    }
+
+    const resolvedUnmappedCount = await errorDictLifecycleService.reconcileIncidentsWithDictionary();
+
+    await prisma.auditLog.create({
+      data: {
+        userId: userId || null,
         action: 'IMPORT_CSV',
-        targetId: jobId,
+        targetId: dbJob.id,
         ipAddress: ipAddress || '127.0.0.1',
-        createdAt: new Date().toISOString(),
-      });
-    }
+        diffJson: {
+          fileName,
+          entityType: 'ERROR_DICT',
+          totalRows,
+          validRows,
+          errorRows,
+          resolvedUnmappedCount,
+          importedAt: importedAt.toISOString(),
+        },
+      },
+    });
 
-    return { jobId, fileName, entityType: 'ERROR_DICT', totalRows, validRows, errorRows, errors, status };
+    const lifecycle = await errorDictLifecycleService.getStatus();
+
+    return {
+      jobId: dbJob.id,
+      fileName,
+      entityType: 'ERROR_DICT',
+      totalRows,
+      validRows,
+      errorRows,
+      errors,
+      status,
+      importedAt: importedAt.toISOString(),
+      resolvedUnmappedCount,
+      lifecycle,
+    };
   }
 
-  /**
-   * Lấy danh sách lịch sử nạp CSV gần nhất
-   */
   public async getImportJobs(limit: number = 20) {
-    try {
-      const jobs = await prisma.csvImportJob.findMany({
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: { uploadedBy: { select: { fullName: true, username: true } } },
-      });
-      if (jobs.length > 0) return jobs;
-    } catch {
-      // Fallback
-    }
-    return inMemoryJobs.slice(0, limit);
+    return prisma.csvImportJob.findMany({
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: { uploadedBy: { select: { fullName: true, username: true } } },
+    });
   }
 
-  /**
-   * Lấy danh sách nhật ký an ninh Audit Logs
-   */
   public async getAuditLogs(limit: number = 50) {
-    try {
-      const logs = await prisma.auditLog.findMany({
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: { user: { select: { fullName: true, username: true, role: true } } },
-      });
-      if (logs.length > 0) return logs;
-    } catch {
-      // Fallback
-    }
-    return inMemoryAuditLogs.slice(0, limit);
+    return prisma.auditLog.findMany({
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: { fullName: true, username: true, role: true } } },
+    });
   }
 }
 

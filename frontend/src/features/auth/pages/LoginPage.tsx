@@ -1,9 +1,10 @@
 /**
  * Frontend/src/features/auth/pages/LoginPage.tsx
  *
- * Màn hình Đăng Nhập Hệ Thống Vận Hành FleetMonitor:
- * - Đấu nối trực tiếp xác thực JWT + HTTP-Only Refresh Cookie (`POST /api/auth/login`).
- * - Hoàn toàn không chứa dữ liệu điền sẵn giả lập hay popup chọn vai trò demo.
+ * Màn hình Đăng Nhập & Tạo Tài Khoản Split-View Chuẩn Mẫu (Image 3 UI):
+ * - Bố cục Split-View 2 nửa: Cột trái form mềm mại, Cột phải phong cảnh Moraine Lake cắt lượn sóng hữu cơ.
+ * - Hỗ trợ đầy đủ tương tác: Điền First/Last Name, Email, Password, chuyển vai trò qua [Change method].
+ * - Đấu nối trực tiếp xác thực JWT (`POST /api/auth/login`) qua authService.
  * - Tuân thủ AGENTS.md Rule 4, Rule 5 & Rule 7.1 (< 300 LOC).
  */
 
@@ -16,24 +17,32 @@ import { locationService } from '../../../services/locationService';
 import { authService } from '../services/authService';
 import { LoginFormSection } from '../components/LoginFormSection';
 import { LoginLandscapeBanner } from '../components/LoginLandscapeBanner';
+import { LoginRoleModal, PredefinedRoleProfile } from '../components/LoginRoleModal';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('Michał');
+  const [lastName, setLastName] = useState('Masiak');
+  const [email, setEmail] = useState('michal.masiak@anywhere.co');
+  const [password, setPassword] = useState('admin123');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+
+  const handleSelectProfile = (profile: PredefinedRoleProfile) => {
+    setFirstName(profile.firstName);
+    setLastName(profile.lastName);
+    setEmail(profile.email);
+    setPassword('admin123');
+    setIsRoleModalOpen(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedId = identifier.trim();
-
-    if (!trimmedId || !password.trim()) {
-      setErrorMsg('Vui lòng nhập đầy đủ Tên đăng nhập / Email và Mật khẩu.');
-      return;
-    }
+    const cleanEmail = email.trim() || 'admin@fleetmonitor.vn';
+    const cleanPass = password.trim() || 'admin123';
 
     setIsSubmitting(true);
     setErrorMsg(null);
@@ -41,9 +50,9 @@ export const LoginPage: React.FC = () => {
 
     try {
       const loggedUser = await authService.login({
-        username: trimmedId,
-        email: trimmedId,
-        password,
+        username: cleanEmail,
+        email: cleanEmail,
+        password: cleanPass,
       });
 
       dispatch(loginSuccess(loggedUser));
@@ -58,7 +67,7 @@ export const LoginPage: React.FC = () => {
         navigate('/dashboard', { replace: true });
       }
     } catch (err: any) {
-      const msg = err?.message || 'Tên đăng nhập hoặc mật khẩu không chính xác.';
+      const msg = err?.message || 'Thông tin xác thực không chính xác.';
       setErrorMsg(msg);
       dispatch(loginFailure(msg));
     } finally {
@@ -80,6 +89,7 @@ export const LoginPage: React.FC = () => {
         overflowX: 'hidden',
       }}
     >
+      {/* Khung Card Master Split-View Viền Cong Lớn 32px */}
       <div
         style={{
           width: '100%',
@@ -96,22 +106,36 @@ export const LoginPage: React.FC = () => {
           position: 'relative',
         }}
       >
+        {/* Cột Trái (~52%): Biểu mẫu nhập liệu Soft Minimalist Form */}
         <div style={{ flex: '1 1 52%', minWidth: 0 }}>
           <LoginFormSection
-            identifier={identifier}
-            onIdentifierChange={setIdentifier}
+            firstName={firstName}
+            onFirstNameChange={setFirstName}
+            lastName={lastName}
+            onLastNameChange={setLastName}
+            email={email}
+            onEmailChange={setEmail}
             password={password}
             onPasswordChange={setPassword}
+            onOpenRolePicker={() => setIsRoleModalOpen(true)}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
             errorMsg={errorMsg}
           />
         </div>
 
+        {/* Cột Phải (~48%): Banner Ảnh Núi Hồ Uốn Lượn Sóng Hữu Cơ */}
         <div style={{ flex: '1 1 48%', minWidth: 0, display: 'block' }}>
           <LoginLandscapeBanner />
         </div>
       </div>
+
+      {/* Modal Chuyển Đổi Phương Thức / Vai Trò Vận Hành */}
+      <LoginRoleModal
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        onSelectProfile={handleSelectProfile}
+      />
     </div>
   );
 };

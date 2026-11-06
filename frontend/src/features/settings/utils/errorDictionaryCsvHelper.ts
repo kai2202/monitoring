@@ -88,7 +88,7 @@ export function parseCsvText(text: string): string[][] {
  */
 export function validateErrorDictionaryCsv(
   matrix: string[][],
-  existingCodes: MockErrorCode[] = []
+  existingCodes: PrinterErrorCode[] = []
 ): CsvValidationResult {
   if (matrix.length < 2) {
     return {
@@ -112,7 +112,7 @@ export function validateErrorDictionaryCsv(
     description: rawHeaders.findIndex((h) => ['description', 'mota', 'chitiet'].includes(h)),
   };
 
-  const existingMap = new Map<string, MockErrorCode>();
+  const existingMap = new Map<string, PrinterErrorCode>();
   existingCodes.forEach((e) => {
     const key = `${e.vendor.toLowerCase()}_${(e.errorCode || (e as any).code || '').toLowerCase()}`;
     existingMap.set(key, e);
@@ -120,7 +120,7 @@ export function validateErrorDictionaryCsv(
 
   const seenInFile = new Set<string>();
   const items: CsvValidationItem[] = [];
-  const validRows: MockErrorCode[] = [];
+  const validRows: PrinterErrorCode[] = [];
   let newCount = 0;
   let updateCount = 0;
 

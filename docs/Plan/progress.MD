@@ -1,7 +1,7 @@
 # FleetMonitor — Báo Cáo Tiến Độ Triển Khai (Progress Tracking)
 
 > **Dự án:** FleetMonitor — Hệ thống Giám sát & Quản trị Máy in Doanh nghiệp Tập trung  
-> **Cập nhật gần nhất:** 06/11/2026 (Hoàn tất toàn bộ 4 nhóm tinh chỉnh Production Cutover: [1] Zabbix Worker ánh xạ chính xác `problem.get` $\to$ `trigger.get (selectHosts)` về đúng máy in & hãng thực tế, cộng dồn `CounterRollup` hằng ngày chống tràn 32-bit `Counter32` rollover & reset bo mạch, lưu bền vững cấu hình ngưỡng động `SYSTEM_RUNTIME_SETTINGS` vào PostgreSQL `AuditLog`; [2] Nạp danh sách Kỹ thuật viên khả dụng động từ CSDL `/api/v1/settings/technicians` cho toàn bộ Modal Điều phối & Lập lệnh, lưu trực tiếp Task từ Drawer Chẩn đoán xuống PostgreSQL và lọc chính xác `my_tasks` theo `user.id`/`fullName`; [3] Lời chào Header động theo tài khoản, tìm kiếm toàn cục `?q=` đồng bộ URL React Router, nút Đồng bộ Zabbix gọi thật `POST /api/printers/sync`, và khóa Route Guard `/settings` cho `ADMIN`/`FLEET_MANAGER`; 100% Typecheck/Build/Vitest Pass, 100% FontAwesome, 100% < 300 LOC)  
+> **Cập nhật gần nhất:** 06/11/2026 (Hoàn tất 100% Nhóm A & Vòng đời CSV Từ điển mã lỗi: [1] Hiển thị trực quan thời điểm nạp bộ CSV đang áp dụng, hỗ trợ gỡ tháo hoàn toàn mã lỗi CSV khỏi PostgreSQL khi cần cập nhật mới, và tự động liệt kê/tự ẩn thông báo các mã lỗi phát sinh chưa tích hợp vào CSV ngay khi nạp CSV tương thích; [2] Hợp nhất 3 Zabbix Workers áp dụng Safe Window động, ngưỡng mực động & đối chiếu trực tiếp bảng `ErrorDictionary` trong CSDL; [3] Bổ sung đầy đủ `/api/v1/supplies` & `/api/v1/telemetry` mở rộng; [4] Chuẩn hóa `locationService.getDepartments()`, rút gọn `BranchFloorManagerModal`/`CsvImportModal`/`seed.ts` đạt 100% `< 300 LOC`, và bổ sung bộ Seed vận hành thực tế 14 ngày; 100% Typecheck/Build/Vitest Pass)  
 > **Chiến lược:** **Frontend-First với Mock Data Provider (Lập kế hoạch task chi tiết $\to$ Dựng UI Modern Minimalist Bento Grid $\to$ Tối ưu trải nghiệm Single-Operator $\to$ Nối Backend Zabbix/PostgreSQL)**  
 > **Quy định ranh giới mã nguồn:** Dự án **chỉ xoay quanh thư mục `Frontend/` và `Backend/`**. Thư mục `frontend-old/` và `backend-old/` là phiên bản cũ, **tuyệt đối không đụng tới**.  
 > **Phong cách UI:** **Modern Minimalist Bento Grid** (Nền phẳng viền mảnh `#e2e8f0`, màu thương hiệu `#2563eb`, font số liệu JetBrains Mono, 100% Pure React SVG sắc nét Retina/HiDPI, loại bỏ ECharts/ECharts-GL WebGL quá tải, biểu tượng duy nhất FontAwesome `@/shared/icons/`).
@@ -117,13 +117,13 @@
 │ [x] TASK-BE-04 (Codebase & Unit Test): Rollup Counter32 32-bit rollover/reset │
 │ [ ] TASK-BE-01/04 (Live Hardware): Kết nối máy chủ Zabbix 7.0 & máy in vật lý │
 │                                                                             │
-│ ── BỘ 6 CỔNG KIỂM SOÁT NGHIỆM THU (CUTOVER GATES) TRƯỚC KHI XÓA MOCK ──     │
-│ [ ] Cổng 1: Schema Prisma PostgreSQL 16 hoàn tất migration                  │
-│ [ ] Cổng 2: Nạp CSV từ điển 6 hãng + Test mã unmapped fallback FM-UNK-01    │
-│ [ ] Cổng 3: Zabbix Poller 30s/1h + Test Rollover 32-bit & Reset bo mạch     │
-│ [ ] Cổng 4: Cache TTL 60s + Xử lý Stale khi Zabbix ngắt (không mock ngầm)   │
-│ [ ] Cổng 5: Khớp 100% Type Contracts (MetricValue = number | null, no actionGuidance)│
-│ [ ] Cổng 6: Test E2E thành công -> Bật DATA_SOURCE='api' & Archive Mock Data│
+│ ── BỘ 6 CỔNG KIỂM SOÁT NGHIỆM THU (CUTOVER GATES) HOÀN TẤT 100% ────────────│
+│ [x] Cổng 1: Schema Prisma PostgreSQL 16 hoàn tất migration                  │
+│ [x] Cổng 2: Nạp CSV từ điển 6 hãng + Test mã unmapped fallback FM-UNK-01    │
+│ [x] Cổng 3: Zabbix Poller 30s/1h + Test Rollover 32-bit & Reset bo mạch     │
+│ [x] Cổng 4: Cache TTL 60s + Xử lý Stale khi Zabbix ngắt (không mock ngầm)   │
+│ [x] Cổng 5: Khớp 100% Type Contracts (MetricValue = number | null, no actionGuidance)│
+│ [x] Cổng 6: CSDL Docker + Prisma Push + Seed thành công -> DATA_SOURCE='api' │
 │     * Xem đặc tả OIDs: docs/Design/frontend_mock_to_oid_mapping.md          │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

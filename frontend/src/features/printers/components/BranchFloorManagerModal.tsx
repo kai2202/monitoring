@@ -37,9 +37,7 @@ export const BranchFloorManagerModal: React.FC<BranchFloorManagerModalProps> = (
     if (isOpen) {
       locationService.fetchBranches().then((bList) => {
         setBranches(bList);
-        if (bList.length > 0 && !selectedBranchId) {
-          setSelectedBranchId(bList[0].id);
-        }
+        if (bList.length > 0 && !selectedBranchId) setSelectedBranchId(bList[0].id);
       });
     }
   }, [isOpen, selectedBranchId]);
@@ -49,12 +47,12 @@ export const BranchFloorManagerModal: React.FC<BranchFloorManagerModalProps> = (
   const currentBranch = branches.find((b) => b.id === selectedBranchId) || branches[0];
 
   const getBranchPrinterCount = (bName: string) =>
-    printers.filter((p) => p.branch === bName || (p.location && p.location.includes(bName))).length;
+    printers.filter((p) => p.branch === bName || Boolean(p.location && p.location.includes(bName))).length;
 
   const getFloorPrinterCount = (bName: string, fName: string) =>
     printers.filter((p) => {
-      const matchBranch = p.branch === bName || (p.location && p.location.includes(bName));
-      const matchFloor = p.floor === fName || (p.location && p.location.includes(fName));
+      const matchBranch = p.branch === bName || Boolean(p.location && p.location.includes(bName));
+      const matchFloor = p.floor === fName || Boolean(p.location && p.location.includes(fName));
       return matchBranch && matchFloor;
     }).length;
 
@@ -72,11 +70,7 @@ export const BranchFloorManagerModal: React.FC<BranchFloorManagerModalProps> = (
     }
     setIsSubmitting(true);
     try {
-      const created = await locationService.createBranchAsync(
-        newBranchName,
-        newBranchCode || 'BR',
-        newBranchAddress
-      );
+      const created = await locationService.createBranchAsync(newBranchName, newBranchCode || 'BR', newBranchAddress);
       setBranches(locationService.getBranches());
       setSelectedBranchId(created.id);
       setNewBranchName('');
@@ -130,53 +124,43 @@ export const BranchFloorManagerModal: React.FC<BranchFloorManagerModalProps> = (
     }
     const updated = locationService.getBranches();
     setBranches(updated);
-    if (selectedBranchId === b.id && updated.length > 0) {
-      setSelectedBranchId(updated[0].id);
-    }
+    if (selectedBranchId === b.id && updated.length > 0) setSelectedBranchId(updated[0].id);
     showToast(`Đã xóa trụ sở: ${b.name}`);
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1250, padding: '20px' }}>
-      <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border-color)', width: '100%', maxWidth: '840px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FontAwesomeIcon icon={faBuilding} style={{ fontSize: '16px' }} />
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1250] p-5">
+      <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] w-full max-w-[840px] max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
+              <FontAwesomeIcon icon={faBuilding} className="text-base" />
             </div>
             <div>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+              <h3 className="text-[15px] font-bold m-0 text-[var(--text-primary)]">
                 Quản Lý Danh Mục Trụ Sở &amp; Sơ Đồ Tầng (Admin)
               </h3>
-              <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+              <p className="text-[11.5px] text-[var(--text-muted)] m-0 mt-0.5">
                 Thêm trụ sở mới, khai báo số tầng và kiểm soát phân bổ thiết bị toàn hệ thống
               </p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-            <FontAwesomeIcon icon={faXmark} style={{ fontSize: '16px' }} />
+          <button type="button" onClick={onClose} className="bg-transparent border-0 cursor-pointer text-[var(--text-muted)] p-1">
+            <FontAwesomeIcon icon={faXmark} className="text-base" />
           </button>
         </div>
 
         {errorMessage && (
-          <div style={{ padding: '8px 20px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontSize: '12px', fontWeight: 600, borderBottom: '1px solid rgba(239, 68, 68, 0.2)' }}>
-            ⚠️ {errorMessage}
-          </div>
+          <div className="px-5 py-2 bg-red-500/10 text-red-500 text-xs font-semibold border-b border-red-500/20">⚠️ {errorMessage}</div>
         )}
         {toastMessage && (
-          <div style={{ padding: '8px 20px', backgroundColor: 'rgba(22, 163, 74, 0.1)', color: '#16a34a', fontSize: '12px', fontWeight: 600, borderBottom: '1px solid rgba(22, 163, 74, 0.2)' }}>
-            ✓ {toastMessage}
-          </div>
+          <div className="px-5 py-2 bg-emerald-600/10 text-emerald-600 text-xs font-semibold border-b border-emerald-600/20">✓ {toastMessage}</div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '18px 20px', overflowY: 'auto' }}>
-          {/* Cột 1: Danh sách Trụ sở / Chi nhánh */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderRight: '1px solid var(--border-color)', paddingRight: '16px' }}>
-            <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
-              Danh Sách Trụ Sở ({branches.length})
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 overflow-y-auto">
+          <div className="flex flex-col gap-3 md:border-r md:border-[var(--border-color)] md:pr-4">
+            <div className="font-bold text-[13px] text-[var(--text-primary)]">Danh Sách Trụ Sở ({branches.length})</div>
+            <div className="flex flex-col gap-1.5">
               {branches.map((b) => {
                 const isSelected = currentBranch?.id === b.id;
                 const pCount = getBranchPrinterCount(b.name);
@@ -184,38 +168,25 @@ export const BranchFloorManagerModal: React.FC<BranchFloorManagerModalProps> = (
                   <div
                     key={b.id}
                     onClick={() => setSelectedBranchId(b.id)}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      backgroundColor: isSelected ? 'rgba(37, 99, 235, 0.1)' : 'var(--bg-subtle)',
-                      border: isSelected ? '1px solid #2563eb' : '1px solid var(--border-color)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
+                    className={`px-3 py-2.5 rounded-lg cursor-pointer flex items-center justify-between border ${
+                      isSelected ? 'bg-blue-600/10 border-blue-600' : 'bg-[var(--bg-subtle)] border-[var(--border-color)]'
+                    }`}
                   >
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '12.5px', color: isSelected ? '#2563eb' : 'var(--text-primary)' }}>
-                        {b.name}{' '}
-                        {b.isHq && (
-                          <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', backgroundColor: '#2563eb', color: '#fff', marginLeft: '4px' }}>
-                            HQ
-                          </span>
-                        )}
+                      <div className={`font-semibold text-[12.5px] ${isSelected ? 'text-blue-600' : 'text-[var(--text-primary)]'}`}>
+                        {b.name}
+                        {b.isHq && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-600 text-white ml-1.5">HQ</span>}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {b.floors.length} tầng • {pCount} máy in
-                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)]">{b.floors.length} tầng • {pCount} máy in</div>
                     </div>
                     {!b.isHq && (
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleDeleteBranch(b); }}
                         title="Xóa trụ sở"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: pCount > 0 ? '#cbd5e1' : '#ef4444', padding: '4px' }}
+                        className={`bg-transparent border-0 cursor-pointer p-1 ${pCount > 0 ? 'text-slate-300' : 'text-red-500'}`}
                       >
-                        <FontAwesomeIcon icon={faTrashCan} style={{ fontSize: '11px' }} />
+                        <FontAwesomeIcon icon={faTrashCan} className="text-[11px]" />
                       </button>
                     )}
                   </div>
@@ -223,100 +194,68 @@ export const BranchFloorManagerModal: React.FC<BranchFloorManagerModalProps> = (
               })}
             </div>
 
-            <form onSubmit={handleAddBranch} style={{ marginTop: '8px', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>+ Thêm Trụ sở mới</div>
-              <input
-                type="text"
-                placeholder="Tên trụ sở / chi nhánh *"
-                value={newBranchName}
-                onChange={(e) => setNewBranchName(e.target.value)}
-                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '11.5px' }}
-              />
-              <input
-                type="text"
-                placeholder="Mã ký hiệu (VD: BR-HPG)"
-                value={newBranchCode}
-                onChange={(e) => setNewBranchCode(e.target.value)}
-                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '11.5px' }}
-              />
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                style={{ padding: '6px 10px', borderRadius: '6px', backgroundColor: '#2563eb', color: '#fff', border: 'none', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-              >
-                <FontAwesomeIcon icon={faPlus} style={{ fontSize: '11px' }} />
+            <form onSubmit={handleAddBranch} className="mt-2 p-3 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-color)] flex flex-col gap-2">
+              <div className="text-xs font-bold text-[var(--text-primary)]">+ Thêm Trụ sở mới</div>
+              <input type="text" placeholder="Tên trụ sở / chi nhánh *" value={newBranchName} onChange={(e) => setNewBranchName(e.target.value)} className="w-full px-2 py-1.5 rounded-md border border-[var(--border-color)] text-[11.5px] bg-[var(--bg-card)]" />
+              <input type="text" placeholder="Mã ký hiệu (VD: BR-HPG)" value={newBranchCode} onChange={(e) => setNewBranchCode(e.target.value)} className="w-full px-2 py-1.5 rounded-md border border-[var(--border-color)] text-[11.5px] bg-[var(--bg-card)]" />
+              <button type="submit" disabled={isSubmitting} className="px-2.5 py-1.5 rounded-md bg-blue-600 text-white border-0 text-[11.5px] font-semibold cursor-pointer flex items-center justify-center gap-1">
+                <FontAwesomeIcon icon={faPlus} className="text-[11px]" />
                 <span>Thêm trụ sở</span>
               </button>
             </form>
           </div>
 
-          {/* Cột 2: Sơ đồ tầng của Trụ sở đang chọn */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="flex flex-col gap-3">
             {currentBranch ? (
               <>
-                <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
-                  Sơ Đồ Tầng: <span style={{ color: '#2563eb' }}>{currentBranch.name}</span>
+                <div className="font-bold text-[13px] text-[var(--text-primary)]">
+                  Sơ Đồ Tầng: <span className="text-blue-600">{currentBranch.name}</span>
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '250px', overflowY: 'auto' }}>
+                <div className="flex flex-col gap-1.5 max-h-[250px] overflow-y-auto">
                   {currentBranch.floors.map((fl) => {
                     const count = getFloorPrinterCount(currentBranch.name, fl);
                     return (
-                      <div
-                        key={fl}
-                        style={{ padding: '8px 12px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <FontAwesomeIcon icon={faLocationDot} style={{ fontSize: '11px', color: '#16a34a' }} />
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{fl}</span>
+                      <div key={fl} className="px-3 py-2 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-color)] flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <FontAwesomeIcon icon={faLocationDot} className="text-[11px] text-emerald-600" />
+                          <span className="font-semibold text-[var(--text-primary)]">{fl}</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '9999px', backgroundColor: count > 0 ? 'rgba(37, 99, 235, 0.1)' : 'rgba(100, 116, 139, 0.1)', color: count > 0 ? '#2563eb' : 'var(--text-muted)', fontWeight: 600 }}>
+                        <div className="flex items-center gap-2.5">
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${count > 0 ? 'bg-blue-600/10 text-blue-600' : 'bg-slate-500/10 text-[var(--text-muted)]'}`}>
                             {count} máy in
                           </span>
                           <button
                             type="button"
                             onClick={() => handleDeleteFloor(fl)}
                             title={count > 0 ? 'Không thể xóa vì còn máy in' : 'Xóa tầng này'}
-                            style={{ background: 'none', border: 'none', cursor: count > 0 ? 'not-allowed' : 'pointer', color: count > 0 ? '#cbd5e1' : '#ef4444' }}
+                            className={`bg-transparent border-0 ${count > 0 ? 'cursor-not-allowed text-slate-300' : 'cursor-pointer text-red-500'}`}
                           >
-                            <FontAwesomeIcon icon={faTrashCan} style={{ fontSize: '11px' }} />
+                            <FontAwesomeIcon icon={faTrashCan} className="text-[11px]" />
                           </button>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-
-                <form onSubmit={handleAddFloor} style={{ marginTop: 'auto', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>+ Thêm Tầng mới vào cơ sở này</div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <input
-                      type="text"
-                      placeholder="VD: Tầng 8, Tầng Hầm B1..."
-                      value={newFloorName}
-                      onChange={(e) => setNewFloorName(e.target.value)}
-                      style={{ flex: 1, padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '11.5px' }}
-                    />
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      style={{ padding: '6px 12px', borderRadius: '6px', backgroundColor: '#16a34a', color: '#fff', border: 'none', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <FontAwesomeIcon icon={faPlus} style={{ fontSize: '11px' }} />
+                <form onSubmit={handleAddFloor} className="mt-auto p-3 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-color)] flex flex-col gap-2">
+                  <div className="text-xs font-bold text-[var(--text-primary)]">+ Thêm Tầng mới vào cơ sở này</div>
+                  <div className="flex gap-1.5">
+                    <input type="text" placeholder="VD: Tầng 8, Tầng Hầm B1..." value={newFloorName} onChange={(e) => setNewFloorName(e.target.value)} className="flex-1 px-2 py-1.5 rounded-md border border-[var(--border-color)] text-[11.5px] bg-[var(--bg-card)]" />
+                    <button type="submit" disabled={isSubmitting} className="px-3 py-1.5 rounded-md bg-emerald-600 text-white border-0 text-[11.5px] font-semibold cursor-pointer flex items-center gap-1">
+                      <FontAwesomeIcon icon={faPlus} className="text-[11px]" />
                       <span>Thêm tầng</span>
                     </button>
                   </div>
                 </form>
               </>
             ) : (
-              <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Chưa có trụ sở nào. Vui lòng tạo mới bên trái.</div>
+              <div className="text-[var(--text-muted)] text-xs">Chưa có trụ sở nào. Vui lòng tạo mới bên trái.</div>
             )}
           </div>
         </div>
 
-        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', backgroundColor: 'var(--bg-subtle)' }}>
-          <button type="button" onClick={onClose} style={{ padding: '7px 18px', borderRadius: '8px', backgroundColor: '#2563eb', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+        <div className="px-5 py-3 border-t border-[var(--border-color)] flex justify-end bg-[var(--bg-subtle)]">
+          <button type="button" onClick={onClose} className="px-4 py-1.5 rounded-lg bg-blue-600 text-white border-0 text-xs font-bold cursor-pointer">
             Hoàn tất &amp; Đóng
           </button>
         </div>

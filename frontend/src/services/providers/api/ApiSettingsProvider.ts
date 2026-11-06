@@ -2,17 +2,19 @@
  * Frontend/src/services/providers/api/ApiSettingsProvider.ts
  *
  * Triển khai ISettingsService thông qua REST API Backend (PostgreSQL & Zabbix):
- * - Đấu nối 100% CRUD Người dùng RBAC, Đổi mật khẩu bcrypt, Nạp CSV Từ điển mã lỗi,
- *   Kiểm tra Ping Zabbix thời gian thực và Lưu ngưỡng cảnh báo động.
+ * - Đấu nối 100% CRUD Người dùng RBAC, Đổi mật khẩu bcrypt, Vòng đời CSV Từ điển mã lỗi
+ *   (Nạp, xem thời gian nạp, gỡ toàn bộ khỏi DB, đối chiếu mã chưa tích hợp).
  * - Tuân thủ AGENTS.md Rule 4 & Rule 7.1 (< 300 LOC).
  */
 
 import {
   CreateManagedUserDto,
   CsvImportApiResult,
+  ErrorDictionaryLifecycleStatus,
   ISettingsService,
   SystemSettings,
   TechnicianOption,
+  UnloadCsvDictionaryResult,
   UpdateManagedUserDto,
   ZabbixTestResult,
 } from '../../interfaces/ISettingsService';
@@ -40,6 +42,16 @@ export class ApiSettingsProvider implements ISettingsService {
 
   async getErrorDictionary(): Promise<PrinterErrorCode[]> {
     return requestApi<PrinterErrorCode[]>('/settings/errors');
+  }
+
+  async getErrorDictionaryStatus(): Promise<ErrorDictionaryLifecycleStatus> {
+    return requestApi<ErrorDictionaryLifecycleStatus>('/settings/csv/dictionary-status');
+  }
+
+  async unloadErrorDictionaryCsv(): Promise<UnloadCsvDictionaryResult> {
+    return requestApi<UnloadCsvDictionaryResult>('/settings/csv/dictionary', {
+      method: 'DELETE',
+    });
   }
 
   async lookupErrorCode(code: string, vendor?: string): Promise<PrinterErrorCode | null> {

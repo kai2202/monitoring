@@ -1,15 +1,17 @@
 /**
  * Backend/src/controllers/telemetryController.ts
  *
- * Controller xử lý các yêu cầu REST API cho Phân hệ Phân tích Sản lượng Đội Máy In (Fleet Analytics).
+ * Controller xử lý các yêu cầu REST API cho Phân hệ Đo lường & Sản lượng Đội Máy In (Fleet Telemetry).
+ * Tuân thủ AGENTS.md Rule 5 & Rule 7.1 (< 300 LOC).
  */
 
 import { Request, Response } from 'express';
 import { backendTelemetryService } from '../services/telemetryService';
+import { telemetryExtendedService } from '../services/telemetryExtendedService';
+import { buildComparisonAnalytics } from '../services/compareAnalyticsService';
 import { zabbixClient } from '../services/zabbixClient';
 
 export class TelemetryController {
-  // GET /api/telemetry/availability
   async getAvailabilityTimeline(req: Request, res: Response) {
     try {
       const hours = Number(req.query.hours) || 24;
@@ -20,27 +22,106 @@ export class TelemetryController {
     }
   }
 
-  // GET /api/telemetry/reliability-stats
+  async getVolumeTrend(req: Request, res: Response) {
+    try {
+      const days = Number(req.query.days) || 30;
+      const trend = await telemetryExtendedService.getVolumeTrend(days);
+      return res.status(200).json(trend);
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Không thể tải xu hướng sản lượng', message: err.message });
+    }
+  }
+
+  async getProductionTrend(req: Request, res: Response) {
+    try {
+      const days = Number(req.query.days) || 30;
+      const series = await telemetryExtendedService.getVolumeTrend(days);
+      return res.status(200).json({ granularity: req.query.granularity || 'day', series });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Không thể tải xu hướng sản lượng nâng cao', message: err.message });
+    }
+  }
+
+  async getTopPrintersVolume(req: Request, res: Response) {
+    try {
+      const limit = Number(req.query.limit) || 10;
+      const top = await telemetryExtendedService.getTopPrintersVolume(limit, 30);
+      return res.status(200).json(top);
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Không thể tải top sản lượng máy in', message: err.message });
+    }
+  }
+
+  async getRankings(req: Request, res: Response) {
+    try {
+      const data = await telemetryExtendedService.getRankings({
+        scope: req.query.scope as string | undefined,
+        periodDays: Number(req.query.periodDays) || 30,
+        brand: req.query.brand as string | undefined,
+        search: req.query.search as string | undefined,
+      });
+      return res.status(200).json(data);
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Không thể tải bảng xếp hạng sản lượng', message: err.message });
+    }
+  }
+
+  async getInventory(req: Request, res: Response) {
+    try {
+      const data = await telemetryExtendedService.getInventory({
+        page: Number(req.query.page) || 1,
+        pageSize: Number(req.query.pageSize) || 20,
+        search: req.query.search as string | undefined,
+        brand: req.query.brand as string | undefined,
+        department: req.query.department as string | undefined,
+      });
+      return res.status(200).json(data);
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Không thể tải kiểm kê telemetry', message: err.message });
+    }
+  }
+
+  async getHeatmap(req: Request, res: Response) {
+    try {
+      const limit = Number(req.query.limit) || 50;
+      const data = await telemetryExtendedService.getHeatmap(14, limit);
+      return res.status(200).json(data);
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Không thể tải bản đồ nhiệt sản lượng', message: err.message });
+    }
+  }
+
+  async getCompare(req: Request, res: Response) {
+    try {
+      const rawIds = String(req.query.printerIds || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const comparison = await buildComparisonAnalytics(rawIds);
+      return res.status(200).json(comparison.items);
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Không thể đối chiếu máy in', message: err.message });
+    }
+  }
+
   async getReliabilityStats(_req: Request, res: Response) {
     try {
       const stats = await backendTelemetryService.getReliabilityStats();
       return res.status(200).json(stats);
     } catch (err: any) {
-      return res.status(500).json({ error: 'Failed to fetch reliability stats', message: err.message });
+      return res.status(500).json({ error: 'Không thể tải thống kê độ tin cậy', message: err.message });
     }
   }
 
-  // GET /api/telemetry/lemon-devices
   async getLemonDevices(_req: Request, res: Response) {
     try {
       const lemons = await backendTelemetryService.getLemonDevices();
       return res.status(200).json(lemons);
     } catch (err: any) {
-      return res.status(500).json({ error: 'Failed to fetch lemon devices', message: err.message });
+      return res.status(500).json({ error: 'Không thể tải danh sách thiết bị hay lỗi', message: err.message });
     }
   }
 
-  // GET /api/telemetry/zabbix-status
   async getZabbixStatus(_req: Request, res: Response) {
     try {
       const version = await zabbixClient.checkVersion();
@@ -50,7 +131,6 @@ export class TelemetryController {
     }
   }
 
-  // GET /api/telemetry/scatter-3d
   async get3DScatterData(req: Request, res: Response) {
     try {
       const brand = req.query.brand as string | undefined;
@@ -58,11 +138,10 @@ export class TelemetryController {
       const data = await backendTelemetryService.get3DScatterData(brand, department);
       return res.status(200).json(data);
     } catch (err: any) {
-      return res.status(500).json({ error: 'Failed to fetch 3D scatter data', message: err.message });
+      return res.status(500).json({ error: 'Không thể tải dữ liệu phân tích đa chiều', message: err.message });
     }
   }
 
-  // GET /api/telemetry/rollups
   async getDailyRollups(req: Request, res: Response) {
     try {
       const printerId = req.query.printerId as string | undefined;
@@ -70,11 +149,10 @@ export class TelemetryController {
       const rollups = await backendTelemetryService.getDailyRollups(printerId, days);
       return res.status(200).json(rollups);
     } catch (err: any) {
-      return res.status(500).json({ error: 'Failed to fetch counter rollups', message: err.message });
+      return res.status(500).json({ error: 'Không thể tải lịch sử bộ đếm', message: err.message });
     }
   }
 
-  // POST /api/telemetry/rollups
   async recordCounterRollup(req: Request, res: Response) {
     try {
       const { printerId, monoPages, colorPages, scanPages } = req.body;
@@ -89,10 +167,9 @@ export class TelemetryController {
       );
       return res.status(200).json(result);
     } catch (err: any) {
-      return res.status(500).json({ error: 'Failed to record counter rollup', message: err.message });
+      return res.status(500).json({ error: 'Không thể ghi nhận bộ đếm', message: err.message });
     }
   }
 }
 
 export const telemetryController = new TelemetryController();
-

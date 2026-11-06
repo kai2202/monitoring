@@ -10,6 +10,8 @@
   "scripts": {
     "dev": "npm run dev:frontend",
     "dev:frontend": "npm run dev -w Frontend",
+    "dev:mock": "npm run dev:mock -w Frontend",
+    "dev:real": "npm run dev:real -w Frontend",
     "dev:backend": "npm run dev -w Backend",
     "build": "npm run build:frontend",
     "build:frontend": "npm run build -w Frontend",

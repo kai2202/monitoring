@@ -22,9 +22,21 @@ export interface BranchLocation {
   floors: string[];
 }
 
+const DEFAULT_DEPARTMENTS: string[] = [
+  'Kế toán & Tài chính',
+  'Hành chính - Nhân sự',
+  'CNTT & Hạ tầng NOC',
+  'Kinh doanh & Marketing',
+  'Pháp chế & Kiểm toán',
+  'Chăm sóc Khách hàng',
+  'Ban Giám đốc',
+  'Kho vận & Cung ứng',
+];
+
 class LocationService {
   private branches: BranchLocation[] =
     DATA_SOURCE === 'mock' ? (MockDataProvider.getBranches() as BranchLocation[]) : [];
+  private customDepartments = new Set<string>(DEFAULT_DEPARTMENTS);
   private listeners: Array<() => void> = [];
 
   public getBranches(): BranchLocation[] {
@@ -39,7 +51,14 @@ class LocationService {
     if (DATA_SOURCE === 'mock') {
       return MockDataProvider.getDepartments();
     }
-    return [];
+    return Array.from(this.customDepartments);
+  }
+
+  public registerDepartments(departments: Array<string | undefined | null>): void {
+    departments.forEach((d) => {
+      const clean = (d || '').trim();
+      if (clean) this.customDepartments.add(clean);
+    });
   }
 
   public getFloorsByBranch(branchName?: string): string[] {

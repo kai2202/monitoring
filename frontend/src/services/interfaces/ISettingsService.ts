@@ -60,12 +60,50 @@ export interface UpdateManagedUserDto {
   floorsScope?: string[];
 }
 
+export interface ActiveCsvDatasetInfo {
+  isLoaded: boolean;
+  activeCodesCount: number;
+  fileName: string | null;
+  importedAt: string | null;
+  importedBy: string | null;
+  lastUnloadedAt: string | null;
+  lastUnloadedBy: string | null;
+}
+
+export interface UnmappedHardwareErrorItem {
+  vendor: string;
+  errorCode: string;
+  occurrencesCount: number;
+  openIncidentsCount: number;
+  affectedPrinters: string[];
+  sampleTitle: string;
+  suggestedSubsystem: string;
+  severity: 'Critical' | 'Warning';
+  lastDetectedAt: string;
+}
+
+export interface ErrorDictionaryLifecycleStatus {
+  activeDataset: ActiveCsvDatasetInfo;
+  unmappedCodes: UnmappedHardwareErrorItem[];
+}
+
+export interface UnloadCsvDictionaryResult {
+  success: boolean;
+  removedCount: number;
+  unloadedAt: string;
+  lifecycle: ErrorDictionaryLifecycleStatus;
+}
+
 export interface CsvImportApiResult {
   jobId?: string;
+  fileName?: string;
   totalRows: number;
   validRows: number;
   errorRows: number;
   status: string;
+  importedAt?: string;
+  resolvedUnmappedCount?: number;
+  lifecycle?: ErrorDictionaryLifecycleStatus;
 }
 
 export interface TechnicianOption {
@@ -81,6 +119,8 @@ export interface ISettingsService {
   updateSettings(settings: Partial<SystemSettings>): Promise<SystemSettings>;
   testZabbixConnection(): Promise<ZabbixTestResult>;
   getErrorDictionary(): Promise<PrinterErrorCode[]>;
+  getErrorDictionaryStatus(): Promise<ErrorDictionaryLifecycleStatus>;
+  unloadErrorDictionaryCsv(): Promise<UnloadCsvDictionaryResult>;
   lookupErrorCode(code: string, vendor?: string): Promise<PrinterErrorCode | null>;
   importErrorDictionaryCsv(fileName: string, csvContent: string): Promise<CsvImportApiResult>;
   getTechnicians(): Promise<TechnicianOption[]>;

@@ -21,6 +21,7 @@ import { dashboardRouter } from './routes/dashboardRoutes';
 import { incidentRouter } from './routes/incidentRoutes';
 import { analyticsRouter } from './routes/analyticsRoutes';
 import { workLogRouter } from './routes/workLogRoutes';
+import { suppliesRouter } from './routes/suppliesRoutes';
 
 export const app = express();
 
@@ -47,6 +48,7 @@ app.use('/api/v1/settings', settingsRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/incidents', incidentRouter);
 app.use('/api/v1/analytics', analyticsRouter);
+app.use('/api/v1/supplies', suppliesRouter);
 app.use('/api/v1', workLogRouter);
 
 // 4. Định tuyến tương thích ngược (/api/...)
@@ -58,6 +60,7 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/incidents', incidentRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/supplies', suppliesRouter);
 app.use('/api', workLogRouter);
 
 // 5. Health Check Endpoint

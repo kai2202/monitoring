@@ -49,6 +49,12 @@ settingsRouter.post(
   requirePermissions(['csv:import_errors']),
   (req, res) => settingsController.importCsv(req, res)
 );
+settingsRouter.get('/csv/dictionary-status', authenticateToken, requireRoles(['ADMIN']), (req, res) =>
+  settingsController.getDictionaryStatus(req, res)
+);
+settingsRouter.delete('/csv/dictionary', authenticateToken, requireRoles(['ADMIN']), (req, res) =>
+  settingsController.unloadDictionary(req, res)
+);
 settingsRouter.get('/csv/jobs', authenticateToken, requireRoles(['ADMIN']), (req, res) =>
   settingsController.getCsvJobs(req, res)
 );

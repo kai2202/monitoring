@@ -1,37 +1,42 @@
 /**
  * Frontend/src/features/settings/components/ErrorDictionaryCard.tsx
  *
- * Thẻ Tra Cứu Từ Điển Mã Lỗi Phần Cứng Đa Thương Hiệu:
- * - Tra cứu mã SC (Ricoh), E (Canon), 50-70 (HP), Epson...
- * - Tìm kiếm thời gian thực tích hợp Debounce (250ms), hỗ trợ tra cứu đa từ khóa (AND/OR).
- * - Bộ lọc Hãng sản xuất, Mức độ nghiêm trọng và Khối linh kiện phần cứng.
- * - Phân trang động (10, 25, 50, 100, Tất cả) và nút Đặt lại bộ lọc trực quan.
- * - Hỗ trợ Nạp CSV với validation & Xuất CSV chuẩn UTF-8 BOM.
- * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC, sweet spot 150-250 LOC).
+ * Thẻ Tra Cứu & Quản Trị Vòng Đời Từ Điển Mã Lỗi Phần Cứng Đa Thương Hiệu:
+ * - Hiển thị thời điểm nạp bộ CSV hiện hành để đối chiếu & cập nhật (`CsvDatasetStatusBanner`).
+ * - Cho phép gỡ hoàn toàn bộ CSV khỏi cơ sở dữ liệu và chỉ khôi phục khi nạp CSV mới.
+ * - Khung thông báo các mã lỗi phát sinh chưa tích hợp vào CSV (`UnmappedErrorCodesPanel`),
+ *   tự động ẩn đi ngay khi nạp CSV chứa mã lỗi tương ứng.
+ * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC, 100% FontAwesome).
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
   FontAwesomeIcon,
-  faMagnifyingGlass,
   faMicrochip,
   faFileCsv,
   faDownload,
-  faRotate,
-  faXmark,
 } from '@/shared/icons';
 import { useDebounce } from '@/shared/hooks';
 import { PrinterErrorCode } from '@/types/api';
+import { settingsService } from '@/services';
+import {
+  CsvImportApiResult,
+  ErrorDictionaryLifecycleStatus,
+} from '@/services/interfaces/ISettingsService';
 import { exportErrorDictionaryToCsv } from '../utils/errorDictionaryCsvHelper';
 import {
-  SUBSYSTEM_LABELS,
   filterErrorDictionary,
   countActiveFilters,
   extractAvailableSubsystems,
 } from '../utils/errorDictionaryFilterHelper';
 import { CsvImportModal } from './modals';
 import { ErrorDictionaryTable } from './ErrorDictionaryTable';
+import {
+  CsvDatasetStatusBanner,
+  UnmappedErrorCodesPanel,
+  ErrorDictionaryFilterBar,
+} from './dictionary';
 
 interface ErrorDictionaryCardProps {
   errorDict: PrinterErrorCode[];
@@ -53,6 +58,22 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
   const [customErrors, setCustomErrors] = useState<PrinterErrorCode[]>([]);
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [lifecycleStatus, setLifecycleStatus] = useState<ErrorDictionaryLifecycleStatus | null>(null);
+  const [isUnloading, setIsUnloading] = useState(false);
+
+  const fetchLifecycle = useCallback(async () => {
+    try {
+      const status = await settingsService.getErrorDictionaryStatus();
+      setLifecycleStatus(status);
+    } catch {
+      // Giữ trạng thái hiện tại nếu chưa phản hồi
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLifecycle();
+  }, [fetchLifecycle, errorDict.length]);
 
   const combinedErrors = useMemo(() => {
     return [...customErrors, ...errorDict];
@@ -91,19 +112,49 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
     return filteredErrors.slice(start, start + pageSize);
   }, [filteredErrors, currentPage, pageSize]);
 
-  const handleImportSuccess = (importedRows: PrinterErrorCode[]) => {
+  const handleImportSuccess = (importedRows: PrinterErrorCode[], apiRes?: CsvImportApiResult) => {
+    if (apiRes?.lifecycle) {
+      setLifecycleStatus(apiRes.lifecycle);
+    } else {
+      fetchLifecycle();
+    }
+
     if (onReloadDictionary) {
       setCustomErrors([]);
       onReloadDictionary();
     } else {
       setCustomErrors((prev) => [...importedRows, ...prev]);
     }
-    toast.success(`Đã nạp thành công ${importedRows.length} mã lỗi từ file CSV.`);
+
+    if (apiRes?.resolvedUnmappedCount && apiRes.resolvedUnmappedCount > 0) {
+      toast.success(
+        `Đã nạp ${importedRows.length} mã lỗi CSV (Đã tự động đối chiếu & gỡ ${apiRes.resolvedUnmappedCount} thông báo mã chưa tích hợp)!`
+      );
+    } else {
+      toast.success(`Đã nạp thành công ${importedRows.length} mã lỗi từ file CSV.`);
+    }
+  };
+
+  const handleUnloadConfirm = async () => {
+    setIsUnloading(true);
+    try {
+      const res = await settingsService.unloadErrorDictionaryCsv();
+      setCustomErrors([]);
+      setLifecycleStatus(res.lifecycle);
+      if (onReloadDictionary) {
+        onReloadDictionary();
+      }
+      toast.success(`Đã gỡ hoàn toàn ${res.removedCount} mã lỗi CSV ra khỏi cơ sở dữ liệu!`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể gỡ bộ từ điển CSV khỏi cơ sở dữ liệu');
+    } finally {
+      setIsUnloading(false);
+    }
   };
 
   const handleExportCsv = () => {
     if (combinedErrors.length === 0) {
-      toast.warning('Không có dữ liệu mã lỗi để xuất.');
+      toast.warning('Không có dữ liệu mã lỗi trong cơ sở dữ liệu để xuất.');
       return;
     }
     exportErrorDictionaryToCsv(combinedErrors);
@@ -123,7 +174,7 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
               Từ Điển Mã Lỗi Phần Cứng Đa Thương Hiệu
             </h2>
             <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mt-0.5">
-              Bảng tra cứu chuẩn hóa mã SC (Ricoh), mã E (Canon), mã 50-70 (HP) phục vụ chẩn đoán kỹ thuật
+              Quản trị vòng đời bộ nạp CSV, đối chiếu thời gian cập nhật và tự động phát hiện mã lỗi chưa tích hợp
             </p>
           </div>
         </div>
@@ -132,7 +183,7 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
           <button
             type="button"
             onClick={handleExportCsv}
-            className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <FontAwesomeIcon icon={faDownload} className="text-xs text-emerald-600" />
             <span>Xuất CSV</span>
@@ -141,7 +192,7 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
           <button
             type="button"
             onClick={() => setIsCsvModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-200/60 flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-200/60 flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <FontAwesomeIcon icon={faFileCsv} className="text-xs" />
             <span>Nạp CSV</span>
@@ -149,104 +200,47 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
         </div>
       </div>
 
-      {/* 2. Thanh Tìm kiếm Realtime & Bộ lọc Đa tiêu chí */}
-      <div className="flex items-center justify-between flex-wrap gap-2.5">
-        <div className="relative flex-1 min-w-[220px]">
-          <FontAwesomeIcon
-            icon={faMagnifyingGlass}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"
-          />
-          <input
-            type="text"
-            placeholder="Tìm theo mã lỗi, tên lỗi, khối linh kiện..."
-            value={errorSearch}
-            onChange={(e) => {
-              setErrorSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none focus:border-indigo-500 transition-colors"
-          />
-          {errorSearch && (
-            <button
-              type="button"
-              onClick={() => {
-                setErrorSearch('');
-                setCurrentPage(1);
-              }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
-              title="Xóa tìm kiếm"
-            >
-              <FontAwesomeIcon icon={faXmark} className="text-xs" />
-            </button>
-          )}
-        </div>
+      {/* 2. Trạng thái Bộ nạp CSV (Thời gian nạp & Nút Gỡ bộ CSV) */}
+      <CsvDatasetStatusBanner
+        dataset={lifecycleStatus?.activeDataset ?? null}
+        isUnloading={isUnloading}
+        onUnloadConfirm={handleUnloadConfirm}
+        onOpenImportModal={() => setIsCsvModalOpen(true)}
+      />
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Lọc Hãng */}
-          <select
-            value={vendorFilter}
-            onChange={(e) => {
-              setVendorFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none font-semibold text-slate-800 dark:text-slate-200 cursor-pointer"
-          >
-            <option value="all">Tất cả hãng</option>
-            <option value="Ricoh">Ricoh</option>
-            <option value="Canon">Canon</option>
-            <option value="HP">HP</option>
-            <option value="Epson">Epson</option>
-            <option value="General">Chung (General)</option>
-          </select>
+      {/* 3. Danh sách Thông báo Mã lỗi phát sinh chưa được tích hợp vào CSV */}
+      {lifecycleStatus && (
+        <UnmappedErrorCodesPanel unmappedCodes={lifecycleStatus.unmappedCodes} />
+      )}
 
-          {/* Lọc Mức độ */}
-          <select
-            value={severityFilter}
-            onChange={(e) => {
-              setSeverityFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none font-semibold text-slate-800 dark:text-slate-200 cursor-pointer"
-          >
-            <option value="all">Tất cả mức độ</option>
-            <option value="Critical">Critical (Nguy cấp)</option>
-            <option value="Warning">Warning (Cảnh báo)</option>
-            <option value="Info">Info (Thông tin)</option>
-          </select>
+      {/* 4. Thanh Tìm kiếm Realtime & Bộ lọc Đa tiêu chí */}
+      <ErrorDictionaryFilterBar
+        errorSearch={errorSearch}
+        vendorFilter={vendorFilter}
+        severityFilter={severityFilter}
+        subsystemFilter={subsystemFilter}
+        availableSubsystems={availableSubsystems}
+        activeFilterCount={activeFilterCount}
+        onSearchChange={(val) => {
+          setErrorSearch(val);
+          setCurrentPage(1);
+        }}
+        onVendorChange={(val) => {
+          setVendorFilter(val);
+          setCurrentPage(1);
+        }}
+        onSeverityChange={(val) => {
+          setSeverityFilter(val);
+          setCurrentPage(1);
+        }}
+        onSubsystemChange={(val) => {
+          setSubsystemFilter(val);
+          setCurrentPage(1);
+        }}
+        onResetFilters={handleResetFilters}
+      />
 
-          {/* Lọc Khối linh kiện */}
-          <select
-            value={subsystemFilter}
-            onChange={(e) => {
-              setSubsystemFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none font-semibold text-slate-800 dark:text-slate-200 cursor-pointer"
-          >
-            <option value="all">Tất cả khối linh kiện</option>
-            {availableSubsystems.map((sub) => (
-              <option key={sub} value={sub}>
-                {SUBSYSTEM_LABELS[sub] || sub}
-              </option>
-            ))}
-          </select>
-
-          {/* Nút Đặt lại bộ lọc */}
-          {activeFilterCount > 0 && (
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200/60 dark:border-rose-900/40 flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Đặt lại toàn bộ tiêu chí tìm kiếm & lọc"
-            >
-              <FontAwesomeIcon icon={faRotate} className="text-[10.5px]" />
-              <span>Đặt lại ({activeFilterCount})</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 3. Bảng Dữ Liệu Tra Cứu (Sub-Component) */}
+      {/* 5. Bảng Dữ Liệu Tra Cứu */}
       <ErrorDictionaryTable
         isLoading={isLoading}
         paginatedErrors={paginatedErrors}
@@ -264,7 +258,7 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
         searchQuery={debouncedSearch}
       />
 
-      {/* 4. Modal nạp CSV */}
+      {/* 6. Modal nạp CSV */}
       <CsvImportModal
         isOpen={isCsvModalOpen}
         onClose={() => setIsCsvModalOpen(false)}

@@ -4,7 +4,7 @@
  * Modal Nạp Từ Điển Mã Lỗi Từ File CSV (Admin Only):
  * - Hỗ trợ phân tích cú pháp RFC 4180 và chuẩn hóa UTF-8 BOM (\uFEFF).
  * - Kiểm tra tính hợp lệ (Validation Engine) chi tiết từng dòng.
- * - Thanh tiến trình (Progress Bar) sinh động và Bảng tổng kết chi tiết.
+ * - Tái sử dụng `CsvImportPickerBar` và `CsvImportValidationSummary` (< 300 LOC).
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC, FontAwesome duy nhất).
  */
 
@@ -13,26 +13,26 @@ import { toast } from 'sonner';
 import {
   FontAwesomeIcon,
   faFileCsv,
-  faUpload,
   faCheck,
   faXmark,
-  faDownload,
   faCircleCheck,
 } from '@/shared/icons';
 import { PrinterErrorCode } from '@/types/api';
 import { settingsService } from '@/services';
+import { CsvImportApiResult } from '@/services/interfaces/ISettingsService';
 import {
   parseCsvText,
   validateErrorDictionaryCsv,
   SAMPLE_CSV_CONTENT,
   CsvValidationResult,
 } from '../../utils/errorDictionaryCsvHelper';
+import { CsvImportPickerBar } from './CsvImportPickerBar';
 import { CsvImportValidationSummary } from './CsvImportValidationSummary';
 
 export interface CsvImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImportSuccess: (importedRows: PrinterErrorCode[]) => void;
+  onImportSuccess: (importedRows: PrinterErrorCode[], apiResult?: CsvImportApiResult) => void;
   existingCodes?: PrinterErrorCode[];
 }
 
@@ -51,7 +51,6 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Khởi tạo chạy mẫu Dry-Run khi mở modal lần đầu
       setFileName('');
       setRawCsvText('');
       setValidationResult(null);
@@ -123,8 +122,11 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      await settingsService.importErrorDictionaryCsv(fileName || 'error_dictionary.csv', rawCsvText);
-      onImportSuccess(validationResult.validRows);
+      const apiRes = await settingsService.importErrorDictionaryCsv(
+        fileName || 'error_dictionary.csv',
+        rawCsvText
+      );
+      onImportSuccess(validationResult.validRows, apiRes);
       onClose();
     } catch (err: any) {
       toast.error(err?.message || 'Không thể lưu từ điển mã lỗi CSV vào cơ sở dữ liệu');
@@ -163,7 +165,6 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 1. Header Modal */}
         <div
           style={{
             padding: '16px 22px',
@@ -194,7 +195,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 Nạp &amp; Kiểm Duyệt Từ Điển Mã Lỗi CSV
               </h3>
               <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                Hỗ trợ Ricoh, Canon, HP, Epson, Brother, Toshiba, Xerox (Chuẩn hóa UTF-8 BOM)
+                Hỗ trợ Ricoh, Canon, HP, Epson, Brother, Toshiba, Xerox (Chuẩn hóa UTF-8 BOM &amp; tự động đối chiếu mã thiếu)
               </p>
             </div>
           </div>
@@ -207,78 +208,12 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           </button>
         </div>
 
-        {/* 2. Content Body */}
         <div style={{ padding: '18px 22px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* File Picker Toolbar */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '10px',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              backgroundColor: 'var(--bg-subtle, #f8fafc)',
-              border: '1px solid var(--border-color)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
-              <label
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '8px',
-                  backgroundColor: '#2563eb',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
-                  flexShrink: 0,
-                }}
-              >
-                <FontAwesomeIcon icon={faUpload} style={{ fontSize: '12px' }} />
-                <span>Chọn tệp CSV</span>
-                <input type="file" accept=".csv" onChange={handleFileUpload} style={{ display: 'none' }} />
-              </label>
-              <span
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--text-secondary)',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {fileName || 'Chưa chọn tệp'}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleDownloadSample}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#2563eb',
-                fontSize: '11.5px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
-              <FontAwesomeIcon icon={faDownload} style={{ fontSize: '11px' }} />
-              <span>Tải file mẫu UTF-8 BOM</span>
-            </button>
-          </div>
-
-          {/* Validation Progress & Summary Table */}
+          <CsvImportPickerBar
+            fileName={fileName}
+            onFileUpload={handleFileUpload}
+            onDownloadSample={handleDownloadSample}
+          />
           <CsvImportValidationSummary
             progress={progress}
             isProcessing={isProcessing}
@@ -286,7 +221,6 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           />
         </div>
 
-        {/* 3. Footer */}
         <div
           style={{
             padding: '14px 22px',
@@ -298,7 +232,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           }}
         >
           <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-            Hệ thống hỗ trợ ánh xạ tự động 6 hãng thiết bị chính
+            Mã lỗi khớp sẽ tự động gỡ khỏi danh sách thông báo chưa tích hợp
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

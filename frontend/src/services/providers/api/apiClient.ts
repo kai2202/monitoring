@@ -180,9 +180,14 @@ export async function requestApi<T>(
     if (!response.ok) {
       let errorBody: unknown;
       try {
-        errorBody = await response.json();
+        const cloned = response.clone();
+        try {
+          errorBody = await response.json();
+        } catch {
+          errorBody = await cloned.text();
+        }
       } catch {
-        errorBody = await response.text();
+        errorBody = null;
       }
       const message = extractBackendErrorMessage(errorBody, response.status, response.statusText, url);
       throw new ApiError(response.status, response.statusText, message, errorBody);

@@ -169,18 +169,30 @@ export const mockPrintersExtended: Printer[] = [
     incidents: [],
   },
 
-  // --- CÁC THIẾT BỊ BỔ SUNG KHẮP CÁC TẦNG TÒA NHÀ (Tổng cộng 35 máy) ---
+  // --- CÁC THIẾT BỊ BỔ SUNG KHẮP CÁC TẦNG TÒA NHÀ & CHI NHÁNH (Tổng cộng 35 máy) ---
   ...Array.from({ length: 19 }, (_, i) => {
     const idx = i + 17;
     const vendorMap = ['Ricoh', 'Canon', 'HP', 'Epson'] as const;
     const v = vendorMap[i % 4];
     const isColor = i % 2 === 0;
     const isOffline = i === 5 || i === 12; // Tạo 2 máy offline
-    const isLowToner = i === 3 || i === 8;
+    const isCriticalToner = i === 1 || i === 8 || i === 15;
+    const isWarningToner = i === 3 || i === 10 || i === 17;
+
+    // Phân bổ chi nhánh: 7 máy HQ, 7 máy Miền Nam, 5 máy Miền Trung
+    const branchName =
+      i < 7
+        ? 'Trụ sở chính (HQ)'
+        : i < 14
+        ? 'Chi nhánh Miền Nam'
+        : 'Chi nhánh Miền Trung';
+
+    const floorNum = (i % 3) + 1;
+    const floorLabel = `Tầng ${floorNum}`;
 
     return {
       id: `prt-${idx.toString().padStart(3, '0')}`,
-      name: `${v} ${isColor ? 'Color Pro' : 'Laser'} P.${idx} - Tầng ${Math.floor(idx / 8) + 1}`,
+      name: `${v} ${isColor ? 'Color Pro' : 'Laser'} P.${idx} - ${floorLabel}`,
       ip: `192.168.1.${idx + 150}`,
       mfr: v,
       model: isColor ? `${v} MPC-${idx}00` : `${v} M-${idx}0`,
@@ -191,25 +203,27 @@ export const mockPrintersExtended: Printer[] = [
       connectionStatus: isOffline ? 'Offline' : 'Online',
       monitoringStatus: isOffline ? 'Mất kết nối giám sát' : 'Giám sát bình thường',
       status: isOffline ? 'Offline' : 'Online',
-      alertSeverity: isOffline ? 'critical' : isLowToner ? 'warning' : 'clear',
-      alertText: isOffline ? 'Thiết bị không phản hồi' : isLowToner ? 'Mực in sắp hết' : 'Sẵn sàng in',
-      location: `Tòa nhà A - Tầng ${Math.floor(idx / 8) + 1} - Phòng ${idx * 10}`,
+      alertSeverity: isOffline ? 'critical' : isCriticalToner ? 'critical' : isWarningToner ? 'warning' : 'clear',
+      alertText: isOffline ? 'Thiết bị không phản hồi' : isCriticalToner ? 'Mực in khẩn cấp (<15%)' : isWarningToner ? 'Mực in sắp hết (<25%)' : 'Sẵn sàng in',
+      branch: branchName,
+      floor: floorLabel,
+      location: `${branchName} - ${floorLabel} - Phòng ${idx * 10}`,
       snmpStatus: isOffline ? 'SNMP_DOWN' : 'SNMP_AGENT_OK',
       lastScrape: new Date(Date.now() - (isOffline ? 3600000 : 30000)).toISOString(),
       lastSuccessfulScrape: new Date(Date.now() - (isOffline ? 3600000 : 30000)).toISOString(),
       downtimeDuration: isOffline ? '1 giờ 15 phút' : undefined,
       isStale: isOffline,
-      health: isOffline ? 'Offline' : isLowToner ? 'Warning' : 'Healthy',
+      health: isOffline ? 'Offline' : isCriticalToner ? 'Critical' : isWarningToner ? 'Warning' : 'Healthy',
       scannerErr: '',
       adfErr: '',
       copierErr: '',
       mfpErr: '',
       supplies: {
-        black: isOffline ? null : isLowToner ? 9 : 75 + (i % 20),
-        cyan: isColor ? (isOffline ? null : 60 + (i % 30)) : null,
-        magenta: isColor ? (isOffline ? null : 50 + (i % 40)) : null,
+        black: isOffline ? null : isCriticalToner ? 8 : isWarningToner ? 18 : 75 + (i % 20),
+        cyan: isColor ? (isOffline ? null : isCriticalToner ? 11 : 60 + (i % 30)) : null,
+        magenta: isColor ? (isOffline ? null : isWarningToner ? 21 : 50 + (i % 40)) : null,
         yellow: isColor ? (isOffline ? null : 65 + (i % 25)) : null,
-        waste: isOffline ? null : 30 + (i % 45),
+        waste: isOffline ? null : isCriticalToner ? 85 : 30 + (i % 45),
       },
       counters: {
         total: 100000 + idx * 8500,
