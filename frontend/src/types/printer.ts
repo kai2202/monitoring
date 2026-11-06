@@ -90,6 +90,9 @@ export interface Printer {
   status: 'Online' | 'Offline';
   alertSeverity: AlertSeverity;
   alertText: string;
+  branch?: string;
+  floor?: string;
+  department?: string;
   location: string;
   snmpStatus: string;
   lastScrape: string;

@@ -9,9 +9,6 @@ import {
   DEVICE_PALETTE,
 } from './mockAnalyticsDefinitions';
 
-export * from './mockAnalyticsFloorStats';
-export * from './mockAnalyticsComparisonKPIs';
-
 export function getMockTimeSeriesData(
   timeframe: AnalyticsTimeframe,
   floorTab: FloorTabId,

@@ -30,8 +30,8 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
   const [chosenStepId, setChosenStepId] = useState<string>(selectedStepIdFilter || '');
   const [stepTitle, setStepTitle] = useState('');
   const [actions, setActions] = useState('');
-  const [performer, setPerformer] = useState('Kỹ sư NOC');
-  const [result, setResult] = useState<'SUCCESS' | 'WAITING_PARTS' | 'FOLLOWUP_NEEDED'>('SUCCESS');
+  const [performerName, setPerformerName] = useState('Kỹ sư NOC');
+  const [resultStatus, setResultStatus] = useState<'SUCCESS' | 'WAITING_PARTS' | 'FOLLOWUP_NEEDED'>('SUCCESS');
 
   useEffect(() => {
     if (selectedStepIdFilter) setChosenStepId(selectedStepIdFilter);
@@ -59,8 +59,9 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
         stepTitle: resolvedStepTitle,
         stepNumber: matchedStep ? matchedStep.stepNumber : 0,
         actionsTaken: actions.trim(),
-        performer,
-        result,
+        performerName,
+        performerAvatar: performerName.slice(0, 2).toUpperCase(),
+        resultStatus,
         createdAt: `${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date().toLocaleDateString('vi-VN')}`,
       });
     }
@@ -142,13 +143,13 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
             <input
               type="text"
               placeholder="Người thực hiện"
-              value={performer}
-              onChange={(e) => setPerformer(e.target.value)}
+              value={performerName}
+              onChange={(e) => setPerformerName(e.target.value)}
               style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
             />
             <select
-              value={result}
-              onChange={(e) => setResult(e.target.value as any)}
+              value={resultStatus}
+              onChange={(e) => setResultStatus(e.target.value as 'SUCCESS' | 'WAITING_PARTS' | 'FOLLOWUP_NEEDED')}
               style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
             >
               <option value="SUCCESS">Thành công</option>
@@ -188,16 +189,16 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
                   </div>
                   <span style={{
                     fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '9999px',
-                    backgroundColor: log.result === 'SUCCESS' ? 'rgba(22, 163, 74, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                    color: log.result === 'SUCCESS' ? '#16a34a' : '#f59e0b',
+                    backgroundColor: log.resultStatus === 'SUCCESS' ? 'rgba(22, 163, 74, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                    color: log.resultStatus === 'SUCCESS' ? '#16a34a' : '#f59e0b',
                   }}>
-                    {log.result === 'SUCCESS' ? 'Thành công' : log.result === 'WAITING_PARTS' ? 'Chờ vật tư' : 'Cần theo dõi'}
+                    {log.resultStatus === 'SUCCESS' ? 'Thành công' : log.resultStatus === 'WAITING_PARTS' ? 'Chờ vật tư' : 'Cần theo dõi'}
                   </span>
                 </div>
                 <p style={{ fontSize: '11.5px', color: 'var(--text-secondary, #475569)', margin: 0 }}>{log.actionsTaken}</p>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted, #64748b)', marginTop: '2px' }}>
-                  <span>Thực hiện: <strong>{log.performerName || log.performer || 'Kỹ sư NOC'}</strong></span>
-                  <span>{log.createdAt || (log.timestamp ? new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '')}</span>
+                  <span>Thực hiện: <strong>{log.performerName || 'Kỹ sư NOC'}</strong></span>
+                  <span>{log.createdAt || log.startTime || ''}</span>
                 </div>
               </div>
             );

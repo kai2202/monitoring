@@ -91,6 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (isAssetHr) {
       return [
         { id: 'printers', label: 'Danh mục tài sản', badge: 35 },
+        { id: 'printers-history', label: 'Đối soát KPI & Bảo trì' },
         { id: 'printers-timeline', label: 'Lịch bảo dưỡng' },
       ];
     }
@@ -142,14 +143,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div
         style={{
           height: '68px',
-          padding: '0 16px',
+          padding: collapsed ? '0 12px' : '0 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'space-between',
           borderBottom: '1px solid var(--border-color, #e2e8f0)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div
+          onClick={collapsed ? onToggleCollapse : undefined}
+          title={collapsed ? 'Nhấn để mở rộng thanh menu' : undefined}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            cursor: collapsed ? 'pointer' : 'default',
+          }}
+        >
           <div
             style={{
               width: '36px',
@@ -162,6 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               color: '#ffffff',
               boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)',
               flexShrink: 0,
+              transition: 'transform 0.15s ease',
             }}
           >
             <FontAwesomeIcon icon={faPrint} size="sm" />
@@ -203,7 +214,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation Links */}
-      <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto' }}>
+      <nav
+        className="custom-scrollbar"
+        style={{
+          flex: 1,
+          padding: collapsed ? '16px 8px' : '16px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
+          overflowY: 'auto',
+        }}
+      >
         {!collapsed && (
           <span style={{ padding: '0 8px 4px 8px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Menu

@@ -8,6 +8,8 @@
  */
 
 import React from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../../app/store';
 import {
   FontAwesomeIcon,
   faTriangleExclamation,
@@ -35,6 +37,9 @@ export const AttentionDeviceTableRow: React.FC<AttentionDeviceTableRowProps> = (
   onSelectPrinter,
   onCreateTask,
 }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isAdmin = user?.role === 'ADMIN';
+
   const isOffline = printer.connectionStatus === 'Offline';
   const isHardware = !isOffline && (
     printer.alertSeverity === 'critical' ||
@@ -160,30 +165,54 @@ export const AttentionDeviceTableRow: React.FC<AttentionDeviceTableRowProps> = (
           >
             Chẩn đoán
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (onCreateTask) onCreateTask(printer);
-              else onSelectPrinter(printer);
-            }}
-            title="Lập lệnh bảo trì / công việc mới"
-            style={{
-              padding: '4px 8px',
-              borderRadius: '6px',
-              backgroundColor: '#2563eb',
-              border: 'none',
-              color: '#ffffff',
-              fontSize: '11px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <FontAwesomeIcon icon={faWrench} style={{ fontSize: '9.5px' }} />
-            <span>Lập lệnh</span>
-          </button>
+          {isAdmin ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (onCreateTask) onCreateTask(printer);
+                else onSelectPrinter(printer);
+              }}
+              title="Lập lệnh bảo trì / công việc mới"
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                backgroundColor: '#2563eb',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <FontAwesomeIcon icon={faWrench} style={{ fontSize: '9.5px' }} />
+              <span>Lập lệnh</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onSelectPrinter(printer)}
+              title="Xem chi tiết thiết bị &amp; lệnh bảo trì"
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                border: '1px solid rgba(37, 99, 235, 0.25)',
+                color: '#2563eb',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <FontAwesomeIcon icon={faWrench} style={{ fontSize: '9.5px' }} />
+              <span>Xem lệnh</span>
+            </button>
+          )}
         </div>
       </td>
     </tr>

@@ -2,25 +2,28 @@
  * Frontend/src/features/dashboard/components/workorder/WorkOrderVendorAndAttachments.tsx
  *
  * Khối Liên Hệ Hãng & Tài Liệu Đính Kèm (Vendor & Attachments):
- * - Quản lý trao đổi kỹ thuật với hãng và tài liệu đính kèm (PDF, ảnh, log).
- * - Bổ sung nút "Thêm tệp đính kèm" tải file thực tế hoặc mô phỏng.
- * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
+ * - Đấu nối Upload trực tiếp lên MinIO S3 qua `taskService.uploadTaskAttachment` (`FormData`)
+ *   và tải tệp an toàn qua Presigned Download URL (`taskService.getAttachmentDownloadUrl`).
+ * - Tuân thủ AGENTS.md Rule 4, Rule 5 & Rule 7.1 (< 300 LOC).
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   FontAwesomeIcon,
   faPhone,
   faPaperclip,
   faChevronDown,
   faChevronUp,
-  faFileLines,
+  faFolder,
   faDownload,
   faPlus,
 } from '../../../../shared/icons';
 import { VendorCommunicationLog, TaskAttachment } from '../../../../types/task';
+import { useWorkOrderAttachments } from './useWorkOrderAttachments';
 
 interface WorkOrderVendorAndAttachmentsProps {
+  taskId?: string;
+  uploaderName?: string;
   vendorLogs: VendorCommunicationLog[];
   attachments: TaskAttachment[];
   onAddVendorLog?: (log: Partial<VendorCommunicationLog>) => void;
@@ -28,6 +31,8 @@ interface WorkOrderVendorAndAttachmentsProps {
 }
 
 export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmentsProps> = ({
+  taskId,
+  uploaderName = 'Kỹ sư NOC',
   vendorLogs,
   attachments,
   onAddVendorLog,
@@ -40,7 +45,14 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
   const [vendorName, setVendorName] = useState('Hỗ trợ kỹ thuật chính hãng');
   const [contact, setContact] = useState('');
   const [discussion, setDiscussion] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { isUploading, fileInputRef, handleFileUpload, handleDownloadAttachment } =
+    useWorkOrderAttachments({
+      taskId,
+      uploaderName,
+      onAddAttachment,
+      onUploadedSuccess: () => setIsAttachmentsOpen(true),
+    });
 
   const handleAddVendor = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,219 +72,171 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
     setIsVendorOpen(true);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const ext = file.name.split('.').pop()?.toUpperCase() || '';
-      let fileType: 'PDF' | 'IMAGE' | 'LOG' | 'DOC' = 'DOC';
-      if (['JPG', 'JPEG', 'PNG', 'WEBP', 'SVG'].includes(ext)) fileType = 'IMAGE';
-      else if (ext === 'PDF') fileType = 'PDF';
-      else if (['LOG', 'TXT', 'JSON', 'CSV'].includes(ext)) fileType = 'LOG';
-
-      const sizeKb = file.size / 1024;
-      const formattedSize = sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb.toFixed(0)} KB`;
-
-      if (onAddAttachment) {
-        onAddAttachment({
-          id: `att-${Date.now()}-${i}`,
-          fileName: file.name,
-          fileType,
-          fileSize: formattedSize,
-          uploadedAt: `${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date().toLocaleDateString('vi-VN')}`,
-          uploadedBy: 'Kỹ sư NOC',
-        });
-      }
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    setIsAttachmentsOpen(true);
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div className="flex flex-col gap-3">
       {/* 1. Vendor Communications */}
-      <div style={{ borderRadius: '16px', backgroundColor: 'var(--bg-card, #ffffff)', border: '1px solid var(--border-color, #e2e8f0)', overflow: 'hidden' }}>
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs">
         <button
           type="button"
           onClick={() => setIsVendorOpen(!isVendorOpen)}
-          style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer' }}
+          className="w-full px-4 py-3 flex items-center justify-between text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FontAwesomeIcon icon={faPhone} style={{ fontSize: '13px', color: '#8b5cf6' }} />
-            <strong style={{ fontSize: '12.5px', color: 'var(--text-primary, #0f172a)' }}>
-              Liên Hệ Hãng ({vendorLogs.length})
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xs">
+              <FontAwesomeIcon icon={faPhone} />
+            </div>
+            <strong className="text-xs font-bold text-slate-800 dark:text-slate-100">
+              Trao Đổi Kỹ Thuật Với Hãng ({vendorLogs.length})
             </strong>
           </div>
-          <FontAwesomeIcon icon={isVendorOpen ? faChevronUp : faChevronDown} style={{ fontSize: '12px' }} />
+          <FontAwesomeIcon icon={isVendorOpen ? faChevronUp : faChevronDown} className="text-xs text-slate-400" />
         </button>
 
         {isVendorOpen && (
-          <div style={{ padding: '0 16px 14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="p-4 pt-1 flex flex-col gap-2.5 border-t border-slate-100 dark:border-slate-800">
             {vendorLogs.map((v) => (
-              <div key={v.id} style={{ padding: '8px 10px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle, #f8fafc)', fontSize: '11.5px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+              <div key={v.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 text-xs">
+                <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
                   <span>{v.vendorName} ({v.contactPerson || 'KTV hãng'})</span>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted, #64748b)' }}>{v.timestamp ? new Date(v.timestamp).toLocaleDateString('vi-VN') : ''}</span>
+                  <span className="text-[10.5px] text-slate-600 dark:text-slate-300 font-normal">
+                    {v.timestamp ? new Date(v.timestamp).toLocaleDateString('vi-VN') : ''}
+                  </span>
                 </div>
-                <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary, #475569)' }}>{v.discussionContent || (v as any).discussionSummary}</p>
+                <p className="mt-1 text-slate-600 dark:text-slate-300 text-[11.5px] leading-relaxed">
+                  {v.discussionContent || (v as any).discussionSummary}
+                </p>
               </div>
             ))}
 
             {isAddingVendor ? (
-              <form onSubmit={handleAddVendor} style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+              <form onSubmit={handleAddVendor} className="flex flex-col gap-2 mt-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <input
                   type="text"
                   placeholder="Đơn vị / Tên chuyên gia hỗ trợ..."
                   value={vendorName}
                   onChange={(e) => setVendorName(e.target.value)}
-                  style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none"
                 />
                 <input
                   type="text"
                   placeholder="Người liên hệ / SĐT hoặc Email..."
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
-                  style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none"
                 />
                 <textarea
                   rows={2}
                   placeholder="Nội dung khuyến nghị từ hãng..."
                   value={discussion}
                   onChange={(e) => setDiscussion(e.target.value)}
-                  style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none resize-none"
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-                  <button type="button" onClick={() => setIsAddingVendor(false)} style={{ fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}>Hủy</button>
-                  <button type="submit" style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}>Lưu</button>
+                <div className="flex justify-end gap-2 mt-1">
+                  <button type="button" onClick={() => setIsAddingVendor(false)} className="px-3 py-1 text-xs text-slate-600 hover:text-slate-800">Hủy</button>
+                  <button type="submit" className="px-3 py-1 text-xs font-bold rounded-lg bg-purple-600 hover:bg-purple-700 text-white shadow-xs">Lưu ghi nhận</button>
                 </div>
               </form>
             ) : (
               <button
                 type="button"
                 onClick={() => setIsAddingVendor(true)}
-                style={{ fontSize: '11px', color: '#8b5cf6', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: 600 }}
+                className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-semibold text-left pt-1 flex items-center gap-1.5"
               >
-                + Ghi nhận liên hệ hãng
+                <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                <span>+ Ghi nhận cuộc gọi / trao đổi với hãng</span>
               </button>
             )}
           </div>
         )}
       </div>
 
-      {/* 2. Attachments with Upload Button */}
-      <div style={{ borderRadius: '16px', backgroundColor: 'var(--bg-card, #ffffff)', border: '1px solid var(--border-color, #e2e8f0)', overflow: 'hidden' }}>
+      {/* 2. Attachments - Yellow Folder Cards + MinIO S3 Integration */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs">
         <button
           type="button"
           onClick={() => setIsAttachmentsOpen(!isAttachmentsOpen)}
-          style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer' }}
+          className="w-full px-4 py-3 flex items-center justify-between text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FontAwesomeIcon icon={faPaperclip} style={{ fontSize: '13px', color: '#2563eb' }} />
-            <strong style={{ fontSize: '12.5px', color: 'var(--text-primary, #0f172a)' }}>
-              Tài Liệu Đính Kèm ({attachments.length})
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs">
+              <FontAwesomeIcon icon={faFolder} />
+            </div>
+            <strong className="text-xs font-bold text-slate-800 dark:text-slate-100">
+              Tài Liệu &amp; Ảnh Nghiệm Thu ({attachments.length})
             </strong>
           </div>
-          <FontAwesomeIcon icon={isAttachmentsOpen ? faChevronUp : faChevronDown} style={{ fontSize: '12px' }} />
+          <FontAwesomeIcon icon={isAttachmentsOpen ? faChevronUp : faChevronDown} className="text-xs text-slate-400" />
         </button>
 
         {isAttachmentsOpen && (
-          <div style={{ padding: '0 16px 14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {/* Header Thao Tác Thêm File */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted, #64748b)' }}>
-                {attachments.length} tệp tin đính kèm
+          <div className="p-4 pt-1 flex flex-col gap-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-slate-600 dark:text-slate-300">
+                {attachments.length} tệp tin xác thực
               </span>
               <button
                 type="button"
+                disabled={isUploading}
                 onClick={() => fileInputRef.current?.click()}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  backgroundColor: '#2563eb',
-                  color: '#ffffff',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
+                className="px-3 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-400 text-xs font-bold transition-colors flex items-center gap-1.5 disabled:opacity-60"
               >
-                <FontAwesomeIcon icon={faPlus} style={{ fontSize: '10px' }} />
-                <span>Thêm tệp đính kèm</span>
+                <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                <span>{isUploading ? 'Đang tải lên...' : 'Thêm tệp / ảnh test'}</span>
               </button>
               <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileUpload}
+                accept=".jpg,.jpeg,.png,.webp,.pdf,.log,.txt,.csv"
                 multiple
-                style={{ display: 'none' }}
+                className="hidden"
               />
             </div>
 
             {attachments.length === 0 ? (
               <div
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  padding: '14px',
-                  borderRadius: '10px',
-                  border: '1px dashed var(--border-color, #cbd5e1)',
-                  backgroundColor: 'var(--bg-subtle, #f8fafc)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '4px',
-                  cursor: 'pointer',
-                }}
+                onClick={() => !isUploading && fileInputRef.current?.click()}
+                className="p-5 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-50 transition-colors"
               >
-                <FontAwesomeIcon icon={faPaperclip} style={{ fontSize: '15px', color: '#2563eb' }} />
-                <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#2563eb' }}>
-                  Bấm để tải lên tài liệu / ảnh / file log
+                <FontAwesomeIcon icon={faPaperclip} className="text-indigo-600 text-base" />
+                <span className="text-xs font-semibold text-indigo-600">
+                  {isUploading ? 'Đang truyền tải tệp lên kho lưu trữ...' : 'Bấm để tải lên ảnh bản in test / biên bản / file log'}
                 </span>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted, #64748b)' }}>
-                  Hỗ trợ PDF, PNG, JPG, LOG, DOC (Tối đa 25MB)
+                <span className="text-[10.5px] text-slate-600 dark:text-slate-300">
+                  Hỗ trợ PNG, JPG, WEBP, PDF, LOG, TXT (Tối đa 10MB)
                 </span>
               </div>
             ) : (
-              attachments.map((att) => (
-                <div
-                  key={att.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '7px 10px',
-                    borderRadius: '8px',
-                    backgroundColor: 'var(--bg-subtle, #f8fafc)',
-                    border: '1px solid var(--border-color, #e2e8f0)',
-                    fontSize: '11.5px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                    <FontAwesomeIcon icon={faFileLines} style={{ fontSize: '14px', color: '#2563eb', flexShrink: 0 }} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {att.fileName}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {attachments.map((att) => (
+                  <div
+                    key={att.id}
+                    className="p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between gap-3 shadow-xs hover:border-slate-300 transition-all"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm shrink-0 shadow-xs">
+                        <FontAwesomeIcon icon={faFolder} />
                       </div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-muted, #64748b)' }}>
-                        {att.fileSize} • {att.uploadedAt}
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                          {att.fileName}
+                        </div>
+                        <div className="text-[10.5px] text-slate-600 dark:text-slate-300 font-medium">
+                          {att.fileSize} • {att.uploadedBy}
+                        </div>
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      title={`Tải xuống ${att.fileName}`}
+                      onClick={() => handleDownloadAttachment(att)}
+                      className="w-7 h-7 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-indigo-600 flex items-center justify-center transition-colors shrink-0"
+                    >
+                      <FontAwesomeIcon icon={faDownload} className="text-xs" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    title={`Tải xuống ${att.fileName}`}
-                    onClick={() => alert(`Tải xuống tệp tin: ${att.fileName}`)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb', padding: '4px' }}
-                  >
-                    <FontAwesomeIcon icon={faDownload} style={{ fontSize: '12px' }} />
-                  </button>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         )}

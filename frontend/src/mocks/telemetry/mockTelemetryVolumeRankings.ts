@@ -201,3 +201,7 @@ export const mockTopPrintersVolume: MockTopPrinterVolume[] = [
   },
 ];
 
+// Alias tương thích cho MockDataProvider
+export const mockVolumeRankings = mockTopPrintersVolume;
+
+

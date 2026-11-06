@@ -220,3 +220,12 @@ export interface SLAOverviewKPIs {
   avgCostPerPage: number;
 }
 
+export interface ActiveLineChartPrinter {
+  id: string;
+  name: string;
+  baseHourly?: number[];
+  base7Days?: number[];
+  base30Days?: number[];
+}
+
+

@@ -12,4 +12,4 @@ export * from './ApiSuppliesProvider';
 export * from './ApiTelemetryProvider';
 export * from './ApiSettingsProvider';
 export * from './ApiDashboardProvider';
-
+export * from './ApiAnalyticsProvider';

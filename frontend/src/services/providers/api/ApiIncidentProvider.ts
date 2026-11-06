@@ -5,7 +5,7 @@
  * Tuyệt đối không chứa trường actionGuidance.
  */
 
-import { IIncidentService, TriageIncidentDto } from '../../interfaces/IIncidentService';
+import { IIncidentService, TriageIncidentDto, KnowledgeReuseRecommendation } from '../../interfaces/IIncidentService';
 import { Incident } from '../../../types/printer';
 import { requestApi } from './apiClient';
 
@@ -18,7 +18,7 @@ export class ApiIncidentProvider implements IIncidentService {
     try {
       return await requestApi<Incident>(`/incidents/${id}`);
     } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes('404')) {
+      if ((err as any)?.status === 404 || (err instanceof Error && err.message.includes('404'))) {
         return null;
       }
       throw err;
@@ -26,17 +26,25 @@ export class ApiIncidentProvider implements IIncidentService {
   }
 
   async triageIncident(id: string, dto: TriageIncidentDto): Promise<Incident> {
-    return requestApi<Incident>(`/incidents/${id}/triage`, {
+    const res = await requestApi<any>(`/incidents/${id}/triage`, {
       method: 'POST',
       body: JSON.stringify(dto),
     });
+    return (res?.incident ?? res) as Incident;
   }
 
   async updateIncidentStatus(id: string, status: 'Active' | 'Resolved', note: string): Promise<Incident> {
-    return requestApi<Incident>(`/incidents/${id}/status`, {
+    const res = await requestApi<any>(`/incidents/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status, note }),
+      body: JSON.stringify({ status, resolutionNote: note, note }),
     });
+    return (res?.incident ?? res) as Incident;
+  }
+
+  async getKnowledgeReuse(errorCode: string, model: string = 'General'): Promise<KnowledgeReuseRecommendation> {
+    return requestApi<KnowledgeReuseRecommendation>(
+      `/incidents/knowledge-reuse?errorCode=${encodeURIComponent(errorCode)}&model=${encodeURIComponent(model)}`
+    );
   }
 }
 

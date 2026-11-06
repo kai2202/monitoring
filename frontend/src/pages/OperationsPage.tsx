@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ClipboardList, PlusCircle, RefreshCw } from 'lucide-react';
+import { FontAwesomeIcon, faFileLines, faPlus, faRotate } from '../shared/icons';
 import { incidentService, taskService, printerService } from '../services';
 import { Incident, Printer } from '../types/printer';
 import { Task, TaskPriority, TaskType } from '../types/task';
@@ -128,7 +128,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({
       {/* Header */}
       <div style={{ padding: '18px 24px', borderRadius: '20px', backgroundColor: 'var(--bg-card, #ffffff)', border: '1px solid var(--border-color, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <ClipboardList size={22} color="#2563eb" />
+          <FontAwesomeIcon icon={faFileLines} style={{ fontSize: '20px', color: '#2563eb' }} />
           <div>
             <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--text-primary, #0f172a)' }}>
               Trung Tâm Điều Hành &amp; Vận Hành Kỹ Thuật (NOC Operations)
@@ -156,7 +156,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({
             cursor: 'pointer',
           }}
         >
-          <PlusCircle size={15} />
+          <FontAwesomeIcon icon={faPlus} style={{ fontSize: '13px' }} />
           <span>Tạo task bảo trì</span>
         </button>
       </div>

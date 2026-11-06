@@ -3,9 +3,7 @@
  *
  * 4 Thẻ KPI Hạm Đội Dashboard theo chuẩn Bento Minimalist:
  * - Nền phẳng viền mảnh (#e2e8f0), số liệu font JetBrains Mono nổi bật.
- * - Thống nhất bảng màu thương hiệu #2563eb.
- * - Khắc phục triệt để hardcoded: ${data.onlineCount}/${data.totalPrinters} Trực tuyến.
- * - Điều hướng chuẩn xác thẻ Vật tư sang /analytics/supplies.
+ * - Tuân thủ AGENTS.md Rule 5: MetricValue = number | null, hiển thị '—' khi null.
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
  */
 
@@ -19,19 +17,20 @@ import {
   faArrowUpRightFromSquare,
 } from '../../shared/icons';
 import { NavTabId } from '../layout/Sidebar';
+import { MetricValue } from '../../types/dashboardTelemetry';
 
 export type KpiFilterType = 'all' | 'offline' | 'critical' | 'low_supplies' | null;
 
 export interface FleetKpiData {
   totalPrinters: number;
-  onlineCount: number;
-  offlineCount: number;
-  unknownCount: number;
-  onlineRate: number;
-  activeAlertsCount: number;
-  criticalAlertsCount: number;
-  warningAlertsCount: number;
-  lowSuppliesCount: number;
+  onlineCount: MetricValue;
+  offlineCount: MetricValue;
+  unknownCount: MetricValue;
+  onlineRate: MetricValue;
+  activeAlertsCount: MetricValue;
+  criticalAlertsCount: MetricValue;
+  warningAlertsCount: MetricValue;
+  lowSuppliesCount: MetricValue;
 }
 
 export interface FleetKpiCardsProps {
@@ -49,15 +48,17 @@ export const FleetKpiCards: React.FC<FleetKpiCardsProps> = ({
   onNavigateModule,
   isLoading = false,
 }) => {
+  const isCriticalSafe = data.criticalAlertsCount !== null && data.criticalAlertsCount === 0;
+
   const cards = [
     {
       id: 'critical' as KpiFilterType,
       title: 'Sự cố phần cứng',
-      value: isLoading ? '—' : `${data.criticalAlertsCount} máy`,
-      badgeText: data.criticalAlertsCount > 0 ? 'Khẩn cấp' : 'An toàn',
-      badgeColor: data.criticalAlertsCount > 0 ? '#ef4444' : '#16a34a',
-      badgeBg: data.criticalAlertsCount > 0 ? '#ffe4e6' : '#ecfdf5',
-      badgeBorder: data.criticalAlertsCount > 0 ? '#fda4af' : '#a7f3d0',
+      value: isLoading ? '—' : data.criticalAlertsCount !== null ? `${data.criticalAlertsCount} máy` : '—',
+      badgeText: data.criticalAlertsCount !== null ? (isCriticalSafe ? 'An toàn' : 'Khẩn cấp') : 'Chưa có dữ liệu',
+      badgeColor: isCriticalSafe ? '#16a34a' : '#ef4444',
+      badgeBg: isCriticalSafe ? '#ecfdf5' : '#ffe4e6',
+      badgeBorder: isCriticalSafe ? '#a7f3d0' : '#fda4af',
       iconBg: 'rgba(239, 68, 68, 0.08)',
       icon: <FontAwesomeIcon icon={faTriangleExclamation} style={{ fontSize: '17px', color: '#ef4444' }} />,
       targetTab: 'printers' as NavTabId,
@@ -65,8 +66,8 @@ export const FleetKpiCards: React.FC<FleetKpiCardsProps> = ({
     {
       id: 'offline' as KpiFilterType,
       title: 'Tỷ lệ khả dụng',
-      value: isLoading ? '—' : `${data.onlineRate}%`,
-      badgeText: `${data.onlineCount}/${data.totalPrinters || 0} Trực tuyến`,
+      value: isLoading ? '—' : data.onlineRate !== null ? `${data.onlineRate}%` : '—',
+      badgeText: data.onlineCount !== null ? `${data.onlineCount}/${data.totalPrinters || 0} Trực tuyến` : '— Trực tuyến',
       badgeColor: '#2563eb',
       badgeBg: 'rgba(37, 99, 235, 0.08)',
       badgeBorder: 'rgba(37, 99, 235, 0.25)',
@@ -89,14 +90,14 @@ export const FleetKpiCards: React.FC<FleetKpiCardsProps> = ({
     {
       id: 'low_supplies' as KpiFilterType,
       title: 'Vật tư cần chú ý',
-      value: isLoading ? '—' : `${data.lowSuppliesCount} máy`,
+      value: isLoading ? '—' : data.lowSuppliesCount !== null ? `${data.lowSuppliesCount} máy` : '—',
       badgeText: '≤ 10% CMYK',
       badgeColor: '#d97706',
       badgeBg: '#fef3c7',
       badgeBorder: '#fde68a',
       iconBg: 'rgba(217, 119, 6, 0.08)',
       icon: <FontAwesomeIcon icon={faBox} style={{ fontSize: '17px', color: '#d97706' }} />,
-      targetTab: 'analytics-supplies' as NavTabId, // Trỏ chuẩn xác sang Tab Vật tư
+      targetTab: 'analytics-supplies' as NavTabId,
     },
   ];
 
@@ -104,8 +105,9 @@ export const FleetKpiCards: React.FC<FleetKpiCardsProps> = ({
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
         gap: '16px',
+        width: '100%',
       }}
     >
       {cards.map((card) => {
@@ -135,20 +137,19 @@ export const FleetKpiCards: React.FC<FleetKpiCardsProps> = ({
               transition: 'all 0.18s ease',
               position: 'relative',
               userSelect: 'none',
+              minWidth: 0,
               boxShadow: isSelected
                 ? '0 0 0 3px rgba(37, 99, 235, 0.12), 0 4px 12px rgba(0, 0, 0, 0.05)'
                 : '0 1px 3px rgba(0, 0, 0, 0.04)',
-              transform: isSelected ? 'translateY(-1px)' : 'none',
             }}
           >
-            {/* Squircle Icon Badge */}
+            {/* Icon Block */}
             <div
               style={{
                 width: '44px',
                 height: '44px',
                 borderRadius: '12px',
                 backgroundColor: card.iconBg,
-                border: '1px solid rgba(0, 0, 0, 0.04)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -158,72 +159,57 @@ export const FleetKpiCards: React.FC<FleetKpiCardsProps> = ({
               {card.icon}
             </div>
 
-            {/* Content: Title & JetBrains Mono Bold Value */}
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted, #64748b)' }}>
-                {card.title}
-              </span>
-              <span
-                style={{
-                  fontSize: '22px',
-                  fontWeight: 800,
-                  fontFamily: "'JetBrains Mono', monospace",
-                  color: 'var(--text-primary, #0f172a)',
-                  letterSpacing: '-0.3px',
-                }}
-              >
-                {card.value}
-              </span>
-            </div>
+            {/* Metrics & Info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary, #475569)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {card.title}
+                </span>
 
-            {/* Pill Badge & Navigate Button */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-              <span
-                style={{
-                  padding: '2px 8px',
-                  borderRadius: '9999px',
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  backgroundColor: card.badgeBg,
-                  color: card.badgeColor,
-                  border: `1px solid ${card.badgeBorder}`,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {card.badgeText}
-              </span>
+                <button
+                  type="button"
+                  title="Chuyển sang phân hệ chuyên trách"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNavigateModule(card.targetTab);
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    color: 'var(--text-muted, #94a3b8)',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
+                </button>
+              </div>
 
-              <button
-                type="button"
-                title={`Mở phân hệ ${card.title}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigateModule(card.targetTab);
-                }}
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '7px',
-                  backgroundColor: 'var(--bg-subtle, #f8fafc)',
-                  border: '1px solid var(--border-color, #e2e8f0)',
-                  color: 'var(--text-muted, #64748b)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#2563eb';
-                  e.currentTarget.style.borderColor = '#2563eb';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-muted, #64748b)';
-                  e.currentTarget.style.borderColor = 'var(--border-color, #e2e8f0)';
-                }}
-              >
-                <FontAwesomeIcon icon={faArrowUpRightFromSquare} style={{ fontSize: '10px' }} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginTop: '4px' }}>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary, #0f172a)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '-0.3px' }}>
+                  {card.value}
+                </span>
+
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    backgroundColor: card.badgeBg,
+                    color: card.badgeColor,
+                    border: `1px solid ${card.badgeBorder}`,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {card.badgeText}
+                </span>
+              </div>
             </div>
           </div>
         );

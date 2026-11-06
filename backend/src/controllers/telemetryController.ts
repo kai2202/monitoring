@@ -9,6 +9,17 @@ import { backendTelemetryService } from '../services/telemetryService';
 import { zabbixClient } from '../services/zabbixClient';
 
 export class TelemetryController {
+  // GET /api/telemetry/availability
+  async getAvailabilityTimeline(req: Request, res: Response) {
+    try {
+      const hours = Number(req.query.hours) || 24;
+      const timeline = await backendTelemetryService.getAvailabilityTimeline(hours);
+      return res.status(200).json(timeline);
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Không thể tải chuỗi thời gian khả dụng', message: err.message });
+    }
+  }
+
   // GET /api/telemetry/reliability-stats
   async getReliabilityStats(_req: Request, res: Response) {
     try {
@@ -48,6 +59,37 @@ export class TelemetryController {
       return res.status(200).json(data);
     } catch (err: any) {
       return res.status(500).json({ error: 'Failed to fetch 3D scatter data', message: err.message });
+    }
+  }
+
+  // GET /api/telemetry/rollups
+  async getDailyRollups(req: Request, res: Response) {
+    try {
+      const printerId = req.query.printerId as string | undefined;
+      const days = Number(req.query.days) || 30;
+      const rollups = await backendTelemetryService.getDailyRollups(printerId, days);
+      return res.status(200).json(rollups);
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Failed to fetch counter rollups', message: err.message });
+    }
+  }
+
+  // POST /api/telemetry/rollups
+  async recordCounterRollup(req: Request, res: Response) {
+    try {
+      const { printerId, monoPages, colorPages, scanPages } = req.body;
+      if (!printerId || monoPages === undefined || colorPages === undefined) {
+        return res.status(400).json({ error: 'Thiếu printerId, monoPages hoặc colorPages' });
+      }
+      const result = await backendTelemetryService.recordCounterRollup(
+        printerId,
+        Number(monoPages),
+        Number(colorPages),
+        scanPages ? Number(scanPages) : 0
+      );
+      return res.status(200).json(result);
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Failed to record counter rollup', message: err.message });
     }
   }
 }

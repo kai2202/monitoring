@@ -1,13 +1,21 @@
+/**
+ * Frontend/src/features/analytics/components/banner/AnalyticsHeaderBanner.tsx
+ *
+ * Header Banner Phân Tích Sản Lượng & Phân Bổ Tầng:
+ * - Tinh gọn: Loại bỏ thanh chọn chi nhánh trùng lặp (đã chuyển lên AnalyticsPageHeader).
+ * - Kết nối ô tìm kiếm nhanh và dải ghim đối chiếu thiết bị.
+ * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
+ */
+
 import React, { useMemo } from 'react';
-import { AnalyticsTimeframe, FloorSummaryItem } from '../../../../types/analyticsUI';
-import { MOCK_PRINTER_DEFINITIONS } from '../../../../mocks/mockAnalyticsUIData';
+import { AnalyticsTimeframe, FloorSummaryItem } from '@/types/analyticsUI';
+import { DeviceProductionItem } from '@/types/api';
 import { AnalyticsBannerSearchPins } from './AnalyticsBannerSearchPins';
 import { AnalyticsBannerVolumeCard } from './AnalyticsBannerVolumeCard';
 import { AnalyticsBannerPerformanceTable } from './AnalyticsBannerPerformanceTable';
 
 export interface AnalyticsHeaderBannerProps {
   timeframe: AnalyticsTimeframe;
-  onTimeframeChange: (tf: AnalyticsTimeframe) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   pinnedPrinterIds: string[];
@@ -16,11 +24,11 @@ export interface AnalyticsHeaderBannerProps {
   onOpenComparisonModal: () => void;
   floorSummaries: FloorSummaryItem[];
   totalFleetVolume: number;
+  devices?: DeviceProductionItem[];
 }
 
 export const AnalyticsHeaderBanner: React.FC<AnalyticsHeaderBannerProps> = ({
   timeframe,
-  onTimeframeChange,
   searchQuery,
   onSearchChange,
   pinnedPrinterIds,
@@ -29,32 +37,26 @@ export const AnalyticsHeaderBanner: React.FC<AnalyticsHeaderBannerProps> = ({
   onOpenComparisonModal,
   floorSummaries,
   totalFleetVolume,
+  devices = [],
 }) => {
   const topDevices = useMemo(() => {
-    return [...MOCK_PRINTER_DEFINITIONS]
-      .map((d) => {
-        const volume =
-          timeframe === 'hourly'
-            ? d.baseHourly.reduce((a, b) => a + b, 0)
-            : timeframe === '7days'
-            ? d.base7Days.reduce((a, b) => a + b, 0)
-            : d.base30Days.reduce((a, b) => a + b, 0);
-        return {
-          id: d.id,
-          name: d.name,
-          brand: d.brand,
-          floorName: d.floorName,
-          department: d.department,
-          timeframeVolume: volume,
-        };
-      })
-      .sort((a, b) => b.timeframeVolume - a.timeframeVolume)
-      .slice(0, 5);
-  }, [timeframe]);
+    if (!devices || devices.length === 0) return [];
+    return [...devices]
+      .sort((a, b) => b.totalVol - a.totalVol)
+      .slice(0, 5)
+      .map((d) => ({
+        id: d.id,
+        name: d.name,
+        brand: d.mfr || 'Ricoh',
+        floorName: d.floorName,
+        department: d.department,
+        timeframeVolume: d.totalVol,
+      }));
+  }, [devices]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* 1. TOP BAR: TÌM KIẾM, GHIM SO SÁNH & CHỌN THỜI GIAN */}
+      {/* 1. TOP BAR: TÌM KIẾM NHANH & GHIM ĐỐI CHIẾU */}
       <AnalyticsBannerSearchPins
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
@@ -62,8 +64,7 @@ export const AnalyticsHeaderBanner: React.FC<AnalyticsHeaderBannerProps> = ({
         onRemovePinnedPrinter={onRemovePinnedPrinter}
         onAddPinnedPrinter={onAddPinnedPrinter}
         onOpenComparisonModal={onOpenComparisonModal}
-        timeframe={timeframe}
-        onTimeframeChange={onTimeframeChange}
+        availablePrinters={devices}
       />
 
       {/* 2. HERO SUMMARY BANNER */}
@@ -92,3 +93,4 @@ export const AnalyticsHeaderBanner: React.FC<AnalyticsHeaderBannerProps> = ({
   );
 };
 
+export default AnalyticsHeaderBanner;

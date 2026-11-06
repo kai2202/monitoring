@@ -65,8 +65,8 @@ export const SidebarNavGroup: React.FC<SidebarNavGroupProps> = ({
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 10px',
+          justifyContent: collapsed ? 'center' : 'space-between',
+          padding: collapsed ? '8px 0' : '8px 10px',
           borderRadius: '14px',
           backgroundColor: isGroupActive && !isOpen ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
           border: '1px solid transparent',
@@ -81,7 +81,7 @@ export const SidebarNavGroup: React.FC<SidebarNavGroupProps> = ({
           e.currentTarget.style.backgroundColor = isGroupActive && !isOpen ? 'rgba(37, 99, 235, 0.05)' : 'transparent';
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? 0 : '12px' }}>
           {/* Squircle Icon Badge bo tròn 10px chuẩn Mockup */}
           <div
             style={{
@@ -219,13 +219,9 @@ export const SidebarNavGroup: React.FC<SidebarNavGroupProps> = ({
                     justifyContent: 'space-between',
                     padding: isSubActive ? '7px 14px' : '7px 10px',
                     borderRadius: '14px',
-                    backgroundColor: isSubActive
-                      ? 'rgba(239, 246, 255, 0.95)'
-                      : 'transparent',
-                    color: isSubActive ? '#2563eb' : 'var(--text-secondary, #475569)',
-                    border: isSubActive
-                      ? '1.5px solid rgba(147, 197, 253, 0.9)'
-                      : '1.5px solid transparent',
+                    backgroundColor: isSubActive ? 'var(--bg-hover, rgba(239, 246, 255, 0.95))' : 'transparent',
+                    color: isSubActive ? 'var(--brand-500, #2563eb)' : 'var(--text-secondary, #475569)',
+                    border: isSubActive ? '1.5px solid var(--border-accent, rgba(147, 197, 253, 0.9))' : '1.5px solid transparent',
                     fontWeight: isSubActive ? 700 : 500,
                     fontSize: '13.5px',
                     textAlign: 'left',

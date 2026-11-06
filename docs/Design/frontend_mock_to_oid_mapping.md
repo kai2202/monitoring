@@ -42,7 +42,7 @@ Qua rà soát toàn bộ thư mục `frontend/src/`, hiện có **hai mô hình 
 | `p.health` | `StatusBadge`, `AttentionTable` | `GET /api/printers` | `printers.health` (Enum) | RFC 2790 `hrDeviceStatus` (`1.3.6.1.2.1.25.3.2.1.5`) & `hrPrinterDetectedErrorState` (`1.3.6.1.2.1.25.3.5.1.2`) |
 | `p.alertSeverity` | `AttentionDevicesTable` | `GET /api/printers` | `printers.alert_severity` | RFC 3805 `prtAlertSeverityLevel` (`1.3.6.1.2.1.43.18.1.1.2`) (1=other, 3=warning, 4=critical) |
 | `p.alertText` | `AttentionDevicesTable`, `Drawer` | `GET /api/printers` | `printers.alert_text` (TEXT) | RFC 3805 `prtConsoleDisplayBufferText` (`1.3.6.1.2.1.43.16.5.1.2.1.1`) hoặc `prtAlertDescription` (`1.3.6.1.2.1.43.18.1.1.8`) |
-| `p.location` | `PrinterTableView`, `LocationEditor` | `PATCH /api/printers/:id/location` | `printers.location` (TEXT) | Cấu hình quản trị nội bộ / SNMP `sysLocation` (`1.3.6.1.2.1.1.6.0`) |
+| `p.branch`, `p.floor`, `p.department` | `PrinterTableView`, `LocationEditor` | `PATCH /api/printers/:id/location` | `printers.branch`, `floor`, `department` | Phân cấp vị trí chuẩn 3 cấp: Chi nhánh (Trụ sở chính, Chi nhánh...) -> Tầng (T1-T7 linh hoạt) -> Phòng ban sở hữu |
 | `p.lastScrape` | `DrawerHeader`, `Footer` | `GET /api/printers` | `printers.last_scrape` (TIMESTAMPTZ) | Thời điểm Backend thực thi quét dữ liệu Zabbix gần nhất |
 
 ---

@@ -8,9 +8,9 @@
 import {
   MockLemonDevice,
   MockVolumeTrendPoint,
-  MockAvailabilityPoint,
   MockTopPrinterVolume,
 } from '../../mocks/mockTelemetry';
+import { AvailabilityTimelinePoint } from '../../types/dashboardTelemetry';
 
 import {
   TimeGranularity,
@@ -66,7 +66,7 @@ export interface TrendFilterParams {
 export interface ITelemetryService {
   // Legacy / Basic Telemetry endpoints (Bảo toàn tương thích ngược)
   getVolumeTrend(days?: number): Promise<MockVolumeTrendPoint[]>;
-  getAvailabilityTimeline(hours?: number): Promise<MockAvailabilityPoint[]>;
+  getAvailabilityTimeline(hours?: number): Promise<AvailabilityTimelinePoint[]>;
   getLemonDevices(): Promise<MockLemonDevice[]>;
   getReliabilityStats(): Promise<ReliabilityStats>;
   getTopPrintersVolume(): Promise<MockTopPrinterVolume[]>;

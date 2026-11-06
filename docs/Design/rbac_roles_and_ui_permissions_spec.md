@@ -13,9 +13,9 @@ Hệ thống FleetMonitor chuẩn hóa mô hình phân quyền thành **3 nhóm 
 
 | Mã vai trò (Role Code) | Tên vai trò (Role Name) | Tài khoản mẫu (Demo Account) | Đối tượng thực tế | Phạm vi dữ liệu (Data Scope) |
 | :--- | :--- | :--- | :--- | :--- |
-| **`ADMIN`** | **Quản Trị Viên Hệ Thống (IT & NOC)** | `admin` / `admin123`<br>*(Nguyễn Văn An)* | Trưởng phòng IT, Kỹ sư giám sát & vận hành hệ thống NOC | **Toàn công ty** (Tất cả 5 tầng, toàn bộ ~100 máy in, tất cả phòng ban, cấu hình hệ thống & từ điển lỗi CSV) |
+| **`ADMIN`** | **Quản Trị Viên Hệ Thống (IT & NOC)** | `admin` / `admin123`<br>*(Nguyễn Văn An)* | Trưởng phòng IT, Kỹ sư giám sát & vận hành hệ thống NOC | **Toàn công ty** (Toà nhà 7 tầng, các chi nhánh vệ tinh, toàn bộ ~100 máy in, tất cả phòng ban, cấu hình hệ thống & từ điển lỗi CSV) |
 | **`FIELD_TECH`** | **Kỹ Thuật Viên Hiện Trường** | `tech_nam` / `tech123`<br>*(Lê Hoàng Nam)* | Kỹ thuật viên bảo trì máy in, sửa chữa cơ điện tử | **Công việc được giao** (Lệnh bảo trì, thiết bị cần sửa chữa tại hiện trường, thực thi SOP Stepper, ảnh nghiệm thu) |
-| **`ASSET_HR`** | **HR / Kiểm Kê Tài Sản & Hành Chính** | `hr_kiemke` / `hr123`<br>*(Phạm Thu Hà)* | Chuyên viên quản lý tài sản, Hành chính văn phòng, Kế toán nội bộ | **Quản trị tài sản, Chi phí & Đánh giá KPI** (Danh mục máy in, serial, vị trí bàn giao, hạch toán chi phí thuê máy phòng ban, đối soát KPI bảo trì) |
+| **`ASSET_HR`** | **HR / Kiểm Kê Tài Sản & Hành Chính** | `hr_kiemke` / `hr123`<br>*(Phạm Thu Hà)* | Chuyên viên quản lý tài sản, Hành chính văn phòng, Kế toán nội bộ | **Quản trị tài sản, Chi phí & Đánh giá KPI** (Danh mục máy in, serial, chi nhánh & tầng bàn giao, hạch toán chi phí thuê máy phòng ban, đối soát KPI bảo trì) |
 
 ---
 
@@ -24,7 +24,7 @@ Hệ thống FleetMonitor chuẩn hóa mô hình phân quyền thành **3 nhóm 
 | Phân hệ / Màn hình | Route | `ADMIN` (IT/NOC) | `FIELD_TECH` (Kỹ thuật) | `ASSET_HR` (HR/Tài sản) | Ghi chú hành vi giao diện & Quyền kiểm soát |
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | **Dashboard Tổng Quan** | `/dashboard` | ✅ Toàn quyền | ✅ Xem tổng quan | ✅ Xem tổng quan | • **Admin:** Đầy đủ chẩn đoán OID & thiết lập.<br>• **Tech:** Nắm bắt danh sách máy hỏng.<br>• **HR:** Nắm bắt tổng số máy trực tuyến/ngoại tuyến. |
-| **Máy In — Danh Sách** | `/printers/list` | ✅ **Toàn quyền điều chuyển** | 👁️ Xem & Chẩn đoán | 👁️ **Chỉ xem kiểm kê** | • **CHỈ ADMIN có quyền điều chuyển/cập nhật vị trí & phòng ban.**<br>• **HR:** Chỉ xem số Serial, Model, Vị trí để kiểm kê đối soát, không tự ý sửa.<br>• **Tech:** Xem IP/vị trí để tiếp cận máy sửa chữa. |
+| **Máy In — Danh Sách** | `/printers/list` | ✅ **Toàn quyền điều chuyển** | 👁️ Xem & Chẩn đoán | 👁️ **Chỉ xem kiểm kê** | • **CHỈ ADMIN có quyền điều chuyển/cập nhật Chi nhánh, Tầng & Phòng ban.**<br>• **HR:** Chỉ xem số Serial, Model, Chi nhánh, Tầng để kiểm kê đối soát, không tự ý sửa.<br>• **Tech:** Xem IP/vị trí để tiếp cận máy sửa chữa. |
 | **Máy In — Lịch Trình Gantt** | `/printers/timeline` | ✅ Toàn quyền | ✅ **Thao tác chính** | 👁️ Chỉ xem (Read-only) | • **Tech:** Quan sát hạn hoàn thành công việc, nhận lệnh mới.<br>• **HR:** Xem lịch bảo dưỡng định kỳ để thông báo nhân viên. |
 | **Máy In — Lệnh Bảo Trì** | `/printers/history` | ✅ **Duyệt & Tạo lệnh** | ✅ **Thực thi lệnh** | 👁️ **Đối soát KPI** | • **CHỈ ADMIN có quyền tạo Lệnh bảo trì** (kèm Zabbix auto-trigger).<br>• **HR & Admin:** Xem Thẻ KPI Đánh giá Hiệu suất KTV (MTTR, SLA, nghiệm thu).<br>• **Tech:** Thực thi Stepper, ghi Work Log, upload ảnh in test MinIO. **ẨN chi phí VNĐ**. |
 | **Drawer Chẩn Đoán Chi Tiết** | *(Slide-over Drawer)* | ✅ Toàn quyền | ✅ Dynamic Stepper & Log | 👁️ Xem thông tin tài sản | • **Nút [Tạo công việc mới] chỉ hiển thị cho ADMIN.**<br>• **Tech:** Mở tab Lệnh bảo trì mặc định, ẩn ô nhập tiền VNĐ.<br>• **HR:** Mở tab Chẩn đoán & Vật tư CMYK mặc định. |
@@ -75,7 +75,7 @@ Nhằm phục vụ **HR đối chiếu dữ liệu để đánh giá hiệu su�
 | Phân hệ / Thực thể | Trường dữ liệu | `FIELD_TECH` (Kỹ thuật) | `ASSET_HR` (HR/Tài sản) | `ADMIN` (Quản lý IT) | Căn cứ nguyên tắc nghiệp vụ |
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | **Thông tin Máy in** | • Mã máy, IP, Hostname<br>• Model, Hãng, Loại thiết bị | 👁️ Xem để sửa | 👁️ Xem để kiểm kê | ✏️ Toàn quyền | Cả 3 vai trò đều cần nhận diện chính xác máy in. |
-| **Vị trí & Sở hữu** | • Tầng (T1 – T5)<br>• Phòng ban sở hữu (`department`) | 👁️ Xem vị trí | 👁️ **Chỉ xem kiểm kê** | ✏️ **CHỈ ADMIN ĐIỀU CHUYỂN** | Tránh xung đột dữ liệu hạ tầng, việc đổi vị trí máy in do Admin IT thực hiện. |
+| **Vị trí & Sở hữu** | • Chi nhánh (`branch`)<br>• Tầng (`floor` - linh hoạt theo thực tế)<br>• Phòng ban sở hữu (`department`) | 👁️ Xem vị trí | 👁️ **Chỉ xem kiểm kê** | ✏️ **CHỈ ADMIN ĐIỀU CHUYỂN** | Tránh xung đột dữ liệu hạ tầng, việc đổi vị trí máy in do Admin IT thực hiện. |
 | **Định danh Tài sản** | • Số Serial phần cứng<br>• Ngày bắt đầu thuê / Hạn bảo hành | 👁️ Xem Serial | 👁️ **Xem đối soát HĐ** | ✏️ Toàn quyền | HR dùng Serial để đối soát với danh mục tài sản và hợp đồng thuê. |
 | **Lệnh Bảo Trì (Tạo)** | • Nút [Tạo công việc mới] | ❌ **ẨN HOÀN TOÀN** | ❌ **ẨN HOÀN TOÀN** | ✏️ **CHỈ ADMIN TẠO** | Đảm bảo tính kỷ luật vận hành: Lệnh do Quản lý ban hành hoặc Zabbix auto-trigger. |
 | **Quy trình SOP** | • Checklist Dynamic Stepper<br>• Trạng thái lệnh (Planned $\to$ In Progress) | ✏️ **Tích chọn hoàn thành** | 👁️ Xem tiến độ | ✏️ Toàn quyền | Kỹ thuật viên thao tác trực tiếp tại hiện trường. |

@@ -7,12 +7,13 @@
  */
 
 import React from 'react';
-import { FontAwesomeIcon, faFire, faClock, faArrowTrendDown } from '../../../../shared/icons';
+import { FontAwesomeIcon, faFire, faClock, faArrowTrendDown, faCircleCheck } from '../../../../shared/icons';
 import { SuppliesFilterMode } from './SuppliesFilterToolbar';
 
 export interface SuppliesSummaryBentoCardsProps {
   criticalCount: number;
   warningCount: number;
+  wasteWarningCount?: number;
   soonestEmptyDays: number;
   onSelectFilter?: (mode: SuppliesFilterMode) => void;
   activeFilter?: SuppliesFilterMode;
@@ -25,6 +26,10 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
   onSelectFilter,
   activeFilter = 'all',
 }) => {
+  const isCriticalSafe = criticalCount === 0;
+  const isWarningSafe = warningCount === 0;
+  const hasValidSoonest = soonestEmptyDays > 0 && soonestEmptyDays < 999;
+
   return (
     <div
       style={{
@@ -43,10 +48,14 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
           padding: '18px 22px',
           borderRadius: '20px',
           backgroundColor: activeFilter === 'critical' ? 'rgba(254, 242, 242, 0.9)' : 'var(--bg-card, #ffffff)',
-          border: activeFilter === 'critical' ? '2px solid #ef4444' : '1px solid rgba(239, 68, 68, 0.25)',
+          border: activeFilter === 'critical'
+            ? '2px solid #ef4444'
+            : isCriticalSafe
+            ? '1px solid rgba(16, 185, 129, 0.25)'
+            : '1px solid rgba(239, 68, 68, 0.25)',
           boxShadow: activeFilter === 'critical'
             ? '0 4px 14px rgba(239, 68, 68, 0.18)'
-            : '0 2px 8px -2px rgba(239, 68, 68, 0.08)',
+            : '0 2px 8px -2px rgba(0, 0, 0, 0.04)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -55,7 +64,7 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
         }}
       >
         <div>
-          <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700 }}>
+          <span style={{ fontSize: '12px', color: isCriticalSafe ? '#10b981' : '#ef4444', fontWeight: 700 }}>
             Khẩn cấp (&lt; 15%)
           </span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
@@ -63,7 +72,7 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
               style={{
                 fontSize: '28px',
                 fontWeight: 900,
-                color: '#ef4444',
+                color: isCriticalSafe ? '#10b981' : '#ef4444',
                 fontFamily: "'JetBrains Mono', monospace",
               }}
             >
@@ -71,8 +80,8 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
             </span>
             <span style={{ fontSize: '12px', color: 'var(--text-muted, #64748b)' }}>linh kiện</span>
           </div>
-          <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>
-            Cần thay thế trong 4-7 ngày tới
+          <span style={{ fontSize: '11px', color: isCriticalSafe ? '#059669' : '#ef4444', fontWeight: 600 }}>
+            {isCriticalSafe ? '0 máy — Toàn bộ vật tư an toàn' : 'Cần thay thế trong 4-7 ngày tới'}
           </span>
         </div>
         <div
@@ -80,15 +89,15 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
             width: '44px',
             height: '44px',
             borderRadius: '14px',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            backgroundColor: isCriticalSafe ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#ef4444',
+            color: isCriticalSafe ? '#10b981' : '#ef4444',
             flexShrink: 0,
           }}
         >
-          <FontAwesomeIcon icon={faFire} style={{ fontSize: '20px' }} />
+          <FontAwesomeIcon icon={isCriticalSafe ? faCircleCheck : faFire} style={{ fontSize: '20px' }} />
         </div>
       </div>
 
@@ -102,10 +111,14 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
           padding: '18px 22px',
           borderRadius: '20px',
           backgroundColor: activeFilter === 'warning' ? 'rgba(254, 252, 232, 0.9)' : 'var(--bg-card, #ffffff)',
-          border: activeFilter === 'warning' ? '2px solid #f59e0b' : '1px solid rgba(245, 158, 11, 0.25)',
+          border: activeFilter === 'warning'
+            ? '2px solid #f59e0b'
+            : isWarningSafe
+            ? '1px solid rgba(16, 185, 129, 0.25)'
+            : '1px solid rgba(245, 158, 11, 0.25)',
           boxShadow: activeFilter === 'warning'
             ? '0 4px 14px rgba(245, 158, 11, 0.18)'
-            : '0 2px 8px -2px rgba(245, 158, 11, 0.08)',
+            : '0 2px 8px -2px rgba(0, 0, 0, 0.04)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -114,7 +127,7 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
         }}
       >
         <div>
-          <span style={{ fontSize: '12px', color: '#f59e0b', fontWeight: 700 }}>
+          <span style={{ fontSize: '12px', color: isWarningSafe ? '#10b981' : '#f59e0b', fontWeight: 700 }}>
             Cần lưu ý (&lt; 25%)
           </span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
@@ -122,7 +135,7 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
               style={{
                 fontSize: '28px',
                 fontWeight: 900,
-                color: '#f59e0b',
+                color: isWarningSafe ? '#10b981' : '#f59e0b',
                 fontFamily: "'JetBrains Mono', monospace",
               }}
             >
@@ -130,8 +143,8 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
             </span>
             <span style={{ fontSize: '12px', color: 'var(--text-muted, #64748b)' }}>linh kiện</span>
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted, #64748b)' }}>
-            Dự trù đặt hàng phụ tùng kho đệm
+          <span style={{ fontSize: '11px', color: isWarningSafe ? '#059669' : 'var(--text-muted, #64748b)' }}>
+            {isWarningSafe ? 'Mức tiêu hao kho đệm an toàn' : 'Dự trù đặt hàng phụ tùng kho đệm'}
           </span>
         </div>
         <div
@@ -139,15 +152,15 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
             width: '44px',
             height: '44px',
             borderRadius: '14px',
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            backgroundColor: isWarningSafe ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#f59e0b',
+            color: isWarningSafe ? '#10b981' : '#f59e0b',
             flexShrink: 0,
           }}
         >
-          <FontAwesomeIcon icon={faClock} style={{ fontSize: '20px' }} />
+          <FontAwesomeIcon icon={isWarningSafe ? faCircleCheck : faClock} style={{ fontSize: '20px' }} />
         </div>
       </div>
 
@@ -160,7 +173,7 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
         style={{
           padding: '18px 22px',
           borderRadius: '20px',
-          backgroundColor: activeFilter === 'all' ? 'var(--bg-card, #ffffff)' : 'var(--bg-card, #ffffff)',
+          backgroundColor: 'var(--bg-card, #ffffff)',
           border: '1px solid var(--border-color, #e2e8f0)',
           boxShadow: '0 2px 8px -2px rgba(0, 0, 0, 0.04)',
           display: 'flex',
@@ -183,12 +196,12 @@ export const SuppliesSummaryBentoCards: React.FC<SuppliesSummaryBentoCardsProps>
                 fontFamily: "'JetBrains Mono', monospace",
               }}
             >
-              {soonestEmptyDays}
+              {hasValidSoonest ? soonestEmptyDays : '—'}
             </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted, #64748b)' }}>ngày nữa</span>
+            {hasValidSoonest && <span style={{ fontSize: '12px', color: 'var(--text-muted, #64748b)' }}>ngày nữa</span>}
           </div>
           <span style={{ fontSize: '11px', color: 'var(--text-muted, #64748b)' }}>
-            Toner Yellow (M554dn - Tầng 1)
+            {hasValidSoonest ? 'Toner Yellow (M554dn - Tầng 1)' : 'Chưa ghi nhận nguy cơ cạn kiệt'}
           </span>
         </div>
         <div

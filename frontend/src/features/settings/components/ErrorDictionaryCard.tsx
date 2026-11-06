@@ -1,145 +1,278 @@
+/**
+ * Frontend/src/features/settings/components/ErrorDictionaryCard.tsx
+ *
+ * Thẻ Tra Cứu Từ Điển Mã Lỗi Phần Cứng Đa Thương Hiệu:
+ * - Tra cứu mã SC (Ricoh), E (Canon), 50-70 (HP), Epson...
+ * - Tìm kiếm thời gian thực tích hợp Debounce (250ms), hỗ trợ tra cứu đa từ khóa (AND/OR).
+ * - Bộ lọc Hãng sản xuất, Mức độ nghiêm trọng và Khối linh kiện phần cứng.
+ * - Phân trang động (10, 25, 50, 100, Tất cả) và nút Đặt lại bộ lọc trực quan.
+ * - Hỗ trợ Nạp CSV với validation & Xuất CSV chuẩn UTF-8 BOM.
+ * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC, sweet spot 150-250 LOC).
+ */
+
 import React, { useState, useMemo } from 'react';
-import { FontAwesomeIcon, faMagnifyingGlass, faMicrochip } from '../../../shared/icons';
-import { MockErrorCode } from '../../../mocks/mockSettings';
+import { toast } from 'sonner';
+import {
+  FontAwesomeIcon,
+  faMagnifyingGlass,
+  faMicrochip,
+  faFileCsv,
+  faDownload,
+  faRotate,
+  faXmark,
+} from '@/shared/icons';
+import { useDebounce } from '@/shared/hooks';
+import { PrinterErrorCode } from '@/types/api';
+import { exportErrorDictionaryToCsv } from '../utils/errorDictionaryCsvHelper';
+import {
+  SUBSYSTEM_LABELS,
+  filterErrorDictionary,
+  countActiveFilters,
+  extractAvailableSubsystems,
+} from '../utils/errorDictionaryFilterHelper';
+import { CsvImportModal } from './modals';
+import { ErrorDictionaryTable } from './ErrorDictionaryTable';
 
 interface ErrorDictionaryCardProps {
-  errorDict: MockErrorCode[];
+  errorDict: PrinterErrorCode[];
   isLoading: boolean;
+  onReloadDictionary?: () => void;
 }
 
-export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({ errorDict, isLoading }) => {
+export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
+  errorDict,
+  isLoading,
+  onReloadDictionary,
+}) => {
   const [errorSearch, setErrorSearch] = useState('');
+  const debouncedSearch = useDebounce(errorSearch, 250);
   const [vendorFilter, setVendorFilter] = useState('all');
+  const [severityFilter, setSeverityFilter] = useState('all');
+  const [subsystemFilter, setSubsystemFilter] = useState('all');
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [customErrors, setCustomErrors] = useState<PrinterErrorCode[]>([]);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const combinedErrors = useMemo(() => {
+    return [...customErrors, ...errorDict];
+  }, [customErrors, errorDict]);
+
+  const availableSubsystems = useMemo(() => {
+    return extractAvailableSubsystems(combinedErrors);
+  }, [combinedErrors]);
 
   const filteredErrors = useMemo(() => {
-    const q = errorSearch.toLowerCase().trim();
-    return errorDict.filter((item) => {
-      const matchSearch =
-        !q ||
-        item.code.toLowerCase().includes(q) ||
-        item.description.toLowerCase().includes(q) ||
-        item.subsystem.toLowerCase().includes(q);
+    return filterErrorDictionary(
+      combinedErrors,
+      debouncedSearch,
+      vendorFilter,
+      severityFilter,
+      subsystemFilter
+    );
+  }, [combinedErrors, debouncedSearch, vendorFilter, severityFilter, subsystemFilter]);
 
-      if (!matchSearch) return false;
-      if (vendorFilter !== 'all' && item.vendor !== vendorFilter) return false;
-      return true;
-    });
-  }, [errorDict, errorSearch, vendorFilter]);
+  const activeFilterCount = useMemo(() => {
+    return countActiveFilters(errorSearch, vendorFilter, severityFilter, subsystemFilter);
+  }, [errorSearch, vendorFilter, severityFilter, subsystemFilter]);
+
+  const handleResetFilters = () => {
+    setErrorSearch('');
+    setVendorFilter('all');
+    setSeverityFilter('all');
+    setSubsystemFilter('all');
+    setCurrentPage(1);
+  };
+
+  const totalPages = pageSize === -1 ? 1 : Math.max(1, Math.ceil(filteredErrors.length / pageSize));
+  const paginatedErrors = useMemo(() => {
+    if (pageSize === -1) return filteredErrors;
+    const start = (currentPage - 1) * pageSize;
+    return filteredErrors.slice(start, start + pageSize);
+  }, [filteredErrors, currentPage, pageSize]);
+
+  const handleImportSuccess = (importedRows: PrinterErrorCode[]) => {
+    if (onReloadDictionary) {
+      setCustomErrors([]);
+      onReloadDictionary();
+    } else {
+      setCustomErrors((prev) => [...importedRows, ...prev]);
+    }
+    toast.success(`Đã nạp thành công ${importedRows.length} mã lỗi từ file CSV.`);
+  };
+
+  const handleExportCsv = () => {
+    if (combinedErrors.length === 0) {
+      toast.warning('Không có dữ liệu mã lỗi để xuất.');
+      return;
+    }
+    exportErrorDictionaryToCsv(combinedErrors);
+    toast.success('Đã xuất file CSV từ điển mã lỗi chuẩn UTF-8 BOM thành công!');
+  };
 
   return (
-    <div
-      style={{
-        padding: '24px',
-        borderRadius: 'var(--radius-card)',
-        backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
-        boxShadow: 'var(--shadow-sm)',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--status-info-bg)',
-              border: '1px solid var(--status-info-border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--status-info)',
-            }}
-          >
-            <FontAwesomeIcon icon={faMicrochip} style={{ fontSize: '16px' }} />
+    <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col gap-4">
+      {/* 1. Tiêu đề & Hành động xuất/nhập */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-sm">
+            <FontAwesomeIcon icon={faMicrochip} className="text-base" />
           </div>
           <div>
-            <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+            <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">
               Từ Điển Mã Lỗi Phần Cứng Đa Thương Hiệu
             </h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              Bảng tra cứu chuẩn hóa mã SC (Ricoh), mã E (Canon), mã 50-70 (HP) phục vụ chẩn đoán
+            <p className="text-[11.5px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Bảng tra cứu chuẩn hóa mã SC (Ricoh), mã E (Canon), mã 50-70 (HP) phục vụ chẩn đoán kỹ thuật
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', width: '240px' }}>
-            <FontAwesomeIcon icon={faMagnifyingGlass} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '12px' }} />
-            <input
-              type="text"
-              placeholder="Tìm theo mã lỗi, khối linh kiện..."
-              value={errorSearch}
-              onChange={(e) => setErrorSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '7px 12px 7px 34px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-subtle)',
-                color: 'var(--text-primary)',
-                fontSize: '12px',
-                outline: 'none',
-              }}
-            />
-          </div>
-
-          <select
-            value={vendorFilter}
-            onChange={(e) => setVendorFilter(e.target.value)}
-            style={{
-              padding: '7px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color)',
-              backgroundColor: 'var(--bg-subtle)',
-              color: 'var(--text-primary)',
-              fontSize: '12px',
-              outline: 'none',
-              cursor: 'pointer',
-            }}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-colors"
           >
-            <option value="all">Tất cả hãng sản xuất</option>
-            <option value="Ricoh">Ricoh</option>
-            <option value="Canon">Canon</option>
-            <option value="HP">HP</option>
-            <option value="Konica Minolta">Konica Minolta</option>
-          </select>
+            <FontAwesomeIcon icon={faDownload} className="text-xs text-emerald-600" />
+            <span>Xuất CSV</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsCsvModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-200/60 flex items-center gap-1.5 transition-colors"
+          >
+            <FontAwesomeIcon icon={faFileCsv} className="text-xs" />
+            <span>Nạp CSV</span>
+          </button>
         </div>
       </div>
 
-      <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12.5px' }}>
-          <thead>
-            <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>
-              <th style={{ padding: '10px 16px' }}>Hãng</th>
-              <th style={{ padding: '10px 16px' }}>Mã Lỗi</th>
-              <th style={{ padding: '10px 16px' }}>Khối Linh Kiện</th>
-              <th style={{ padding: '10px 16px' }}>Mức Độ</th>
-              <th style={{ padding: '10px 16px' }}>Mô Tả Chi Tiết</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredErrors.slice(0, 8).map((err) => (
-              <tr key={err.code} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <td style={{ padding: '10px 16px', fontWeight: 600 }}>{err.vendor}</td>
-                <td style={{ padding: '10px 16px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: '#2563eb' }}>
-                  {err.code}
-                </td>
-                <td style={{ padding: '10px 16px' }}>{err.subsystem}</td>
-                <td style={{ padding: '10px 16px' }}>
-                  <span style={{ padding: '2px 8px', borderRadius: '9999px', fontSize: '10.5px', fontWeight: 700, backgroundColor: err.severity === 'Critical' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(245, 158, 11, 0.12)', color: err.severity === 'Critical' ? '#ef4444' : '#f59e0b' }}>
-                    {err.severity}
-                  </span>
-                </td>
-                <td style={{ padding: '10px 16px', color: 'var(--text-secondary)' }}>{err.description}</td>
-              </tr>
+      {/* 2. Thanh Tìm kiếm Realtime & Bộ lọc Đa tiêu chí */}
+      <div className="flex items-center justify-between flex-wrap gap-2.5">
+        <div className="relative flex-1 min-w-[220px]">
+          <FontAwesomeIcon
+            icon={faMagnifyingGlass}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"
+          />
+          <input
+            type="text"
+            placeholder="Tìm theo mã lỗi, tên lỗi, khối linh kiện..."
+            value={errorSearch}
+            onChange={(e) => {
+              setErrorSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none focus:border-indigo-500 transition-colors"
+          />
+          {errorSearch && (
+            <button
+              type="button"
+              onClick={() => {
+                setErrorSearch('');
+                setCurrentPage(1);
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+              title="Xóa tìm kiếm"
+            >
+              <FontAwesomeIcon icon={faXmark} className="text-xs" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Lọc Hãng */}
+          <select
+            value={vendorFilter}
+            onChange={(e) => {
+              setVendorFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none font-semibold text-slate-800 dark:text-slate-200 cursor-pointer"
+          >
+            <option value="all">Tất cả hãng</option>
+            <option value="Ricoh">Ricoh</option>
+            <option value="Canon">Canon</option>
+            <option value="HP">HP</option>
+            <option value="Epson">Epson</option>
+            <option value="General">Chung (General)</option>
+          </select>
+
+          {/* Lọc Mức độ */}
+          <select
+            value={severityFilter}
+            onChange={(e) => {
+              setSeverityFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none font-semibold text-slate-800 dark:text-slate-200 cursor-pointer"
+          >
+            <option value="all">Tất cả mức độ</option>
+            <option value="Critical">Critical (Nguy cấp)</option>
+            <option value="Warning">Warning (Cảnh báo)</option>
+            <option value="Info">Info (Thông tin)</option>
+          </select>
+
+          {/* Lọc Khối linh kiện */}
+          <select
+            value={subsystemFilter}
+            onChange={(e) => {
+              setSubsystemFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none font-semibold text-slate-800 dark:text-slate-200 cursor-pointer"
+          >
+            <option value="all">Tất cả khối linh kiện</option>
+            {availableSubsystems.map((sub) => (
+              <option key={sub} value={sub}>
+                {SUBSYSTEM_LABELS[sub] || sub}
+              </option>
             ))}
-          </tbody>
-        </table>
+          </select>
+
+          {/* Nút Đặt lại bộ lọc */}
+          {activeFilterCount > 0 && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200/60 dark:border-rose-900/40 flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Đặt lại toàn bộ tiêu chí tìm kiếm & lọc"
+            >
+              <FontAwesomeIcon icon={faRotate} className="text-[10.5px]" />
+              <span>Đặt lại ({activeFilterCount})</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* 3. Bảng Dữ Liệu Tra Cứu (Sub-Component) */}
+      <ErrorDictionaryTable
+        isLoading={isLoading}
+        paginatedErrors={paginatedErrors}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={filteredErrors.length}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        onResetFilters={handleResetFilters}
+        hasActiveFilters={activeFilterCount > 0}
+        searchQuery={debouncedSearch}
+      />
+
+      {/* 4. Modal nạp CSV */}
+      <CsvImportModal
+        isOpen={isCsvModalOpen}
+        onClose={() => setIsCsvModalOpen(false)}
+        onImportSuccess={handleImportSuccess}
+        existingCodes={combinedErrors}
+      />
     </div>
   );
 };
+
+export default ErrorDictionaryCard;

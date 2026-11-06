@@ -11,8 +11,7 @@
  */
 
 import React, { useRef, useState, useMemo } from 'react';
-import { AnalyticsTimeframe } from '../../../../types/analyticsUI';
-import { MockPrinterDef } from '../../../../mocks/mockAnalyticsUIData';
+import { AnalyticsTimeframe, ActiveLineChartPrinter } from '../../../../types/analyticsUI';
 import { LineChartTooltip, TopPrinterContribution } from './LineChartTooltip';
 
 interface LineChartSplineSvgProps {
@@ -21,7 +20,7 @@ interface LineChartSplineSvgProps {
   dataPointCount: number;
   timeframe: AnalyticsTimeframe;
   maxValue: number;
-  activePrinters?: MockPrinterDef[];
+  activePrinters?: ActiveLineChartPrinter[];
 }
 
 export const LineChartSplineSvg: React.FC<LineChartSplineSvgProps> = ({
@@ -125,6 +124,19 @@ export const LineChartSplineSvg: React.FC<LineChartSplineSvgProps> = ({
     if (relX < 0 || relX > chartWidth) { setHoverIndex(null); return; }
     setHoverIndex(Math.max(0, Math.min(dataPointCount - 1, Math.round((relX / chartWidth) * (dataPointCount - 1)))));
   };
+
+  if (currentSeries.length === 0 || maxValue <= 0) {
+    return (
+      <div style={{ position: 'relative', width: '100%', backgroundColor: 'var(--bg-subtle, #f8fafc)', border: '1px dashed var(--border-color, #cbd5e1)', borderRadius: '20px', padding: '48px 24px', textAlign: 'center', boxSizing: 'border-box' }}>
+        <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>
+          Chưa có chuỗi số liệu đo lường sản lượng từ Zabbix Slow Polling (1h)
+        </div>
+        <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #64748b)', marginTop: '4px' }}>
+          Biểu đồ sẽ tự động kích hoạt đường cong xu hướng khi máy chủ nhận được dữ liệu delta counter từ hạm đội.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'relative', width: '100%', backgroundColor: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '20px', padding: '24px 20px 16px 20px', boxSizing: 'border-box' }}>

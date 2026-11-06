@@ -3,12 +3,13 @@
  *
  * Thanh điều khiển và bộ lọc cho Tab Dự báo vật tư & Linh kiện:
  * - Bộ lọc ngưỡng tồn: Tất cả, Sắp hết (<15%), Cần lưu ý (<25%), Bình thường (≥25%), Mực thải sắp đầy.
- * - Bộ lọc vị trí tầng: Tất cả, Tầng 1..5.
- * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
+ * - Bộ lọc vị trí tầng động: Tự động tải từ locationService hoặc props availableFloors.
+ * - Tuân thủ AGENTS.md Rule 5 & Rule 7.1 (< 300 LOC).
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FloorTabId } from '../../../../types/analyticsUI';
+import { locationService } from '../../../../services';
 
 export type SuppliesFilterMode = 'all' | 'critical' | 'warning' | 'normal' | 'waste_warning';
 
@@ -20,6 +21,7 @@ interface SuppliesFilterToolbarProps {
   criticalCount: number;
   warningCount: number;
   wasteWarningCount?: number;
+  availableFloors?: string[];
 }
 
 export const SuppliesFilterToolbar: React.FC<SuppliesFilterToolbarProps> = ({
@@ -30,7 +32,27 @@ export const SuppliesFilterToolbar: React.FC<SuppliesFilterToolbarProps> = ({
   criticalCount,
   warningCount,
   wasteWarningCount = 0,
+  availableFloors,
 }) => {
+  const floorTabs = useMemo(() => {
+    const rawFloors =
+      availableFloors && availableFloors.length > 0
+        ? availableFloors
+        : locationService.getFloorsByBranch();
+
+    if (rawFloors.length === 0) {
+      return [{ id: 'all' as FloorTabId, label: 'Toàn tòa nhà' }];
+    }
+
+    return [
+      { id: 'all' as FloorTabId, label: 'Toàn tòa nhà' },
+      ...rawFloors.map((flName, idx) => ({
+        id: `floor-${idx + 1}` as FloorTabId,
+        label: flName,
+      })),
+    ];
+  }, [availableFloors]);
+
   return (
     <div
       style={{
@@ -113,7 +135,7 @@ export const SuppliesFilterToolbar: React.FC<SuppliesFilterToolbarProps> = ({
         </div>
       </div>
 
-      {/* Bộ lọc vị trí tầng */}
+      {/* Bộ lọc vị trí tầng động */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary, #475569)' }}>
           Khu vực:
@@ -129,14 +151,7 @@ export const SuppliesFilterToolbar: React.FC<SuppliesFilterToolbarProps> = ({
             gap: '2px',
           }}
         >
-          {[
-            { id: 'all' as FloorTabId, label: 'Toàn tòa nhà' },
-            { id: 'floor-1' as FloorTabId, label: 'Tầng 1' },
-            { id: 'floor-2' as FloorTabId, label: 'Tầng 2' },
-            { id: 'floor-3' as FloorTabId, label: 'Tầng 3' },
-            { id: 'floor-4' as FloorTabId, label: 'Tầng 4' },
-            { id: 'floor-5' as FloorTabId, label: 'Tầng 5' },
-          ].map((fl) => {
+          {floorTabs.map((fl) => {
             const isActive = activeFloor === fl.id;
             return (
               <button
@@ -165,3 +180,5 @@ export const SuppliesFilterToolbar: React.FC<SuppliesFilterToolbarProps> = ({
     </div>
   );
 };
+
+export default SuppliesFilterToolbar;

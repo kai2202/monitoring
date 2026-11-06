@@ -3,7 +3,7 @@
 > **Phân hệ:** Backend / Data Collection Layer  
 > **Mã nhiệm vụ:** TASK-BE-01  
 > **Phiên bản:** 1.0.0 (Tối ưu hóa hạm đội ~100 máy in, In-Process Poller Service)  
-> **Trạng thái:** Sẵn sàng triển khai (Ready for Implementation)  
+> **Trạng thái:** ✅ Hoàn thành 100% (zabbixPollerService, fastPollingWorker 30s, slowPollingWorker 1h)  
 > **Tài liệu liên quan:** [Kiến Trúc Hệ Thống](file:///f:/Code/Github/Monitoring/docs/Design/architecture.md), [Bản Ánh Xạ OIDs](file:///f:/Code/Github/Monitoring/docs/Design/frontend_mock_to_oid_mapping.md)
 
 ---
@@ -13,15 +13,18 @@
 Triển khai module **Zabbix Client & SNMP Collector Gateway** chạy ngầm trong tiến trình Express (In-Process Poller Service), kết nối tới máy chủ Zabbix 7.0 LTS thông qua giao thức JSON-RPC API 2.0. Module chịu trách nhiệm thu thập số liệu vận hành của ~100 máy in phân bổ trên 5 tầng/khu vực mà không gây quá tải mạng LAN hay CPU máy chủ:
 
 1. **Fast Polling (Chu kỳ 30 giây):**
-   - Thu thập trạng thái sống/chết (ICMP Ping `icmpping[<ip>]`).
+   - Thu thập trạng thái sống/chết (ICMP Ping `icmpping[<ip>]`) cho toàn bộ ~100 máy in tại Toà nhà Trụ sở chính (7 tầng) và các Chi nhánh vệ tinh (kết nối qua kênh VPN/SD-WAN).
    - Thu thập các cảnh báo kích hoạt (Active Triggers & Problems) qua `problem.get` và `trigger.get`.
    - Lưu trữ tức thì vào bộ đệm In-Memory Cache (TASK-BE-02) để cung cấp cho API `/api/printers` và `/api/dashboard/kpis`.
 2. **Slow Polling (Chu kỳ 1 giờ):**
-   - Thu thập số đếm trang in tích lũy cả đời máy (RFC 3805 `prtMarkerLifeCount` và các bộ đếm Color/Mono của Ricoh, Canon, HP).
+   - Thu thập số đếm trang in tích lũy cả đời máy (RFC 3805 `prtMarkerLifeCount` và các bộ đếm Color/Mono của Canon, Ricoh, Epson, HP, Brother, Toshiba, Olivetti).
    - Thu thập mức vật tư tiêu hao (Toner K, C, M, Y, Drum, Fuser, Hộp mực thải Waste Box).
    - Đẩy dữ liệu cho Rollup Aggregator (TASK-BE-04) để tính toán delta sản lượng và dự báo D-Day.
 3. **Cơ Chế Safe Window (10 phút):**
    - Ngăn chặn hiện tượng giật trạng thái (Flapping) do chập chờn mạng WiFi/LAN. Một thiết bị chỉ chuyển sang `Offline` khi mất kết nối ICMP liên tục trong 10 phút.
+4. **Khóa Cố Định Cấu Hình (Environment Hardened & Read-Only UI):**
+   - Thông số Zabbix Server URL, Token và chu kỳ Polling (Fast: 30s, Slow: 1h) được nạp mặc định cố định từ biến môi trường (`backend/.env`).
+   - Admin trên giao diện Web UI không có quyền sửa đổi; Backend chỉ cung cấp endpoint chỉ đọc `GET /api/settings/zabbix-status` (trả về trạng thái kết nối và URL đã che masking); từ chối mọi thao tác ghi `PUT/POST`.
 
 ---
 

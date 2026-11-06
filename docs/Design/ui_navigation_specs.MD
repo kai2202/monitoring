@@ -63,11 +63,22 @@ Bố cục dạng **Bento Minimalist** hiện đại, loại bỏ hiệu ứng g
 Phân hệ cốt lõi quản lý hạm đội ~100 máy in, chia thành 3 Sub-tabs chuyên trách:
 
 #### Sub-Tab 1: Danh Sách Máy In (`/printers/list`)
-- **Thanh công cụ Toolbar:** Ô tìm kiếm tức thì theo tên/model/IP, bộ lọc theo Hãng sản xuất (Ricoh, Canon, HP, Brother, Epson, Xerox), bộ lọc theo Tầng (Tất cả, T1–T5) và trạng thái kết nối.
+- **Thanh công cụ Toolbar & Nút Quản Trị Vị Trí:**
+  + Ô tìm kiếm tức thì theo tên/model/IP/serial/chi nhánh/tầng.
+  + Bộ lọc theo **Chi nhánh** (`branch`): Tất cả, Trụ sở chính, Chi nhánh HCM, Chi nhánh Đà Nẵng...
+  + Bộ lọc theo **Tầng** (`floor`): Cơ chế **Dynamic Render** đồng bộ từ `locationService`, hiển thị danh sách các tầng thực tế của chi nhánh đã chọn (HQ 7 tầng T1-T7, Chi nhánh...).
+  + Bộ lọc theo **Hãng sản xuất**: Hai hãng chủ lực (**Canon**, **Ricoh**) cùng các dòng máy đồng hành (**Epson**, **HP**, **Brother**, **Toshiba**, **Olivetti**).
+  + Bộ lọc theo trạng thái kết nối (Online / Offline) và cảnh báo sức khỏe (Healthy / Warning / Critical).
+  + Nút **`[+ Khai báo máy in]`** (`PrinterCreateModal`): Dành riêng cho `ADMIN` để thêm thiết bị mới vào hệ thống giám sát (Tên máy, Hãng chủ lực Canon/Ricoh/Khác, Model, IP IPv4, Chi nhánh & Tầng linh hoạt, Loại in Mono/Color, Đa năng/Đơn năng).
+  + Nút **`[Quản lý Vị trí & Tầng]`** (`BranchFloorManagerModal`): Dành riêng cho `ADMIN` để thêm Trụ sở/Chi nhánh mới, thêm/bớt Tầng cho từng cơ sở, kèm cơ chế an toàn **chặn xóa vật lý khi còn máy in hoạt động**.
+  + Nút **`[Xuất CSV]`** (`exportPrintersToCsv`): Hỗ trợ `ADMIN` và `ASSET_HR` tải toàn bộ danh mục ~100 máy in (IP, vị trí, tầng, CMYK, counters...) chuẩn UTF-8 BOM phục vụ kiểm kê tài sản.
 - **Bảng Danh mục Thiết bị (PrinterTableView):**
-  + 7 cột thông tin chuẩn mực: Tên & Model thiết bị, Địa chỉ IP (hỗ trợ copy nhanh 1-click), Vị trí (Tầng - Phòng ban), Trạng thái kết nối (Online / Offline), Sức khỏe phần cứng (Healthy / Warning / Critical), Số lệnh bảo trì đang mở, Thao tác chẩn đoán.
-  + **Phân quyền thao tác theo JD:** Chỉ `ADMIN` mới có quyền điều chuyển/cập nhật vị trí & phòng ban; `ASSET_HR` chỉ xem số Serial, Model và Vị trí để kiểm kê đối soát định kỳ; `FIELD_TECH` xem IP & vị trí để định vị thiết bị cần khắc phục.
-  + Phân trang thu gọn (10–25 dòng/trang), nạp toàn bộ danh mục ~100 máy in (< 50KB) vào bộ nhớ client để tìm kiếm và lọc tức thì $< 5\text{ms}$.
+  + 8 cột thông tin chuẩn mực: Tên & Model thiết bị, Địa chỉ IP (hỗ trợ copy nhanh 1-click), Vị trí (Chi nhánh - Tầng - Phòng ban), Hãng & Loại thiết bị, Mực in CMYK, Trạng thái kết nối (kèm huy hiệu **Lưu kho** / **Đã thanh lý**), Sức khỏe phần cứng, Thao tác chẩn đoán.
+  + **Nút [Sửa]** (`PrinterEditModal`): Cho phép `ADMIN` hiệu chỉnh tên hiển thị, địa chỉ IP, model, số serial, trạng thái quản lý (Đang giám sát / Tạm ngưng / Lưu kho / Thanh lý).
+  + **Nút [Dời]** (`PrinterRelocateModal`): Chỉ hiển thị đối với vai trò `ADMIN` để di dời máy in giữa các Chi nhánh/Tầng/Phòng ban và bắt buộc nhập lý do điều chuyển.
+  + **Nút [Ngưng] (Decommission / Khóa an toàn):** Cho phép `ADMIN` chuyển trạng thái máy in sang Lưu kho / Thanh lý; **tự động chặn ngưng/xóa** nếu thiết bị đang có lệnh bảo trì chưa hoàn thành (`taskInfo.active > 0`).
+  + Phân quyền thao tác theo JD: Chỉ `ADMIN` mới có quyền khai báo, sửa, điều chuyển và ngưng giám sát; `ASSET_HR` xem Serial, Model và Vị trí để kiểm kê; `FIELD_TECH` xem IP & vị trí để định vị thiết bị.
+  + **Phân trang linh hoạt (Client-side Pagination):** Tùy chọn 15, 25, 50 hoặc Tất cả dòng/trang kèm điều hướng Trước/Sau và hiển thị tổng số máy in. Nạp toàn bộ danh mục ~100 máy in (< 50KB) vào bộ nhớ client để tìm kiếm và lọc tức thì $< 5\text{ms}$.
 
 #### Sub-Tab 2: Lịch Trình Tiến Độ Gantt (`/printers/timeline`)
 - **Khung thời gian (View Duration):** Tùy chọn 7 ngày, 14 ngày, hoặc 30 ngày. Khắc phục triệt để lỗi lệch múi giờ bằng định dạng chuẩn Local Date `YYYY-MM-DD`.
@@ -82,8 +93,11 @@ Phân hệ cốt lõi quản lý hạm đội ~100 máy in, chia thành 3 Sub-ta
   + Với `FIELD_TECH`, hiển thị tóm tắt năng suất cá nhân để tự theo dõi tiến độ.
 - **Bảng Quản Lý Lệnh Bảo Trì (WorkOrdersTable):**
   + Theo dõi toàn diện vòng đời công việc 3 tầng `Ticket -> Task -> Work Log`.
-  + Bộ lọc phạm vi: `Tất cả`, `Đang xử lý` (Planned, In Progress, Waiting), và `Kho lịch sử` (Completed).
+  + Bộ lọc phạm vi: `Tất cả`, `Đang xử lý` (Planned, In Progress, Waiting), và `Kho lịch sử` (Completed, Cancelled).
+  + **Đồng bộ bộ lọc Chi nhánh & Tầng:** Tích hợp bộ chọn Chi nhánh và Tầng đồng bộ với Danh mục thiết bị giúp tra cứu tiến độ công việc theo từng địa bàn.
   + Hỗ trợ mở rộng dòng (Sub-steps Row) xem chi tiết các bước SOP kỹ thuật.
+  + **Nút [Gán KTV]** (`WorkOrderReassignModal`): Dành riêng cho `ADMIN` để điều phối hoặc chuyển giao người phụ trách công việc sang KTV khác, bắt buộc nhập lý do điều phối để lưu vết Audit Log.
+  + **Nút [Hủy]** (`WorkOrderCancelModal`): Dành riêng cho `ADMIN` để hủy hoặc đóng cưỡng bức các lệnh bảo trì tạo nhầm/sự cố đã tự hồi phục, bắt buộc nhập lý do hủy để lưu vết kiểm toán.
 
 #### Slide-over Diagnostics Drawer (960px):
 Khung trượt từ cạnh phải màn hình, hỗ trợ phím tắt `Esc` và điều hướng nhanh giữa các máy:
@@ -106,7 +120,10 @@ Giao diện trực quan hóa dữ liệu sản lượng và vật tư bằng **1
   + Pure React SVG, Soft Spline 2.25px với Gradient Glow bán trong suốt.
   + Viên nang đỉnh tải (Peak Pill) chỉ báo thời điểm có lượng in cao nhất.
   + Chú giải trực quan: Kỳ hiện tại (nét liền xanh dương `#2563eb`), Kỳ trước (nét đứt xám `#94a3b8`).
-- **Khối Phân Bố Sản Lượng & Đối Chiếu Hạm Đội (Side-by-Side Bento):**
+- **Khối Phân Bố Sản Lượng & Đối Chiếu Hạm Đội (Collapsible Split-View Bento):**
+  + *Bố cục gập/mở tại chỗ (Collapsible Split-View):* Mặc định biểu đồ "Sản lượng theo thiết bị" mở rộng **100% toàn màn hình** giúp góc nhìn thoáng đãng, tối ưu không gian.
+  + *Nút mở/gập đối chiếu:* Tích hợp nút `[Đối chiếu thiết bị]` (hoặc `[Thu gọn đối chiếu]`) trên thanh công cụ của biểu đồ cột ngang kèm huy hiệu (badge) đếm số lượng máy đang ghim.
+  + *Cơ chế kích hoạt thông minh:* Sàn đối chiếu tự động xuất hiện song song (chia 2 cột 50% - 50%) ngay khi người vận hành bấm biểu tượng ghim 📌 trên bất kỳ máy in nào; và tự động thu gọn về 100% khi danh sách máy ghim trở về 0 (hoặc khi bấm nút "Xóa tất cả máy ghim" / nút `[✕ Thu gọn]`).
   + *Cột trái: Sản lượng theo thiết bị (ProductionHorizontalBarChart):* Biểu đồ cột ngang chia rõ tỷ trọng Mono & Color. Nút ghim nhanh 📌 đưa máy vào sàn đối chiếu.
   + *Cột phải: Đối chiếu thiết bị (PinnedComparisonSandbox):* Khung hình Bento riêng biệt chứa các thanh cột ngang của các máy được ghim đặt song song, căn chỉnh **cùng thang đo (common scale)** để so sánh trực diện độ dài thanh, độ lệch tải (% vs #1), tốc độ PPM và chỉ số MTBF.
   + *Modal So sánh 1:1:* Phân tích đối sánh đa chiều chuyên sâu giữa các thiết bị đã chọn.
@@ -126,22 +143,28 @@ Giao diện trực quan hóa dữ liệu sản lượng và vật tư bằng **1
 - **4 Thẻ KPI Bento SLA:** Tỷ lệ sẵn sàng SLA hạm đội (Uptime %), Thời gian chạy ổn định trung bình (MTBF), Thời gian xử lý sự cố (MTTR), và Tổng chi phí in kỳ này (VNĐ).
 - **Lưới Phân Tích Kép (Side-by-Side):**
   + *Cột trái: Chi phí theo phòng ban (CostAllocationArcChart):* Vòng cung bán nguyệt 180° nét mảnh 11px kèm 5 Micro-Cards phòng ban (tỷ trọng %, số trang mono/color, chi phí VNĐ).
-  + *Cột phải: Điểm nóng sự cố (SLAIncidentHeatmapMatrix):* Ma trận nhiệt 5 khu vực/tầng $\times$ 7 tuần nhận diện tần suất hỏng hóc, kèm Inspector Panel xem chi tiết từng vụ việc.
+  + *Cột phải: Điểm nóng sự cố (SLAIncidentHeatmapMatrix):* Ma trận nhiệt **Dynamic Render** theo các Chi nhánh và các Tầng thực tế có đặt máy in $\times$ 7 tuần nhận diện tần suất hỏng hóc, kèm Inspector Panel xem chi tiết từng vụ việc.
 
 ---
 
 ### 2.4. Phân Hệ 4: Cấu Hình & Quản Lý Mã Lỗi (`/settings`)
 
-Giao diện quản trị hệ thống phục vụ kỹ sư NOC và Fleet Manager:
+Giao diện quản trị hệ thống phục vụ Kỹ sư NOC và Quản trị viên (`ADMIN`):
 
-1. **Quy Tắc An Toàn Vận Hành NOC (Operational Safety Rules):**
+1. **Thẻ Trạng Thái Zabbix Gateway (ZabbixStatusCard — Chỉ Đọc):**
+   - Thông số Zabbix Server và chu kỳ Polling (Fast: 30s | Slow: 1h) được **cấu hình mặc định cố định từ Backend Environment**, Admin không có quyền sửa trên giao diện Web UI (khóa ở cả 2 đầu: không có API ghi và UI chỉ đọc).
+   - Hiển thị: Trạng thái kết nối Xanh (`Đang kết nối`), Endpoint đã che token, chu kỳ Fast/Slow và huy hiệu an toàn: *"Khóa bởi Backend Environment"*.
+2. **Quy Tắc An Toàn Vận Hành NOC (Operational Safety Rules):**
    - *Safe Window 10m:* Cơ chế giữ cảnh báo an toàn tối thiểu 10 phút trước khi tự động đóng, ngăn chặn hiện tượng flapping (chập chờn mạng/sensor).
    - *Critical Protection:* Ngăn chặn việc đóng tự động các sự cố mức Critical nếu chưa có biên bản nghiệm thu từ kỹ thuật viên.
    - *In-Memory Cache TTL 60s:* Điều chỉnh thời gian sống của bộ đệm cache dữ liệu Zabbix.
-2. **Từ Điển & Chuẩn Hóa Mã Lỗi Đa Thương Hiệu (Error Code Standardization):**
+3. **Từ Điển & Chuẩn Hóa Mã Lỗi Đa Thương Hiệu (Error Code Standardization):**
    - Tra cứu danh mục mã lỗi chuẩn nội bộ `FM-<SUBSYSTEM>-<INDEX>`.
-   - **Cơ chế Import/Export CSV:** Quản trị viên tải tệp CSV mẫu, điền danh mục mã lỗi từ Service Manual của 6 hãng (Ricoh, HP, Canon, Epson, Brother, Xerox) và upload lên hệ thống.
+   - **Cơ chế Import/Export CSV:** Quản trị viên tải tệp CSV mẫu, điền danh mục mã lỗi từ Service Manual của các hãng trong hạm đội (Chủ lực: Canon, Ricoh; Đồng hành: Epson, HP, Brother, Toshiba, Olivetti) và upload lên hệ thống.
    - Bảng lịch sử thay đổi (Audit Trail): Lưu vết bất biến ai đã thêm/sửa mã lỗi, thời gian và lý do thay đổi.
+4. **Quản Lý Người Dùng & Phân Quyền (User & RBAC Manager):**
+   - Xem danh sách tài khoản nhân sự (`ADMIN`, `FIELD_TECH`, `ASSET_HR`), đổi mật khẩu nhanh (`UserPasswordChangeModal`), cấu hình Data Scope theo Chi nhánh / Tầng (`UserScopeAssignModal`).
+   - Nút **`[+ Tạo tài khoản mới]`** (`UserCreateModal`): Cho phép Admin khởi tạo tài khoản nhanh gồm Họ tên, Email, Mật khẩu và chỉ định một trong 3 vai trò.
 
 ---
 

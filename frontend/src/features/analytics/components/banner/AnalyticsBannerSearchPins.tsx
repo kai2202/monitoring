@@ -6,18 +6,23 @@ import {
   faXmark,
   faScaleBalanced,
 } from '../../../../shared/icons';
-import { AnalyticsTimeframe } from '../../../../types/analyticsUI';
-import { MOCK_PRINTER_DEFINITIONS, MockFleetDeviceDefinition, findAnyFleetDevice } from '../../../../mocks/mockAnalyticsUIData';
 
-interface AnalyticsBannerSearchPinsProps {
+export interface BannerSearchPinItem {
+  id: string;
+  name: string;
+  model?: string;
+  floorName?: string;
+  department?: string;
+}
+
+export interface AnalyticsBannerSearchPinsProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   pinnedPrinterIds: string[];
   onRemovePinnedPrinter: (id: string) => void;
   onAddPinnedPrinter: (id: string) => void;
   onOpenComparisonModal: () => void;
-  timeframe: AnalyticsTimeframe;
-  onTimeframeChange: (tf: AnalyticsTimeframe) => void;
+  availablePrinters?: BannerSearchPinItem[];
 }
 
 export const AnalyticsBannerSearchPins: React.FC<AnalyticsBannerSearchPinsProps> = ({
@@ -27,16 +32,15 @@ export const AnalyticsBannerSearchPins: React.FC<AnalyticsBannerSearchPinsProps>
   onRemovePinnedPrinter,
   onAddPinnedPrinter,
   onOpenComparisonModal,
-  timeframe,
-  onTimeframeChange,
+  availablePrinters = [],
 }) => {
   const [isAddPickerOpen, setIsAddPickerOpen] = useState(false);
 
-  const pinnedPrinters = pinnedPrinterIds
-    .map((id) => findAnyFleetDevice(id) || MOCK_PRINTER_DEFINITIONS.find((p) => p.id === id))
-    .filter((p): p is MockFleetDeviceDefinition => Boolean(p));
+  const pinnedPrinters = pinnedPrinterIds.map(
+    (id) => availablePrinters.find((p) => p.id === id) || { id, name: id, floorName: '', model: '' }
+  );
 
-  const availablePrinters = MOCK_PRINTER_DEFINITIONS.filter(
+  const selectablePrinters = availablePrinters.filter(
     (p) => !pinnedPrinterIds.includes(p.id)
   );
 
@@ -48,14 +52,14 @@ export const AnalyticsBannerSearchPins: React.FC<AnalyticsBannerSearchPinsProps>
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '12px',
-        padding: '14px 18px',
+        padding: '12px 18px',
         borderRadius: '16px',
         backgroundColor: 'var(--bg-card)',
         border: '1px solid var(--border-color)',
         boxShadow: 'var(--shadow-sm)',
       }}
     >
-      {/* Ô Tìm Kiếm Nhanh */}
+      {/* Ô Tìm Kiếm Nhanh Thiết Bị (Kết Nối Trực Tiếp Xuống Sàn Phân Bổ) */}
       <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: '380px' }}>
         <FontAwesomeIcon
           icon={faMagnifyingGlass}
@@ -70,7 +74,7 @@ export const AnalyticsBannerSearchPins: React.FC<AnalyticsBannerSearchPinsProps>
         />
         <input
           type="text"
-          placeholder="Tìm kiếm máy in, model, tầng, phòng ban..."
+          placeholder="Tìm kiếm máy in, model, phòng ban..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           style={{
@@ -90,7 +94,7 @@ export const AnalyticsBannerSearchPins: React.FC<AnalyticsBannerSearchPinsProps>
         />
       </div>
 
-      {/* Ghim so sánh pills */}
+      {/* Ghim so sánh pills & Picker */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
           Ghim so sánh:
@@ -200,12 +204,12 @@ export const AnalyticsBannerSearchPins: React.FC<AnalyticsBannerSearchPinsProps>
                 >
                   Chọn máy in để ghim
                 </div>
-                {availablePrinters.length === 0 ? (
+                {selectablePrinters.length === 0 ? (
                   <div style={{ padding: '12px', textAlign: 'center', fontSize: '11.5px', color: 'var(--text-muted)' }}>
                     Đã ghim toàn bộ máy
                   </div>
                 ) : (
-                  availablePrinters.map((p) => (
+                  selectablePrinters.map((p) => (
                     <div
                       key={p.id}
                       onClick={() => {
@@ -268,31 +272,8 @@ export const AnalyticsBannerSearchPins: React.FC<AnalyticsBannerSearchPinsProps>
           </button>
         )}
       </div>
-
-      {/* Chu kỳ pills */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '3px', borderRadius: '10px', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-color)' }}>
-        {(['hourly', '7days', '30days'] as AnalyticsTimeframe[]).map((tf) => (
-          <button
-            key={tf}
-            type="button"
-            onClick={() => onTimeframeChange(tf)}
-            style={{
-              padding: '5px 12px',
-              fontSize: '11.5px',
-              fontWeight: timeframe === tf ? 700 : 500,
-              borderRadius: '8px',
-              backgroundColor: timeframe === tf ? 'var(--bg-card)' : 'transparent',
-              color: timeframe === tf ? 'var(--brand-500, #0284c7)' : 'var(--text-secondary)',
-              border: 'none',
-              boxShadow: timeframe === tf ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {tf === 'hourly' ? 'Theo Giờ' : tf === '7days' ? '7 Ngày' : '30 Ngày'}
-          </button>
-        ))}
-      </div>
     </div>
   );
 };
+
+export default AnalyticsBannerSearchPins;

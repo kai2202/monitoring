@@ -5,6 +5,7 @@
  */
 
 export * from './ProductionHorizontalBarChart';
+export * from './DeviceHorizontalBarRow';
 export * from './PinnedComparisonSandbox';
 export * from './ProductionDistributionSection';
 export * from './DistributionHeaderControls';

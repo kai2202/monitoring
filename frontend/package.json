@@ -30,7 +30,8 @@
     "chart.js": "^4.4.6",
     "@tanstack/react-table": "^8.20.5",
     "@tanstack/react-virtual": "^3.10.9",
-    "sonner": "^1.7.1"
+    "sonner": "^1.7.1",
+    "jwt-decode": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",

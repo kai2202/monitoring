@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
+  root: path.resolve(__dirname),
   plugins: [react()],
   resolve: {
     alias: {
@@ -14,13 +15,12 @@ export default defineConfig({
     },
   },
   build: {
+    outDir: path.resolve(__dirname, 'dist'),
     rollupOptions: {
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-redux': ['@reduxjs/toolkit', 'react-redux'],
-          'vendor-icons': ['lucide-react'],
-          'vendor-charts': ['chart.js'],
         },
       },
     },

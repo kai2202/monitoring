@@ -19,6 +19,10 @@ export function getAnalyticsRoutes(options: AnalyticsRoutesOptions): RouteObject
       element: <Navigate to="/analytics/overview" replace />,
     },
     {
+      path: '/analytics/analytics',
+      element: <Navigate to="/analytics/overview" replace />,
+    },
+    {
       path: '/analytics/overview',
       element: (
         <AnalyticsPage

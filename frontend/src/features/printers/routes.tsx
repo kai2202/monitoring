@@ -18,6 +18,10 @@ export function getPrintersRoutes(options: PrintersRoutesOptions): RouteObject[]
       element: <Navigate to="/printers/list" replace />,
     },
     {
+      path: '/printers/printers',
+      element: <Navigate to="/printers/list" replace />,
+    },
+    {
       path: '/printers/list',
       element: (
         <PrintersPage

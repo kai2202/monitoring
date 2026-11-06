@@ -42,23 +42,44 @@ Hệ thống tài liệu FleetMonitor được chuẩn hóa tập trung trong th
 
 ```
 docs/
+├── README.md                                 # Cổng thông tin tài liệu trung tâm & AI Agent Quickstart
+├── Build/
+│   └── API_CONTRACT.MD                       # Hợp đồng giao diện REST API chuẩn hóa giữa FE & BE
 ├── Design/
 │   ├── 00_overview.MD                        # Tài liệu này: Tổng quan & mục lục toàn dự án
 │   ├── architecture.md                       # Kiến trúc kỹ thuật chi tiết v2.6.0 & Bộ 6 Cổng Cutover
 │   ├── frontend_mock_to_oid_mapping.md       # Đặc tả ánh xạ toàn bộ Mock -> APIs, Database & SNMP OIDs
-│   ├── rbac_roles_and_ui_permissions_spec.md # [MỚI] Đặc tả 3 vai trò RBAC & Ma trận quyền hạn giao diện UI
+│   ├── rbac_roles_and_ui_permissions_spec.md # Đặc tả 3 vai trò RBAC & Ma trận quyền hạn giao diện UI
+│   ├── storage_and_database_architecture.md  # Kiến trúc CSDL PostgreSQL 16, MinIO S3 & Dual-Token Auth
 │   └── ui_navigation_specs.MD                # Đặc tả giao diện 4 phân hệ & trải nghiệm người dùng Bento
 ├── Plan/
-│   ├── business_requirements.MD        # Đặc tả yêu cầu nghiệp vụ chuẩn doanh nghiệp (~100 máy in)
-│   └── progress.MD                     # Báo cáo tiến độ triển khai Frontend-First & Roadmap Backend
-└── Tasks/
-    └── Backend/                        # Bộ 6 Task Đặc tả kỹ thuật Backend sẵn sàng lập trình
-        ├── TASK-BE-01_zabbix_gateway.MD
-        ├── TASK-BE-02_cache_and_error_classification.MD
-        ├── TASK-BE-03_maintenance_cmms.MD
-        ├── TASK-BE-04_analytics_rollup_engine.MD
-        ├── TASK-BE-05_error_dictionary_csv.MD
-        └── TASK-BE-06_rbac_data_scope.MD
+│   ├── business_requirements.MD              # Đặc tả yêu cầu nghiệp vụ chuẩn doanh nghiệp (~100 máy in)
+│   ├── progress.MD                           # Báo cáo tiến độ triển khai Frontend-First & Roadmap Backend
+│   └── workflow/                             # Thư mục đặc tả quy trình vận hành & CMMS khép kín
+│       ├── README.md                         # Mục lục quy trình vận hành
+│       ├── maintenance_lifecycle.md          # Vòng đời bảo trì 3 tầng (Ticket -> Task -> Work Log)
+│       └── alert_and_incident_flow.md        # Luồng xử lý sự cố, Safe Window 10m & Khóa Auto-Closure
+├── snmp-oids/                                # Thư mục từ điển SNMP OIDs & MIBs đa thương hiệu
+│   ├── README.md                             # Tổng quan kiến trúc thu thập Zabbix Poller & Tra cứu OID
+│   ├── rfc3805_printer_mib.md                # Đặc tả OID chuẩn RFC 3805 (Printer-MIB) & RFC 2790
+│   └── vendor_enterprise_oids.md             # Tra cứu Private Enterprise OIDs (Ricoh, Canon, HP...)
+├── Tasks/
+│   ├── README.md                             # Sổ bộ tổng hợp danh mục Tasks & Bảng trạng thái
+│   ├── task_template.MD                      # Mẫu chuẩn hóa tạo nhiệm vụ kỹ thuật mới
+│   ├── Frontend/                             # 4 Nhiệm vụ Frontend đã hoàn thành 100%
+│   │   ├── TASK-FE-01_dashboard_overview.MD
+│   │   ├── TASK-FE-02_printers_diagnostics_and_tasks.MD
+│   │   ├── TASK-FE-03_analytics_charts_and_rankings.MD
+│   │   └── TASK-FE-04_settings_error_dictionary_rules.MD
+│   └── Backend/                              # Bộ 6 Task Đặc tả kỹ thuật Backend sẵn sàng lập trình
+│       ├── TASK-BE-01_zabbix_gateway.MD
+│       ├── TASK-BE-02_cache_and_error_classification.MD
+│       ├── TASK-BE-03_maintenance_cmms.MD
+│       ├── TASK-BE-04_analytics_rollup_engine.MD
+│       ├── TASK-BE-05_error_dictionary_csv.MD
+│       └── TASK-BE-06_rbac_data_scope.MD
+└── Test/
+    └── test_plan.md                          # Kế hoạch kiểm thử toàn diện đa tầng (Vitest)
 ```
 
 ---

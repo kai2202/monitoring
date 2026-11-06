@@ -9,4 +9,6 @@ export * from './WorkOrderWorkLogsList';
 export * from './WorkOrderVendorAndAttachments';
 export * from './WorkOrderActivityStream';
 export * from './WorkOrderDetailView';
+export * from './TestPrintReviewModal';
+export * from './useWorkOrderAttachments';
 

@@ -1,7 +1,17 @@
-import React, { useState, useMemo } from 'react';
+/**
+ * Frontend/src/features/analytics/components/comparison/ComparisonDevicePicker.tsx
+ *
+ * Thanh Chọn & Điều Khiển Thiết Bị So Sánh (Comparison Device Picker):
+ * - Tìm kiếm và thêm thiết bị từ danh mục máy in thực tế (printerService).
+ * - Loại bỏ hoàn toàn mock data imports.
+ * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
+ */
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { FontAwesomeIcon, faXmark, faPlus, faScaleBalanced } from '../../../../shared/icons';
 import { ComparisonDeviceKPIs } from '../../../../types/analyticsUI';
-import { MOCK_PRINTER_DEFINITIONS } from '../../../../mocks/mockAnalyticsUIData';
+import { printerService } from '../../../../services';
+import { Printer } from '../../../../types/printer';
 
 export interface ComparisonDevicePickerProps {
   devicesKPIs: ComparisonDeviceKPIs[];
@@ -20,16 +30,30 @@ export const ComparisonDevicePicker: React.FC<ComparisonDevicePickerProps> = ({
 }) => {
   const [isAddPickerOpen, setIsAddPickerOpen] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
+  const [fleetPrinters, setFleetPrinters] = useState<Printer[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    printerService.getPrinters().then((res) => {
+      if (isMounted) setFleetPrinters(res);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const availablePrinters = useMemo(() => {
-    return MOCK_PRINTER_DEFINITIONS.filter(
+    const q = searchFilter.toLowerCase().trim();
+    return fleetPrinters.filter(
       (p) =>
         !selectedPrinterIds.includes(p.id) &&
-        (p.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-          p.model.toLowerCase().includes(searchFilter.toLowerCase()) ||
-          p.floorName.toLowerCase().includes(searchFilter.toLowerCase()))
+        (!q ||
+          p.name.toLowerCase().includes(q) ||
+          p.model.toLowerCase().includes(q) ||
+          (p.floor && p.floor.toLowerCase().includes(q)) ||
+          (p.location && p.location.toLowerCase().includes(q)))
     );
-  }, [selectedPrinterIds, searchFilter]);
+  }, [fleetPrinters, selectedPrinterIds, searchFilter]);
 
   return (
     <div
@@ -75,6 +99,8 @@ export const ComparisonDevicePicker: React.FC<ComparisonDevicePickerProps> = ({
             borderRadius: '8px',
             color: 'var(--text-muted)',
             cursor: 'pointer',
+            border: 'none',
+            background: 'transparent',
           }}
           title="Đóng bảng so sánh"
         >
@@ -131,7 +157,7 @@ export const ComparisonDevicePicker: React.FC<ComparisonDevicePickerProps> = ({
           </span>
         ))}
 
-        {/* Nút thêm máy in vào modal */}
+        {/* Nút Thêm máy in & Popover Picker */}
         <div style={{ position: 'relative' }}>
           <button
             type="button"
@@ -139,8 +165,8 @@ export const ComparisonDevicePicker: React.FC<ComparisonDevicePickerProps> = ({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
-              padding: '4px 12px',
+              gap: '6px',
+              padding: '5px 12px',
               borderRadius: '20px',
               border: '1px dashed var(--border-color)',
               backgroundColor: 'var(--bg-subtle)',
@@ -150,8 +176,8 @@ export const ComparisonDevicePicker: React.FC<ComparisonDevicePickerProps> = ({
               cursor: 'pointer',
             }}
           >
-            <FontAwesomeIcon icon={faPlus} style={{ fontSize: '12px' }} />
-            <span>Thêm thiết bị đối chiếu</span>
+            <FontAwesomeIcon icon={faPlus} style={{ fontSize: '10px' }} />
+            <span>Thêm máy in đối chiếu</span>
           </button>
 
           {isAddPickerOpen && (
@@ -163,10 +189,11 @@ export const ComparisonDevicePicker: React.FC<ComparisonDevicePickerProps> = ({
               <div
                 style={{
                   position: 'absolute',
+                  top: '100%',
                   left: 0,
-                  marginTop: '8px',
-                  width: '300px',
-                  maxHeight: '280px',
+                  marginTop: '6px',
+                  width: '320px',
+                  maxHeight: '300px',
                   backgroundColor: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '14px',
@@ -228,7 +255,7 @@ export const ComparisonDevicePicker: React.FC<ComparisonDevicePickerProps> = ({
                             {p.name}
                           </div>
                           <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                            {p.floorName} • {p.ppmNominal} PPM
+                            {p.floor || p.location || 'Tầng 1'} • {p.ppm || 35} PPM
                           </div>
                         </div>
                         <FontAwesomeIcon icon={faPlus} style={{ fontSize: '12px', color: '#0284c7' }} />

@@ -22,7 +22,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   allowedRoles,
 }) => {
   const location = useLocation();
-  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { user, isAuthenticated, isBootstrapping } = useSelector((state: RootState) => state.auth);
+
+  if (isBootstrapping) {
+    return (
+      <div className="flex flex-col gap-6 p-6 w-full animate-pulse">
+        <div className="h-14 rounded-2xl bg-secondary/60 w-full" />
+        <div className="h-72 rounded-2xl bg-secondary/40 w-full" />
+      </div>
+    );
+  }
 
   // 1. Chưa đăng nhập -> Chuyển hướng sang trang Login
   if (!isAuthenticated || !user) {

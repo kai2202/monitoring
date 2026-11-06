@@ -5,18 +5,19 @@
  */
 
 import { Printer, Incident } from '../../types/printer';
+import { MetricValue } from '../../types/dashboardTelemetry';
 
 export interface DashboardSummary {
   kpis: {
     totalPrinters: number;
-    onlineCount: number;
-    offlineCount: number;
-    unknownCount: number;
-    onlineRate: number;
-    activeAlertsCount: number;
-    criticalAlertsCount: number;
-    warningAlertsCount: number;
-    lowSuppliesCount: number;
+    onlineCount: MetricValue;
+    offlineCount: MetricValue;
+    unknownCount: MetricValue;
+    onlineRate: MetricValue;
+    activeAlertsCount: MetricValue;
+    criticalAlertsCount: MetricValue;
+    warningAlertsCount: MetricValue;
+    lowSuppliesCount: MetricValue;
   };
   devicesNeedingAttention: Printer[];
   recentIncidents: Incident[];

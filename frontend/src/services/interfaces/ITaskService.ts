@@ -24,6 +24,7 @@ export interface CreateTaskDto {
   taskType: TaskType;
   priority: TaskPriority;
   status?: TaskStatus;
+  assigneeId?: string;
   assignee: string;
   startDate?: string;
   dueDate: string;
@@ -60,6 +61,7 @@ export interface UpdateTaskStatusDto {
 
 export interface ReassignTaskDto {
   newAssignee: string;
+  assigneeId?: string;
   reason: string;
   author: string;
 }
@@ -85,5 +87,13 @@ export interface ITaskService {
   reassignTask(id: string, dto: ReassignTaskDto): Promise<Task>;
   rescheduleTask(id: string, dto: RescheduleTaskDto): Promise<Task>;
   addTaskNote(id: string, dto: AddTaskNoteDto): Promise<Task>;
+  addTaskWorkLog(id: string, log: Partial<WorkLogEntry>): Promise<Task>;
+  uploadTaskAttachment(
+    id: string,
+    file: File,
+    author: string,
+    isTestPrintProof?: boolean
+  ): Promise<TaskAttachment>;
+  getAttachmentDownloadUrl(id: string, attachmentId: string): Promise<string | null>;
   updateProgress(id: string, percent: number, author: string, comment?: string): Promise<Task>;
 }

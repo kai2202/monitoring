@@ -1,38 +1,92 @@
 /**
  * Frontend/src/pages/SettingsPage.tsx
  *
- * Phân hệ Cấu hình Hệ thống & Quy tắc Vận hành (Settings & Rules):
- * - Tách nhỏ thành các component con dưới 300 dòng:
- *   1. ZabbixConfigForm (React Hook Form + Zod validation)
- *   2. OperationalRulesCard (Quy tắc Safe Window, Critical Protection, Cache TTL)
- *   3. ErrorDictionaryCard (Từ điển tra cứu mã lỗi phần cứng đa hãng)
+ * Phân hệ Cấu Hình Hệ Thống & Quản Trị Vận Hành (Settings & Rules):
+ * - Tái cấu trúc chuẩn 4 Sub-tabs điều hướng góc phải trên cùng (Ảnh 1):
+ *   1. Gateway & Kết nối: ZabbixLivePingCard + ZabbixStatusCard
+ *   2. Người dùng & Phân quyền: UserRbacManagerCard
+ *   3. Quy tắc & Ngưỡng cảnh báo: DynamicThresholdsCard + OperationalRulesCard
+ *   4. Từ điển mã lỗi: ErrorDictionaryCard
+ * - Tương thích URL deep-link qua React Router v6 (/settings/:subTab).
  * - Tuân thủ AGENTS.md Rule 7.1: FontAwesome duy nhất, < 300 LOC.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FontAwesomeIcon, faGear, faRotate } from '../shared/icons';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { settingsService } from '../services';
-import { MockErrorCode } from '../mocks/mockSettings';
+import { SystemSettings } from '../services/interfaces/ISettingsService';
+import { PrinterErrorCode } from '../types/api';
 import { NavTabId } from '../components/layout/Sidebar';
-import { OperationalRulesCard } from '../features/settings/components/OperationalRulesCard';
-import { ErrorDictionaryCard } from '../features/settings/components/ErrorDictionaryCard';
-import { ZabbixConfigForm } from '../features/settings/components/ZabbixConfigForm';
+import { SettingsSubTab } from '../types/settings';
+import {
+  SettingsPageHeader,
+  ZabbixStatusCard,
+  ZabbixLivePingCard,
+  UserRbacManagerCard,
+  OperationalRulesCard,
+  DynamicThresholdsCard,
+  ErrorDictionaryCard,
+} from '../features/settings/components';
 
 export interface SettingsPageProps {
+  activeSubTab?: SettingsSubTab;
+  onSubTabChange?: (tab: SettingsSubTab) => void;
   onNavigateModule?: (tab: NavTabId) => void;
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = () => {
-  const [errorDict, setErrorDict] = useState<MockErrorCode[]>([]);
+const VALID_TABS: SettingsSubTab[] = ['gateway', 'rbac', 'rules', 'dictionary'];
+
+export const SettingsPage: React.FC<SettingsPageProps> = ({
+  activeSubTab: externalSubTab,
+  onSubTabChange,
+}) => {
+  const { subTab: urlSubTab } = useParams<{ subTab?: string }>();
+  const navigate = useNavigate();
+
+  const getInitialTab = (): SettingsSubTab => {
+    if (urlSubTab && VALID_TABS.includes(urlSubTab as SettingsSubTab)) {
+      return urlSubTab as SettingsSubTab;
+    }
+    if (externalSubTab && VALID_TABS.includes(externalSubTab)) {
+      return externalSubTab;
+    }
+    return 'gateway';
+  };
+
+  const [activeTab, setActiveTab] = useState<SettingsSubTab>(getInitialTab);
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
+  const [errorDict, setErrorDict] = useState<PrinterErrorCode[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Đồng bộ khi URL param thay đổi
+  useEffect(() => {
+    if (urlSubTab && VALID_TABS.includes(urlSubTab as SettingsSubTab)) {
+      setActiveTab(urlSubTab as SettingsSubTab);
+    }
+  }, [urlSubTab]);
+
+  const handleTabChange = useCallback(
+    (tab: SettingsSubTab) => {
+      setActiveTab(tab);
+      navigate(`/settings/${tab}`);
+      if (onSubTabChange) onSubTabChange(tab);
+    },
+    [navigate, onSubTabChange]
+  );
 
   const loadSettingsData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const errData = await settingsService.getErrorDictionary();
+      const [settingsData, errData] = await Promise.all([
+        settingsService.getSettings(),
+        settingsService.getErrorDictionary(),
+      ]);
+      setSystemSettings(settingsData);
       setErrorDict(errData);
     } catch (err) {
-      console.error('Lỗi khi nạp dữ liệu từ điển lỗi:', err);
+      toast.error('Lỗi khi nạp dữ liệu cấu hình hệ thống từ máy chủ');
+      console.error('Lỗi khi nạp dữ liệu cấu hình hệ thống:', err);
     } finally {
       setIsLoading(false);
     }
@@ -42,80 +96,72 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
     loadSettingsData();
   }, [loadSettingsData]);
 
+  const handleRefresh = async () => {
+    await loadSettingsData();
+    toast.success('Đã làm mới toàn bộ dữ liệu cấu hình hệ thống');
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1440px', margin: '0 auto' }}>
-      {/* 1. Header Card */}
-      <div
-        style={{
-          padding: '20px 24px',
-          borderRadius: 'var(--radius-card)',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div
-            style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '12px',
-              backgroundColor: 'var(--bg-subtle)',
-              border: '1px solid var(--border-color)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-primary)',
-            }}
-          >
-            <FontAwesomeIcon icon={faGear} style={{ fontSize: '18px' }} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-              Cấu Hình Hệ Thống &amp; Từ Điển Mã Lỗi
-            </h1>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
-              Quản lý kết nối Zabbix, quy tắc tự động đóng sự cố NOC và tra cứu mã lỗi đa thương hiệu
-            </p>
-          </div>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        maxWidth: '1440px',
+        margin: '0 auto',
+        width: '100%',
+      }}
+    >
+      {/* 1. Header chuẩn 2 hàng với Sub-tab Navigation (Góc Phải Trên Cùng) */}
+      <SettingsPageHeader
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        isLoading={isLoading}
+        onRefresh={handleRefresh}
+      />
+
+      {/* 2. Nội dung phân hệ chuyển đổi theo Sub-tab (Bento Density) */}
+      {activeTab === 'gateway' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <ZabbixLivePingCard
+            zabbixConfig={systemSettings?.zabbix}
+            onSyncComplete={loadSettingsData}
+          />
+          <ZabbixStatusCard
+            apiUrl={systemSettings?.zabbix.apiUrl}
+            fastPollInterval={
+              systemSettings?.zabbix.fastPollIntervalSeconds ??
+              systemSettings?.zabbix.pollIntervalSeconds ??
+              60
+            }
+            slowPollInterval={(systemSettings?.zabbix.slowPollIntervalHours ?? 1) * 3600}
+            isConnected={systemSettings?.zabbix.connectionStatus === 'Connected'}
+          />
         </div>
+      )}
 
-        <button
-          onClick={loadSettingsData}
-          disabled={isLoading}
-          style={{
-            padding: '7px 16px',
-            borderRadius: '9999px',
-            backgroundColor: 'var(--bg-subtle)',
-            border: '1px solid var(--border-color)',
-            color: 'var(--text-secondary)',
-            fontSize: '12px',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <FontAwesomeIcon icon={faRotate} style={{ fontSize: '12px', animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
-          <span>Làm mới dữ liệu</span>
-        </button>
-      </div>
+      {activeTab === 'rbac' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <UserRbacManagerCard />
+        </div>
+      )}
 
-      {/* 2. Form Cấu Hình Zabbix API (React Hook Form + Zod) */}
-      <ZabbixConfigForm onSave={(data) => console.log('Saved Zabbix Config:', data)} />
+      {activeTab === 'rules' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <DynamicThresholdsCard initialThresholds={systemSettings?.thresholds} />
+          <OperationalRulesCard />
+        </div>
+      )}
 
-      {/* 3. Quy Tắc Vận Hành & Tự Động Đóng Sự Cố */}
-      <OperationalRulesCard />
-
-      {/* 4. Từ Điển Mã Lỗi Phần Cứng Đa Hãng */}
-      <ErrorDictionaryCard errorDict={errorDict} isLoading={isLoading} />
+      {activeTab === 'dictionary' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <ErrorDictionaryCard
+            errorDict={errorDict}
+            isLoading={isLoading}
+            onReloadDictionary={loadSettingsData}
+          />
+        </div>
+      )}
     </div>
   );
 };

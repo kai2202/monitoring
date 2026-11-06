@@ -1,22 +1,22 @@
 /**
  * Frontend/src/components/layout/SidebarProfileFooter.tsx
  *
- * Khối hồ sơ người dùng & chuyển đổi vai trò ở đáy Sidebar:
- * - Hiển thị Avatar, Tên đầy đủ, Vai trò tiếng Việt.
- * - Nút chuyển đổi vai trò nhanh (Demo Role Switcher) và nút Đăng xuất.
- * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
+ * Khối hồ sơ người dùng xác thực ở đáy Sidebar:
+ * - Hiển thị Avatar viết tắt, Họ tên, Vai trò tiếng Việt và Email/Tên tài khoản.
+ * - Loại bỏ hoàn toàn bộ chuyển đổi vai trò giả lập (Demo Role Switcher).
+ * - Nút Đăng xuất thu hồi Refresh Token trên máy chủ và xóa phiên cục bộ.
+ * - Tuân thủ AGENTS.md Rule 4 & Rule 7.1 (< 300 LOC).
  */
 
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../app/store';
-import { logout, switchRole } from '../../app/slices/authSlice';
-import { UserRole } from '../../types/auth';
+import { logout } from '../../app/slices/authSlice';
+import { authService } from '../../features/auth/services/authService';
 import {
   FontAwesomeIcon,
   faRightFromBracket,
-  faUserShield,
   faChevronRight,
 } from '../../shared/icons';
 
@@ -32,57 +32,56 @@ export const SidebarProfileFooter: React.FC<SidebarProfileFooterProps> = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
-
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
-  };
-
-  const handleSwitchRole = (role: UserRole) => {
-    dispatch(switchRole(role));
+  const handleLogout = async () => {
     setIsMenuOpen(false);
-    if (role === 'FIELD_TECHNICIAN') {
-      navigate('/printers/timeline');
-    } else {
-      navigate('/dashboard');
-    }
+    await authService.logout();
+    dispatch(logout());
+    navigate('/login', { replace: true });
   };
 
   if (!user) return null;
 
+  const isTech = user.role === 'FIELD_TECH' || user.role === 'FIELD_TECHNICIAN';
+  const isHr = user.role === 'ASSET_HR' || user.role === 'DEPARTMENT_HEAD';
+  const avatarBg = isTech ? '#fef3c7' : isHr ? '#fce7f3' : '#dbeafe';
+  const avatarColor = isTech ? '#b45309' : isHr ? '#be185d' : '#1d4ed8';
+
   return (
     <div
       style={{
-        padding: '14px 16px',
+        padding: collapsed ? '14px 0' : '14px 16px',
         borderTop: '1px solid var(--border-color, #e2e8f0)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'space-between',
-        gap: '8px',
+        gap: collapsed ? 0 : '8px',
         position: 'relative',
+        width: '100%',
+        boxSizing: 'border-box',
       }}
     >
-      {/* User Info & Avatar */}
+      {/* Thông tin phiên người dùng */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'flex-start',
           gap: '10px',
           minWidth: 0,
-          cursor: 'pointer',
+          cursor: collapsed ? 'pointer' : 'default',
         }}
-        onClick={() => !collapsed && setIsMenuOpen((prev) => !prev)}
-        title="Nhấn để đổi vai trò phân quyền"
+        onClick={() => collapsed && setIsMenuOpen((prev) => !prev)}
+        title={collapsed ? `${user.fullName} (${user.roleNameVi})` : user.email || user.username}
       >
         <div
           style={{
             width: '36px',
             height: '36px',
             borderRadius: '50%',
-            backgroundColor: user.role === 'FLEET_MANAGER' ? '#dbeafe' : user.role === 'NOC_ENGINEER' ? '#cffafe' : user.role === 'FIELD_TECHNICIAN' ? '#fef3c7' : '#fce7f3',
-            color: user.role === 'FLEET_MANAGER' ? '#1d4ed8' : user.role === 'NOC_ENGINEER' ? '#0891b2' : user.role === 'FIELD_TECHNICIAN' ? '#b45309' : '#be185d',
+            backgroundColor: avatarBg,
+            color: avatarColor,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -125,127 +124,107 @@ export const SidebarProfileFooter: React.FC<SidebarProfileFooterProps> = ({
         )}
       </div>
 
-      {/* Action Buttons */}
-      {!collapsed ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <button
-            type="button"
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-            title="Chuyển vai trò"
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-muted, #64748b)',
-              backgroundColor: isMenuOpen ? 'var(--border-color, #e2e8f0)' : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
-          >
-            <FontAwesomeIcon icon={faUserShield} />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            title="Đăng xuất"
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ef4444',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
-          >
-            <FontAwesomeIcon icon={faRightFromBracket} />
-          </button>
-        </div>
-      ) : (
+      {/* Nút Đăng xuất trực tiếp khi mở rộng Sidebar */}
+      {!collapsed && (
         <button
           type="button"
-          onClick={onToggleCollapse}
-          title="Mở rộng menu"
+          onClick={handleLogout}
+          title="Đăng xuất khỏi hệ thống"
           style={{
-            width: '26px',
-            height: '26px',
+            width: '30px',
+            height: '30px',
             borderRadius: '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--text-muted, #64748b)',
-            backgroundColor: 'var(--bg-subtle, rgba(0, 0, 0, 0.04))',
-            border: '1px solid var(--border-color, #e2e8f0)',
+            color: '#ef4444',
+            backgroundColor: 'transparent',
+            border: 'none',
             cursor: 'pointer',
-            fontSize: '10px',
+            fontSize: '12.5px',
+            flexShrink: 0,
           }}
         >
-          <FontAwesomeIcon icon={faChevronRight} />
+          <FontAwesomeIcon icon={faRightFromBracket} />
         </button>
       )}
 
-      {/* Popover Switch Role Menu */}
-      {isMenuOpen && !collapsed && (
+      {/* Menu nhỏ khi Sidebar đang thu gọn (72px) */}
+      {collapsed && isMenuOpen && (
         <div
           style={{
-            position: 'absolute',
-            bottom: '68px',
-            left: '12px',
-            right: '12px',
+            position: 'fixed',
+            bottom: '16px',
+            left: '78px',
+            width: '230px',
             backgroundColor: 'var(--bg-card, #ffffff)',
             borderRadius: '14px',
             border: '1px solid var(--border-color, #e2e8f0)',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-            padding: '8px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+            padding: '10px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '4px',
-            zIndex: 50,
+            gap: '6px',
+            zIndex: 9999,
           }}
         >
-          <div style={{ padding: '4px 8px', fontSize: '10.5px', fontWeight: 800, color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase' }}>
-            Đổi vai trò phân quyền
-          </div>
-          {[
-            { role: 'ADMIN' as UserRole, label: 'Admin Hệ Thống (Toàn quyền)', color: '#2563eb' },
-            { role: 'FIELD_TECH' as UserRole, label: 'Kỹ Thuật Viên Hiện Trường', color: '#f59e0b' },
-            { role: 'ASSET_HR' as UserRole, label: 'HR / Kiểm Kê Tài Sản & CP', color: '#ec4899' },
-          ].map((item) => (
+          <div style={{ padding: '4px 6px', borderBottom: '1px solid var(--border-color, #f1f5f9)', paddingBottom: '8px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>
+              {user.fullName}
+            </div>
+            <div style={{ fontSize: '10.5px', color: 'var(--text-muted, #64748b)', marginTop: '2px' }}>
+              {user.roleNameVi}
+            </div>
             <button
-              key={item.role}
               type="button"
-              onClick={() => handleSwitchRole(item.role)}
+              onClick={() => {
+                setIsMenuOpen(false);
+                onToggleCollapse();
+              }}
               style={{
+                marginTop: '8px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '8px 10px',
+                gap: '6px',
+                padding: '6px 8px',
                 borderRadius: '8px',
-                border: 'none',
-                backgroundColor: user.role === item.role ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
-                color: user.role === item.role ? item.color : 'var(--text-primary, #0f172a)',
-                fontSize: '11.5px',
-                fontWeight: user.role === item.role ? 700 : 500,
-                textAlign: 'left',
+                backgroundColor: 'var(--bg-subtle, #f8fafc)',
+                border: '1px solid var(--border-color, #e2e8f0)',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#2563eb',
                 cursor: 'pointer',
+                width: '100%',
               }}
             >
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: item.color }} />
-              <span style={{ flex: 1 }}>{item.label}</span>
+              <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '10px' }} />
+              <span>Mở rộng thanh bên</span>
             </button>
-          ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '7px 8px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: '#ef4444',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <FontAwesomeIcon icon={faRightFromBracket} />
+            <span>Đăng xuất</span>
+          </button>
         </div>
       )}
     </div>
   );
 };
-

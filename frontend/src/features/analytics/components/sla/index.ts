@@ -6,8 +6,10 @@
 
 export * from './SLAKpiCards';
 export * from './CostAllocationArcChart';
+export * from './DepartmentCostMicroCard';
 export * from './SLAIncidentWaveChart';
 export * from './SLAIncidentHeatmapMatrix';
+export * from './SLAIncidentInspectorCard';
 export * from './slaHeatmapData';
 export * from './SLACostSection';
 export * from './DepartmentCostBreakdown';

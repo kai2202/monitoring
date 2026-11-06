@@ -6,4 +6,4 @@ export * from './AnalyticsBannerSearchPins';
 export * from './AnalyticsBannerVolumeCard';
 export * from './AnalyticsBannerPerformanceTable';
 export * from './AnalyticsHeaderBanner';
-
+export * from './AnalyticsPageHeader';

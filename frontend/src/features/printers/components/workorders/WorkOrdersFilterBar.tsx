@@ -2,18 +2,26 @@
  * Frontend/src/features/printers/components/workorders/WorkOrdersFilterBar.tsx
  *
  * Thanh lọc & tìm kiếm đa chiều cho Bảng Lệnh Bảo Trì (Work Orders Table):
- * - Tìm kiếm, Scope (Tất cả / Đang xử lý / Kho lịch sử), Mã lỗi, Trạng thái, Ưu tiên.
+ * - Tìm kiếm, Scope (Tất cả / Đang xử lý / Kho lịch sử), Mã lỗi, Ưu tiên.
+ * - Bổ sung lọc theo Chi nhánh và Tầng đồng bộ với Danh mục máy in.
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
  */
 
 import React from 'react';
-import { FontAwesomeIcon, faMagnifyingGlass, faCalendarDays } from '../../../../shared/icons';
+import {
+  FontAwesomeIcon,
+  faMagnifyingGlass,
+  faCalendarDays,
+  faBuilding,
+  faLocationDot,
+} from '../../../../shared/icons';
 
 interface WorkOrdersFilterBarProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
-  scopeFilter: 'all' | 'active' | 'completed';
-  onScopeFilterChange: (s: 'all' | 'active' | 'completed') => void;
+  scopeFilter: 'all' | 'my_tasks' | 'active' | 'completed';
+  onScopeFilterChange: (s: 'all' | 'my_tasks' | 'active' | 'completed') => void;
+  myTasksCount?: number;
   codeFilter: string;
   onCodeFilterChange: (c: string) => void;
   availableCodes: string[];
@@ -21,6 +29,12 @@ interface WorkOrdersFilterBarProps {
   onStatusFilterChange: (st: string) => void;
   priorityFilter: string;
   onPriorityFilterChange: (p: string) => void;
+  branchFilter?: string;
+  onBranchFilterChange?: (b: string) => void;
+  branches?: string[];
+  floorFilter?: string;
+  onFloorFilterChange?: (f: string) => void;
+  floors?: string[];
   onSwitchToTimelineView?: () => void;
 }
 
@@ -29,13 +43,18 @@ export const WorkOrdersFilterBar: React.FC<WorkOrdersFilterBarProps> = ({
   onSearchChange,
   scopeFilter,
   onScopeFilterChange,
+  myTasksCount,
   codeFilter,
   onCodeFilterChange,
   availableCodes,
-  statusFilter,
-  onStatusFilterChange,
   priorityFilter,
   onPriorityFilterChange,
+  branchFilter = 'all',
+  onBranchFilterChange,
+  branches = [],
+  floorFilter = 'all',
+  onFloorFilterChange,
+  floors = [],
   onSwitchToTimelineView,
 }) => {
   return (
@@ -55,6 +74,7 @@ export const WorkOrdersFilterBar: React.FC<WorkOrdersFilterBarProps> = ({
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'var(--bg-subtle, #f8fafc)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)' }}>
         {[
           { id: 'all' as const, label: 'Tất cả' },
+          { id: 'my_tasks' as const, label: myTasksCount !== undefined ? `⚡ Việc của tôi (${myTasksCount})` : 'Việc của tôi' },
           { id: 'active' as const, label: 'Đang xử lý' },
           { id: 'completed' as const, label: 'Kho lịch sử' },
         ].map((tab) => (
@@ -88,16 +108,50 @@ export const WorkOrdersFilterBar: React.FC<WorkOrdersFilterBarProps> = ({
             placeholder="Tìm theo lệnh, máy, KTV..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '11.5px', width: '160px' }}
+            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '11.5px', width: '150px' }}
           />
         </div>
+
+        {/* Branch Filter */}
+        {onBranchFilterChange && branches.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <FontAwesomeIcon icon={faBuilding} style={{ fontSize: '11px', color: '#94a3b8' }} />
+            <select
+              value={branchFilter}
+              onChange={(e) => onBranchFilterChange(e.target.value)}
+              style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-card, #ffffff)', outline: 'none' }}
+            >
+              <option value="all">Tất cả chi nhánh</option>
+              {branches.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Floor Filter */}
+        {onFloorFilterChange && floors.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <FontAwesomeIcon icon={faLocationDot} style={{ fontSize: '11px', color: '#94a3b8' }} />
+            <select
+              value={floorFilter}
+              onChange={(e) => onFloorFilterChange(e.target.value)}
+              style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-card, #ffffff)', outline: 'none' }}
+            >
+              <option value="all">Tất cả tầng</option>
+              {floors.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Code Filter */}
         {availableCodes.length > 0 && (
           <select
             value={codeFilter}
             onChange={(e) => onCodeFilterChange(e.target.value)}
-            style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-card, #ffffff)' }}
+            style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-card, #ffffff)', outline: 'none' }}
           >
             <option value="all">Mã lỗi (Tất cả)</option>
             {availableCodes.map((c) => (
@@ -110,7 +164,7 @@ export const WorkOrdersFilterBar: React.FC<WorkOrdersFilterBarProps> = ({
         <select
           value={priorityFilter}
           onChange={(e) => onPriorityFilterChange(e.target.value)}
-          style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-card, #ffffff)' }}
+          style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-card, #ffffff)', outline: 'none' }}
         >
           <option value="all">Ưu tiên (Tất cả)</option>
           <option value="P1_Urgent">Critical</option>
@@ -146,3 +200,4 @@ export const WorkOrdersFilterBar: React.FC<WorkOrdersFilterBarProps> = ({
   );
 };
 
+export default WorkOrdersFilterBar;

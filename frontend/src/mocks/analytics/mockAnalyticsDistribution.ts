@@ -6,7 +6,7 @@ import {
   FleetScaleMode,
   DistributionThresholdDef,
 } from '../../types/analyticsUI';
-import { getMockFloorContributionData } from './mockAnalyticsTimeSeries';
+import { getMockFloorContributionData } from './mockAnalyticsFloorStats';
 
 const FLEET_BRANDS_MODELS = [
   { brand: 'Canon', model: 'imageRUNNER ADV C5560i III', ppm: 60, type: 'Color MFP' },

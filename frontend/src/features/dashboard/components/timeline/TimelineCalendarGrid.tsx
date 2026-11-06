@@ -34,7 +34,7 @@ export const TimelineCalendarGrid: React.FC<TimelineCalendarGridProps> = ({
   const LANE_HEIGHT = 34;
   const LANE_GAP = 6;
   const PADDING_Y = 10;
-  const DEVICE_COL_WIDTH = 220;
+  const DEVICE_COL_WIDTH = 245;
 
   // 1. Đếm số lượng task trên từng ngày bằng getTaskDayIndices đồng bộ tuyệt đối
   const dayTaskCounts = useMemo(() => {
@@ -81,8 +81,8 @@ export const TimelineCalendarGrid: React.FC<TimelineCalendarGridProps> = ({
 
   return (
     <div style={{ borderRadius: '20px', backgroundColor: 'var(--bg-card, #ffffff)', border: '1px solid var(--border-color, #e2e8f0)', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)', overflow: 'hidden' }}>
-      <div style={{ overflowX: 'auto', width: '100%' }}>
-        <table style={{ width: `${tableTotalWidth}px`, minWidth: `${tableTotalWidth}px`, maxWidth: `${tableTotalWidth}px`, tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div className="custom-scrollbar" style={{ overflowX: 'auto', width: '100%' }}>
+        <table style={{ width: `${tableTotalWidth}px`, minWidth: `${tableTotalWidth}px`, maxWidth: `${tableTotalWidth}px`, tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left' }}>
           <colgroup>
             <col style={{ width: `${DEVICE_COL_WIDTH}px` }} />
             {days.map((d, i) => (
@@ -92,8 +92,8 @@ export const TimelineCalendarGrid: React.FC<TimelineCalendarGridProps> = ({
 
           {/* Header Row: Days & Dates */}
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-subtle, #f8fafc)' }}>
-              <th style={{ width: `${DEVICE_COL_WIDTH}px`, minWidth: `${DEVICE_COL_WIDTH}px`, maxWidth: `${DEVICE_COL_WIDTH}px`, padding: '12px 16px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748b)', position: 'sticky', left: 0, backgroundColor: 'var(--bg-subtle, #f8fafc)', zIndex: 5, boxSizing: 'border-box' }}>
+            <tr style={{ backgroundColor: 'var(--bg-subtle, #f8fafc)' }}>
+              <th style={{ width: `${DEVICE_COL_WIDTH}px`, minWidth: `${DEVICE_COL_WIDTH}px`, maxWidth: `${DEVICE_COL_WIDTH}px`, padding: '12px 16px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748b)', position: 'sticky', left: 0, backgroundColor: 'var(--bg-subtle, #f8fafc)', zIndex: 5, boxSizing: 'border-box', borderBottom: '1px solid var(--border-color, #e2e8f0)', borderRight: '1px solid var(--border-color, #e2e8f0)', boxShadow: '1px 0 0 0 var(--border-color, #e2e8f0)' }}>
                 THIẾT BỊ &amp; VỊ TRÍ
               </th>
               {days.map((d, i) => {
@@ -109,13 +109,17 @@ export const TimelineCalendarGrid: React.FC<TimelineCalendarGridProps> = ({
                       padding: '8px 4px',
                       textAlign: 'center',
                       backgroundColor: d.isToday ? 'rgba(37, 99, 235, 0.08)' : isExpanded ? 'rgba(241, 245, 249, 0.85)' : d.isWeekend ? 'rgba(0,0,0,0.02)' : 'transparent',
-                      borderLeft: '1px solid var(--border-color, #e2e8f0)',
+                      borderBottom: '1px solid var(--border-color, #e2e8f0)',
+                      borderRight: '1px solid var(--border-color, #e2e8f0)',
                       boxSizing: 'border-box',
                       overflow: 'hidden',
                       transition: 'width 0.2s ease',
                     }}
                   >
-                    <div style={{ fontSize: '10px', color: d.isToday ? '#2563eb' : 'var(--text-muted, #64748b)', fontWeight: 600 }}>{d.dayOfWeekStr}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                      <span style={{ fontSize: '10px', color: d.isToday ? '#2563eb' : 'var(--text-muted, #64748b)', fontWeight: d.isToday ? 700 : 600 }}>{d.dayOfWeekStr}</span>
+                      {d.isToday && <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#2563eb', boxShadow: '0 0 6px #2563eb' }} />}
+                    </div>
                     <div style={{ fontSize: '12.5px', fontWeight: 800, color: d.isToday ? '#2563eb' : 'var(--text-primary, #0f172a)', fontFamily: "'JetBrains Mono', monospace" }}>
                       {d.dayNumber}
                     </div>
@@ -148,18 +152,41 @@ export const TimelineCalendarGrid: React.FC<TimelineCalendarGridProps> = ({
                 const rowHeight = Math.max(54, PADDING_Y * 2 + totalLanes * LANE_HEIGHT + (totalLanes - 1) * LANE_GAP);
 
                 return (
-                  <tr key={printer.id} style={{ borderBottom: '1px solid var(--border-color, #e2e8f0)', height: `${rowHeight}px` }}>
-                    <td style={{ width: `${DEVICE_COL_WIDTH}px`, minWidth: `${DEVICE_COL_WIDTH}px`, maxWidth: `${DEVICE_COL_WIDTH}px`, padding: '8px 16px', verticalAlign: 'middle', height: `${rowHeight}px`, position: 'sticky', left: 0, backgroundColor: 'var(--bg-card, #ffffff)', zIndex: 4, boxShadow: '2px 0 5px rgba(0,0,0,0.02)', boxSizing: 'border-box' }}>
-                      <div style={{ minHeight: `${rowHeight - 16}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>{printer.name}</div>
-                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted, #64748b)' }}>{printer.model} • {printer.location}</div>
+                  <tr key={printer.id} style={{ height: `${rowHeight}px` }}>
+                    <td style={{ width: `${DEVICE_COL_WIDTH}px`, minWidth: `${DEVICE_COL_WIDTH}px`, maxWidth: `${DEVICE_COL_WIDTH}px`, padding: '8px 16px', verticalAlign: 'middle', height: `${rowHeight}px`, position: 'sticky', left: 0, backgroundColor: 'var(--bg-card, #ffffff)', zIndex: 4, boxSizing: 'border-box', borderBottom: '1px solid var(--border-color, #e2e8f0)', borderRight: '1px solid var(--border-color, #e2e8f0)', boxShadow: '1px 0 0 0 var(--border-color, #e2e8f0), 4px 0 8px rgba(0,0,0,0.02)' }}>
+                      <div style={{ minHeight: `${rowHeight - 16}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0, overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            fontSize: '12.5px',
+                            fontWeight: 700,
+                            color: 'var(--text-primary, #0f172a)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                          title={printer.name}
+                        >
+                          {printer.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '10.5px',
+                            color: 'var(--text-muted, #64748b)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                          title={`${printer.model} • ${printer.location}`}
+                        >
+                          {printer.model} • {printer.location}
+                        </div>
                       </div>
                     </td>
 
-                    <td colSpan={viewDuration} style={{ width: `${totalTimelineWidth}px`, minWidth: `${totalTimelineWidth}px`, maxWidth: `${totalTimelineWidth}px`, padding: 0, verticalAlign: 'top', height: `${rowHeight}px`, borderLeft: '1px solid var(--border-color, #e2e8f0)', boxSizing: 'border-box' }}>
-                      <div style={{ position: 'relative', width: `${totalTimelineWidth}px`, minWidth: `${totalTimelineWidth}px`, maxWidth: `${totalTimelineWidth}px`, height: `${rowHeight}px`, minHeight: `${rowHeight}px`, overflow: 'hidden' }}>
+                    <td colSpan={viewDuration} style={{ width: `${totalTimelineWidth}px`, minWidth: `${totalTimelineWidth}px`, maxWidth: `${totalTimelineWidth}px`, padding: 0, verticalAlign: 'top', height: '100%', borderBottom: '1px solid var(--border-color, #e2e8f0)', boxSizing: 'border-box' }}>
+                      <div style={{ position: 'relative', width: `${totalTimelineWidth}px`, minWidth: `${totalTimelineWidth}px`, maxWidth: `${totalTimelineWidth}px`, height: '100%', minHeight: `${rowHeight}px`, overflow: 'hidden' }}>
                         {/* Vạch kẻ chia cột ngày nền */}
-                        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${totalTimelineWidth}px`, height: '100%', display: 'flex', pointerEvents: 'none' }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, right: 0, width: `${totalTimelineWidth}px`, height: '100%', display: 'flex', pointerEvents: 'none' }}>
                           {days.map((d, i) => (
                             <div
                               key={d.dateStr}

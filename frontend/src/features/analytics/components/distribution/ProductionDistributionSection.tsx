@@ -2,16 +2,19 @@
  * Frontend/src/features/analytics/components/distribution/ProductionDistributionSection.tsx
  *
  * Khối Phân Bố Sản Lượng & Sàn Đối Chiếu Hạm Đội (Horizontal Bars & Pinned Comparison Sandbox):
- * - Bố cục Side-by-side Bento Grid:
- *   + Cột Trái: ProductionHorizontalBarChart (Cột ngang phân định Mono/Color, nút ghim nhanh 📌).
- *   + Cột Phải: PinnedComparisonSandbox (Sàn đối chiếu cùng thang đo, thẻ KPI so sánh & nút mở Modal 1:1).
- * - Đồng bộ bộ lọc tầng (Tất cả, T1 - T5) và chu kỳ (30 ngày, 7 ngày, 24 giờ).
+ * - Bố cục Collapsible Split-View linh hoạt:
+ *   + Khi sàn đối chiếu đóng: Bảng "Sản lượng theo thiết bị" mở rộng 100% toàn màn hình.
+ *   + Khi sàn đối chiếu mở: Tách 2 cột song song (Side-by-side Bento Grid ~50/50).
+ * - Tự động mở sàn đối chiếu khi người dùng ghim thiết bị đầu tiên.
+ * - Tự động thu gọn về 100% khi người dùng xóa hết máy ghim.
+ * - Hỗ trợ nút gập/mở thủ công trên thanh công cụ và nút "Thu gọn" ở header đối chiếu.
+ * - Nhận danh sách devices động từ tầng cha, loại bỏ dữ liệu mẫu fix cứng.
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnalyticsTimeframe, FloorTabId } from '../../../../types/analyticsUI';
-import { MOCK_PRINTER_DEFINITIONS } from '../../../../mocks/mockAnalyticsUIData';
+import { DeviceProductionItem } from '../../../../types/api';
 import { ProductionHorizontalBarChart } from './ProductionHorizontalBarChart';
 import { PinnedComparisonSandbox } from './PinnedComparisonSandbox';
 
@@ -22,6 +25,8 @@ export interface ProductionDistributionSectionProps {
   onAddMultiplePinnedPrinters?: (printerIds: string[]) => void;
   onOpenComparisonModal?: () => void;
   onClearAllPinned?: () => void;
+  searchQuery?: string;
+  devices?: DeviceProductionItem[];
 }
 
 export const ProductionDistributionSection: React.FC<ProductionDistributionSectionProps> = ({
@@ -31,29 +36,28 @@ export const ProductionDistributionSection: React.FC<ProductionDistributionSecti
   onAddMultiplePinnedPrinters,
   onOpenComparisonModal,
   onClearAllPinned,
+  searchQuery,
+  devices = [],
 }) => {
   const [activeFloorTab, setActiveFloorTab] = useState<FloorTabId>('all');
+  const [isComparisonOpen, setIsComparisonOpen] = useState(pinnedPrinterIds.length > 0);
+  const prevPinnedCount = useRef(pinnedPrinterIds.length);
 
-  // Hành động ghim nhanh Top 2 máy có sản lượng cao nhất
+  // Đồng bộ đóng/mở tự động theo số lượng máy ghim
+  useEffect(() => {
+    if (pinnedPrinterIds.length > 0 && prevPinnedCount.current === 0) {
+      setIsComparisonOpen(true);
+    }
+    if (pinnedPrinterIds.length === 0 && prevPinnedCount.current > 0) {
+      setIsComparisonOpen(false);
+    }
+    prevPinnedCount.current = pinnedPrinterIds.length;
+  }, [pinnedPrinterIds.length]);
+
+  // Hành động ghim nhanh Top 2 máy có sản lượng cao nhất từ danh sách devices thực
   const handlePinTopPrinters = () => {
-    const top2 = [...MOCK_PRINTER_DEFINITIONS]
-      .sort((a, b) => {
-        const arrA =
-          timeframe === 'hourly'
-            ? a.baseHourly
-            : timeframe === '7days'
-            ? a.base7Days
-            : a.base30Days;
-        const arrB =
-          timeframe === 'hourly'
-            ? b.baseHourly
-            : timeframe === '7days'
-            ? b.base7Days
-            : b.base30Days;
-        return (
-          arrB.reduce((s, v) => s + (v || 0), 0) - arrA.reduce((s, v) => s + (v || 0), 0)
-        );
-      })
+    const top2 = [...devices]
+      .sort((a, b) => b.totalVol - a.totalVol)
       .slice(0, 2)
       .map((d) => d.id);
 
@@ -62,16 +66,18 @@ export const ProductionDistributionSection: React.FC<ProductionDistributionSecti
     } else {
       top2.forEach((id) => onTogglePinPrinter(id));
     }
+    setIsComparisonOpen(true);
   };
 
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
+        gridTemplateColumns: isComparisonOpen ? 'repeat(auto-fit, minmax(460px, 1fr))' : '1fr',
         gap: '20px',
         alignItems: 'stretch',
         width: '100%',
+        transition: 'all 0.2s ease',
       }}
     >
       {/* Cột Trái: Biểu đồ Cột Ngang Sản Lượng Hạm Đội */}
@@ -82,20 +88,28 @@ export const ProductionDistributionSection: React.FC<ProductionDistributionSecti
           onSelectFloorTab={setActiveFloorTab}
           pinnedPrinterIds={pinnedPrinterIds}
           onTogglePinPrinter={onTogglePinPrinter}
+          isComparisonOpen={isComparisonOpen}
+          onToggleComparisonView={() => setIsComparisonOpen((prev) => !prev)}
+          searchQuery={searchQuery}
+          devices={devices}
         />
       </div>
 
-      {/* Cột Phải: Sàn Đối Chiếu Trực Quan (Pinned Comparison Sandbox) */}
-      <div style={{ minWidth: 0, height: '100%' }}>
-        <PinnedComparisonSandbox
-          timeframe={timeframe}
-          pinnedPrinterIds={pinnedPrinterIds}
-          onTogglePinPrinter={onTogglePinPrinter}
-          onClearAllPinned={onClearAllPinned}
-          onOpenComparisonModal={onOpenComparisonModal}
-          onPinTopPrinters={handlePinTopPrinters}
-        />
-      </div>
+      {/* Cột Phải: Sàn Đối Chiếu Trực Quan (Pinned Comparison Sandbox) - Chỉ xuất hiện khi mở */}
+      {isComparisonOpen && (
+        <div style={{ minWidth: 0, height: '100%' }}>
+          <PinnedComparisonSandbox
+            timeframe={timeframe}
+            pinnedPrinterIds={pinnedPrinterIds}
+            onTogglePinPrinter={onTogglePinPrinter}
+            onClearAllPinned={onClearAllPinned}
+            onOpenComparisonModal={onOpenComparisonModal}
+            onPinTopPrinters={handlePinTopPrinters}
+            onClose={() => setIsComparisonOpen(false)}
+            availableDevices={devices}
+          />
+        </div>
+      )}
     </div>
   );
 };

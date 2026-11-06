@@ -6,11 +6,8 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { Chart, registerables } from 'chart.js';
 import { App } from './App';
 import './styles/global.css';
-
-Chart.register(...registerables);
 
 const rootElement = document.getElementById('root');
 

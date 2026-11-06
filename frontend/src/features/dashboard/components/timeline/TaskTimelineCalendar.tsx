@@ -9,6 +9,8 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../../app/store';
 import { Printer } from '../../../../types/printer';
 import { Task } from '../../../../types/task';
 import { taskService } from '../../../../services';
@@ -30,6 +32,9 @@ export const TaskTimelineCalendar: React.FC<TaskTimelineCalendarProps> = ({
   onOpenDrawer,
   onRefreshTasks,
 }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isFieldTech = user?.role === 'FIELD_TECH' || user?.role === 'FIELD_TECHNICIAN';
+
   const [viewDuration, setViewDuration] = useState<7 | 14 | 30>(14);
   const [baseDate, setBaseDate] = useState<Date>(() => {
     const today = new Date();
@@ -39,8 +44,19 @@ export const TaskTimelineCalendar: React.FC<TaskTimelineCalendarProps> = ({
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [onlyWithTasks, setOnlyWithTasks] = useState<boolean>(false);
+  const [myTasksOnly, setMyTasksOnly] = useState<boolean>(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [hoveredTask, setHoveredTask] = useState<{ task: Task; x: number; y: number } | null>(null);
+
+  // Số lượng task đang phân công cho user/KTV đang đăng nhập
+  const myTasksCount = useMemo(() => {
+    const userName = user?.fullName?.toLowerCase().trim() || '';
+    return tasks.filter((t) => {
+      if (t.status === 'Completed' || t.status === 'Cancelled') return false;
+      const a = (t.assignee || '').toLowerCase();
+      return Boolean(user?.id && t.assigneeId === user.id) || Boolean(userName && a.includes(userName));
+    }).length;
+  }, [tasks, user]);
 
   // Mảng các ngày hiển thị theo giờ địa phương (Local Timezone Safe)
   const days = useMemo(() => {
@@ -102,16 +118,27 @@ export const TaskTimelineCalendar: React.FC<TaskTimelineCalendarProps> = ({
       pList = pList.filter((p) => (tMap.get(p.id) || []).length > 0);
     }
 
+    if (myTasksOnly) {
+      const userName = user?.fullName?.toLowerCase().trim() || '';
+      pList = pList.filter((p) => {
+        const pTasks = tMap.get(p.id) || [];
+        return pTasks.some((t) => {
+          const a = (t.assignee || '').toLowerCase();
+          return Boolean(user?.id && t.assigneeId === user.id) || Boolean(userName && a.includes(userName));
+        });
+      });
+    }
+
     return {
       filteredPrinters: pList,
       printerTasksMap: tMap,
       printersWithTasksCount: withTasksCount,
     };
-  }, [printers, tasks, searchQuery, typeFilter, onlyWithTasks]);
+  }, [printers, tasks, searchQuery, typeFilter, onlyWithTasks, myTasksOnly, user]);
 
   const handleCreateTask = async (newTask: Partial<Task>) => {
     try {
-      await taskService.createTask(newTask as any, 'Kỹ sư NOC');
+      await taskService.createTask(newTask as any, user?.fullName || 'Quản trị viên');
       if (onRefreshTasks) onRefreshTasks();
     } catch (err) {
       console.error('Lỗi tạo task timeline:', err);
@@ -139,6 +166,9 @@ export const TaskTimelineCalendar: React.FC<TaskTimelineCalendarProps> = ({
         onlyWithTasks={onlyWithTasks}
         onToggleOnlyWithTasks={() => setOnlyWithTasks((prev) => !prev)}
         printersWithTasksCount={printersWithTasksCount}
+        myTasksOnly={myTasksOnly}
+        onToggleMyTasksOnly={() => setMyTasksOnly((prev) => !prev)}
+        myTasksCount={myTasksCount}
         onOpenCreateModal={() => setIsCreateModalOpen(true)}
       />
 

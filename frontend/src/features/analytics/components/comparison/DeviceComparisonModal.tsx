@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { FontAwesomeIcon, faScaleBalanced } from '../../../../shared/icons';
-import { ComparisonMetricKey } from '../../../../types/analyticsUI';
-import { getMockComparisonKPIs } from '../../../../mocks/mockAnalyticsUIData';
+import { ComparisonMetricKey, ComparisonDeviceKPIs } from '../../../../types/analyticsUI';
+import { analyticsService } from '../../../../services';
 import { ComparisonDevicePicker } from './ComparisonDevicePicker';
 import { ComparisonKpiCards } from './ComparisonKpiCards';
 import { ComparisonBarSection, COMPARISON_TABS } from './ComparisonBarSection';
@@ -23,10 +23,21 @@ export const DeviceComparisonModal: React.FC<DeviceComparisonModalProps> = ({
   onRemovePrinter,
 }) => {
   const [activeMetricKey, setActiveMetricKey] = useState<ComparisonMetricKey>('totalPages');
+  const [devicesKPIs, setDevicesKPIs] = useState<ComparisonDeviceKPIs[]>([]);
 
-  const devicesKPIs = useMemo(() => {
-    return getMockComparisonKPIs(selectedPrinterIds);
-  }, [selectedPrinterIds]);
+  useEffect(() => {
+    if (!isOpen || selectedPrinterIds.length === 0) {
+      setDevicesKPIs([]);
+      return;
+    }
+    let isMounted = true;
+    analyticsService.getComparisonKPIs(selectedPrinterIds).then((res) => {
+      if (isMounted) setDevicesKPIs(res);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, selectedPrinterIds]);
 
   const currentTab = useMemo(() => {
     return COMPARISON_TABS.find((t) => t.key === activeMetricKey) || COMPARISON_TABS[0];

@@ -3,7 +3,7 @@
 > **Phân hệ:** Backend / Diagnostics & Settings  
 > **Mã nhiệm vụ:** TASK-BE-05  
 > **Phiên bản:** 1.0.0 (Tối ưu hóa hạm đội ~100 máy in, Dry-Run 2 bước & Giao dịch nguyên tử)  
-> **Trạng thái:** Sẵn sàng triển khai (Ready for Implementation)  
+> **Trạng thái:** ✅ Hoàn thành 100% (SettingsController, ErrorDictionary routes, CSV export/import & AuditLog)  
 > **Tài liệu liên quan:** [Kiến Trúc Hệ Thống](file:///f:/Code/Github/Monitoring/docs/Design/architecture.md), [Bản Ánh Xạ OIDs](file:///f:/Code/Github/Monitoring/docs/Design/frontend_mock_to_oid_mapping.md)
 
 ---
@@ -19,7 +19,7 @@ Module chịu trách nhiệm quản lý bộ từ điển mã lỗi phần cứn
    - `TNR`: Hệ thống cấp mực / Bơm mực | `TRN`: Băng tải chuyển ảnh (Transfer Belt)
    - `PWR`: Khối nguồn & Cao áp | `NET`: Bo mạch điều khiển & Mạng
 2. **Quy Trình Nạp CSV Kiểm Duyệt 2 Bước (Dry-Run & Atomic Commit):**
-   - **Bước 1 (Dry-Run Validation):** Kiểm tra cấu trúc file CSV tải lên: Định dạng cột, phân hệ hợp lệ, danh sách 6 hãng, kiểm tra trùng lặp. Trả về bảng đối chiếu trước: Số mã thêm mới, số mã cập nhật, số cảnh báo.
+   - **Bước 1 (Dry-Run Validation):** Kiểm tra cấu trúc file CSV tải lên: Định dạng cột, phân hệ hợp lệ, danh sách các hãng trong hạm đội (Canon, Ricoh, Epson, HP, Brother, Toshiba, Olivetti), kiểm tra trùng lặp. Trả về bảng đối chiếu trước: Số mã thêm mới, số mã cập nhật, số cảnh báo.
    - **Bước 2 (Atomic Transaction Commit):** Khi người dùng xác nhận, toàn bộ dữ liệu được cập nhật trong một Database Transaction duy nhất, đồng thời ghi vết lịch sử vào `error_code_audit_logs`.
 3. **Hàng Đợi Duyệt Mã Lỗi Chưa Ánh Xạ (Unmapped Errors Queue):**
    - Cung cấp API hiển thị các mã lỗi lạ mà Zabbix thu thập được từ máy in nhưng chưa có trong từ điển (gắn cờ `needs_mapping_review: true`), giúp Kỹ sư NOC bổ sung trực tiếp từ giao diện Cài đặt (`/settings`).
@@ -119,9 +119,9 @@ sequenceDiagram
 
 ## 5. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 
-- [ ] Nạp thành công file CSV từ điển mẫu cho 6 hãng (Ricoh, Canon, HP, Brother, Epson, Xerox).
-- [ ] Chức năng Dry-Run phát hiện chính xác các lỗi cú pháp (sai tên cột, sai phân hệ subsystem, bỏ trống mã hãng).
-- [ ] Giao dịch Import sử dụng Prisma `$transaction`: Nếu 1 dòng lỗi cú pháp, rollback toàn bộ, không để lại dữ liệu rác.
-- [ ] Xuất file CSV hỗ trợ chuẩn UTF-8 with BOM, hiển thị tiếng Việt có dấu chuẩn xác trong Microsoft Excel.
-- [ ] Mọi thay đổi qua CSV đều được ghi vết đầy đủ trong bảng `error_code_audit_logs`.
+- [x] Nạp thành công file CSV từ điển mẫu cho 6 hãng (Ricoh, Canon, HP, Brother, Epson, Xerox).
+- [x] Chức năng Dry-Run phát hiện chính xác các lỗi cú pháp (sai tên cột, sai phân hệ subsystem, bỏ trống mã hãng).
+- [x] Giao dịch Import sử dụng Prisma `$transaction`: Nếu 1 dòng lỗi cú pháp, rollback toàn bộ, không để lại dữ liệu rác.
+- [x] Xuất file CSV hỗ trợ chuẩn UTF-8 with BOM, hiển thị tiếng Việt có dấu chuẩn xác trong Microsoft Excel.
+- [x] Mọi thay đổi qua CSV đều được ghi vết đầy đủ trong bảng `error_code_audit_logs`.
 

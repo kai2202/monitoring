@@ -24,7 +24,8 @@ import {
   mockLemonDevices,
   mockReliabilityStats,
   mockTopPrintersVolume,
-} from '../../../mocks/mockTelemetry';
+} from '../../../mocks';
+import { AvailabilityTimelinePoint } from '../../../types/dashboardTelemetry';
 
 import {
   FleetHeatmapResponse,
@@ -56,10 +57,15 @@ export class MockTelemetryProvider implements ITelemetryService {
     return this.volumeTrend.slice(-days);
   }
 
-  async getAvailabilityTimeline(hours = 24): Promise<MockAvailabilityPoint[]> {
+  async getAvailabilityTimeline(_hours = 24): Promise<AvailabilityTimelinePoint[]> {
     await new Promise(r => setTimeout(r, 20));
-    const pointsCount = Math.ceil(hours / 2);
-    return this.availabilityTimeline.slice(-pointsCount);
+    return this.availabilityTimeline.map((pt) => ({
+      timestamp: pt.timestamp || pt.timeLabel,
+      timeLabel: pt.timeLabel,
+      onlineRate: pt.onlineRate,
+      onlineCount: pt.onlineCount,
+      offlineCount: pt.offlineCount,
+    }));
   }
 
   async getLemonDevices(): Promise<MockLemonDevice[]> {

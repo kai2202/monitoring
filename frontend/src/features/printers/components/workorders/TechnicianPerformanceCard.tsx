@@ -218,7 +218,7 @@ export const TechnicianPerformanceCard: React.FC<TechnicianPerformanceCardProps>
             <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>phút/lệnh</span>
           </div>
           <div style={{ fontSize: '10.5px', color: 'var(--text-muted, #64748b)', marginTop: '2px' }}>
-            Trung bình tiếp nhận $\to$ nghiệm thu
+            Trung bình tiếp nhận → nghiệm thu
           </div>
         </div>
 

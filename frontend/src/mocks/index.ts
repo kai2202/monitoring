@@ -1,14 +1,20 @@
 /**
- * mocks/index.ts
+ * Frontend/src/mocks/index.ts
  *
- * Điểm xuất khẩu tập trung (Barrel Export) cho toàn bộ kho dữ liệu Mock Data.
- * Các Service Provider sẽ sử dụng dữ liệu này khi DATA_SOURCE = "mock".
- * Tuyệt đối không import trực tiếp tệp này từ các React UI Components.
+ * Cổng Điều Phối & Xuất Khẩu Dữ Liệu Giả Lập Tập Trung Duy Nhất (Single Mock Gateway).
+ * - Tầng Service chỉ sử dụng cổng này hoặc MockDataProvider khi DATA_SOURCE === 'mock'.
+ * - TUYỆT ĐỐI KHÔNG import tệp này hoặc bất kỳ file nào trong mocks/ từ tầng UI (Zero-Coupling).
+ * - Khi xoá thư mục mocks/, ứng dụng tự động hoạt động hoàn toàn với Backend API thật.
+ * - Tuân thủ AGENTS.md Rule 7.1.
  */
 
-export * from './mockPrinters';
-export * from './mockIncidents';
-export * from './mockTasks';
-export * from './mockTelemetry';
-export * from './mockSupplies';
-export * from './mockSettings';
+export * from './MockDataProvider';
+export * from './printers';
+export * from './incidents';
+export * from './tasks';
+export * from './telemetry';
+export * from './supplies';
+export * from './analytics';
+export * from './sla';
+export * from './settings';
+export * from './locations';

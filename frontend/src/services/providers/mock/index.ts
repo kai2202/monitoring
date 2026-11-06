@@ -11,4 +11,4 @@ export * from './MockSuppliesProvider';
 export * from './MockTelemetryProvider';
 export * from './MockSettingsProvider';
 export * from './MockDashboardProvider';
-
+export * from './MockAnalyticsProvider';

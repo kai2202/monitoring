@@ -29,6 +29,7 @@ export interface AuthUser {
   role: UserRole;
   roleNameVi: string;
   avatarInitials: string;
+  permissions?: string[];
   dataScope: UserDataScope;
   token?: string;
 }
@@ -37,11 +38,13 @@ export interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isBootstrapping?: boolean;
   error: string | null;
 }
 
 export interface LoginCredentials {
   username: string;
+  email?: string;
   password?: string;
 }
 

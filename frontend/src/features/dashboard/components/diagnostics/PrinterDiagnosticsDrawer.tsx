@@ -8,8 +8,11 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSelector } from 'react-redux';
+import { toast } from 'sonner';
+import { RootState } from '../../../../app/store';
 import { Printer } from '../../../../types/printer';
-import { Task, TaskStepItem, TaskActivityFeedItem } from '../../../../types/task';
+import { Task } from '../../../../types/task';
 import { taskService } from '../../../../services';
 import { DiagnosticsDrawerHeader } from './DiagnosticsDrawerHeader';
 import { DiagnosticsCmykTab } from './DiagnosticsCmykTab';
@@ -43,6 +46,7 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
   onTaskCreated,
   onTaskUpdated,
 }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
   const [activeTab, setActiveTab] = useState<'diag' | 'tasks'>(
     initialTab === 'counters' ? 'diag' : initialTab
   );
@@ -119,12 +123,20 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
     handleUpdateTask(updated);
   };
 
-  const handleCreateTaskSuccess = (newTask: Partial<Task>) => {
-    setTasks((prev) => [newTask as Task, ...prev]);
-    setSelectedTaskId(newTask.id!);
-    setActiveTab('tasks');
-    taskService.createTask(newTask as any).catch(console.error);
-    if (onTaskCreated) onTaskCreated(newTask as Task);
+  const handleCreateTaskSuccess = async (newTask: Partial<Task>) => {
+    try {
+      const created = await taskService.createTask(
+        newTask as any,
+        user?.fullName || (user as any)?.name || 'Quản trị viên'
+      );
+      setTasks((prev) => [created, ...prev]);
+      setSelectedTaskId(created.id);
+      setActiveTab('tasks');
+      toast.success(`Đã lập phiếu bảo trì ${created.id} thành công`);
+      if (onTaskCreated) onTaskCreated(created);
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể lưu phiếu bảo trì mới lên máy chủ');
+    }
   };
 
   return (
@@ -141,6 +153,7 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
       onClick={onClose}
     >
       <div
+        className="custom-scrollbar"
         style={{
           width: '100%',
           maxWidth: '960px',
@@ -166,6 +179,7 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
           <button
             type="button"
             onClick={() => setActiveTab('diag')}
+            className={`subtab-pill-btn ${activeTab === 'diag' ? 'active' : ''}`}
             style={{
               padding: '12px 18px',
               fontSize: '12.5px',
@@ -177,6 +191,7 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
               borderLeft: 'none',
               borderRight: 'none',
               cursor: 'pointer',
+              transition: 'all 0.18s ease',
             }}
           >
             Chẩn đoán &amp; Vật tư CMYK
@@ -184,6 +199,7 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
           <button
             type="button"
             onClick={() => setActiveTab('tasks')}
+            className={`subtab-pill-btn ${activeTab === 'tasks' ? 'active' : ''}`}
             style={{
               padding: '12px 18px',
               fontSize: '12.5px',
@@ -195,6 +211,7 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
               borderLeft: 'none',
               borderRight: 'none',
               cursor: 'pointer',
+              transition: 'all 0.18s ease',
             }}
           >
             Lệnh Bảo Trì &amp; Tiến Độ ({tasks.length})
@@ -202,7 +219,7 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
         </div>
 
         {/* 3. Tab Content */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
           {activeTab === 'diag' ? (
             <DiagnosticsCmykTab printer={printer} />
           ) : (

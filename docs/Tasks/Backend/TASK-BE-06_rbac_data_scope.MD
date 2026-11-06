@@ -3,7 +3,7 @@
 > **Phân hệ:** Backend / Security & Access Control  
 > **Mã nhiệm vụ:** TASK-BE-06  
 > **Phiên bản:** 1.1.0 (Đồng bộ 3 vai trò chuẩn hoá, Kiểm soát chéo giữa HR & Quản lý vận hành)  
-> **Trạng thái:** Sẵn sàng triển khai (Ready for Implementation)  
+> **Trạng thái:** ✅ Hoàn thành 100% (authController, authMiddleware, requireRoles & sanitizeCostData)  
 > **Tài liệu liên quan:** [Kiến Trúc Hệ Thống](file:///f:/Code/Github/Monitoring/docs/Design/architecture.md), [Đặc Tả Phân Quyền RBAC](file:///f:/Code/Github/Monitoring/docs/Design/rbac_roles_and_ui_permissions_spec.md)
 
 ---
@@ -135,8 +135,8 @@ export const applyDataScope = (req: Request, _res: Response, next: NextFunction)
 
 ## 5. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 
-- [ ] Khi tài khoản `FIELD_TECH` gọi API `/api/maintenance/tasks/:id`, backend không trả về `laborCostVnd`, `partsCostVnd`, `totalCostVnd`.
-- [ ] Khi tài khoản `ASSET_HR` gọi API điều chuyển vị trí `/api/printers/:id/location`, backend trả về mã lỗi `403 Forbidden` (chỉ Admin mới được điều chuyển).
-- [ ] Endpoint `/api/maintenance/technician-kpi` cung cấp dữ liệu chính xác về MTTR, tỷ lệ SLA và bằng chứng ảnh MinIO phục vụ HR đối soát tính lương/thưởng.
-- [ ] Mật khẩu người dùng được băm an toàn qua thuật toán bcrypt (salt rounds = 10).
-- [ ] Tùy biến máy in ghim so sánh (`pinnedPrinterIds`) được lưu trữ vĩnh viễn trong PostgreSQL.
+- [x] Khi tài khoản `FIELD_TECH` gọi API `/api/maintenance/tasks/:id`, backend không trả về `laborCostVnd`, `partsCostVnd`, `totalCostVnd` (`sanitizeCostData` middleware).
+- [x] Khi tài khoản `ASSET_HR` gọi API điều chuyển vị trí `/api/printers/:id/location`, backend trả về mã lỗi `403 Forbidden` (`requireRoles('ADMIN')`).
+- [x] Endpoint `/api/maintenance/technician-kpi` cung cấp dữ liệu chính xác về MTTR, tỷ lệ SLA và bằng chứng ảnh MinIO phục vụ HR đối soát tính lương/thưởng.
+- [x] Mật khẩu người dùng được băm an toàn qua thuật toán bcrypt (salt rounds = 10, hash xác thực trong `seed.ts` & `authController.ts`).
+- [x] Tùy biến máy in ghim so sánh (`pinnedPrinterIds`) và token refresh được lưu trữ trong CSDL.

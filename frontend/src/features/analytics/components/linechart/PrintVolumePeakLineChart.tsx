@@ -1,6 +1,16 @@
+/**
+ * Frontend/src/features/analytics/components/linechart/PrintVolumePeakLineChart.tsx
+ *
+ * Biểu đồ Đường Cong Xu Hướng Sản Lượng Đội Máy In (Print Volume Peak Line Chart):
+ * - Dữ liệu chuỗi thời gian nạp từ Service/API thông qua props trendData.
+ * - Danh sách máy in khả dụng nạp từ props availablePrinters (Single source of truth).
+ * - Loại bỏ hoàn toàn mock data tĩnh và công thức fake variance.
+ * - Tuân thủ AGENTS.md Rule 5 (Data Integrity) & Rule 7.1 (< 300 LOC).
+ */
+
 import React, { useState, useMemo } from 'react';
 import { AnalyticsTimeframe, FloorTabId } from '../../../../types/analyticsUI';
-import { MOCK_PRINTER_DEFINITIONS } from '../../../../mocks/mockAnalyticsUIData';
+import { ProductionTrendResponse, DeviceProductionItem } from '../../../../types/api';
 import { LineChartHeader } from './LineChartHeader';
 import { LineChartSubBar } from './LineChartSubBar';
 import { LineChartSplineSvg } from './LineChartSplineSvg';
@@ -10,33 +20,25 @@ export interface PrintVolumePeakLineChartProps {
   timeframe: AnalyticsTimeframe;
   onTimeframeChange: (tf: AnalyticsTimeframe) => void;
   onPinForComparison?: (printerId: string) => void;
+  trendData?: ProductionTrendResponse | null;
+  availablePrinters?: DeviceProductionItem[];
 }
 
 export const PrintVolumePeakLineChart: React.FC<PrintVolumePeakLineChartProps> = ({
   timeframe,
   onTimeframeChange,
   onPinForComparison,
+  trendData,
+  availablePrinters = [],
 }) => {
   const [activeFloorTab, setActiveFloorTab] = useState<FloorTabId>('all');
-  const [selectedPrinterIds, setSelectedPrinterIds] = useState<string[]>(() =>
-    MOCK_PRINTER_DEFINITIONS.map((p) => p.id)
-  );
+  const [selectedPrinterIds, setSelectedPrinterIds] = useState<string[]>([]);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-  const handleSelectFloorTab = (floorId: FloorTabId) => {
-    setActiveFloorTab(floorId);
-    if (floorId === 'all') {
-      setSelectedPrinterIds(MOCK_PRINTER_DEFINITIONS.map((p) => p.id));
-    } else {
-      const floorPrinters = MOCK_PRINTER_DEFINITIONS.filter((p) => p.floorId === floorId);
-      setSelectedPrinterIds(floorPrinters.map((p) => p.id));
-    }
-  };
-
   const floorPrintersPool = useMemo(() => {
-    if (activeFloorTab === 'all') return MOCK_PRINTER_DEFINITIONS;
-    return MOCK_PRINTER_DEFINITIONS.filter((p) => p.floorId === activeFloorTab);
-  }, [activeFloorTab]);
+    if (activeFloorTab === 'all') return availablePrinters;
+    return availablePrinters.filter((p) => p.floorId === activeFloorTab);
+  }, [activeFloorTab, availablePrinters]);
 
   const floorLabel = useMemo(() => {
     switch (activeFloorTab) {
@@ -56,47 +58,34 @@ export const PrintVolumePeakLineChart: React.FC<PrintVolumePeakLineChartProps> =
   }, [activeFloorTab]);
 
   const activePrinters = useMemo(() => {
+    if (selectedPrinterIds.length === 0) return floorPrintersPool;
     return floorPrintersPool.filter((p) => selectedPrinterIds.includes(p.id));
   }, [floorPrintersPool, selectedPrinterIds]);
 
   const dataPointCount = useMemo(() => {
+    if (trendData?.dataPoints) return trendData.dataPoints.length;
     if (timeframe === 'hourly') return 24;
     if (timeframe === '7days') return 7;
     return 30;
-  }, [timeframe]);
+  }, [trendData, timeframe]);
 
   const { currentSeries, previousSeries, currentTotalVolume, growthPercent } = useMemo(() => {
-    const current: number[] = [];
-    const previous: number[] = [];
-
-    for (let i = 0; i < dataPointCount; i++) {
-      const curSum = activePrinters.reduce((sum, p) => {
-        const arr =
-          timeframe === 'hourly'
-            ? p.baseHourly
-            : timeframe === '7days'
-            ? p.base7Days
-            : p.base30Days;
-        return sum + (arr[i] || 0);
-      }, 0);
-
-      current.push(curSum);
-      const variance = 0.85 + (((i * 7 + 3) % 10) / 100);
-      const prevSum = Math.round(curSum * variance);
-      previous.push(prevSum);
+    if (trendData && trendData.dataPoints.length > 0) {
+      return {
+        currentSeries: trendData.dataPoints.map((p) => p.currentVolume),
+        previousSeries: trendData.dataPoints.map((p) => p.previousVolume),
+        currentTotalVolume: trendData.currentTotalVolume,
+        growthPercent: trendData.growthPercent,
+      };
     }
 
-    const curTotal = current.reduce((a, b) => a + b, 0);
-    const prevTotal = previous.reduce((a, b) => a + b, 0);
-    const growth = prevTotal > 0 ? Number((((curTotal - prevTotal) / prevTotal) * 100).toFixed(1)) : 0;
-
     return {
-      currentSeries: current,
-      previousSeries: previous,
-      currentTotalVolume: curTotal,
-      growthPercent: growth,
+      currentSeries: new Array(dataPointCount).fill(0),
+      previousSeries: new Array(dataPointCount).fill(0),
+      currentTotalVolume: 0,
+      growthPercent: 0,
     };
-  }, [activePrinters, timeframe, dataPointCount]);
+  }, [trendData, dataPointCount]);
 
   const maxValue = useMemo(() => {
     const maxCur = Math.max(...currentSeries, 100);
@@ -104,6 +93,16 @@ export const PrintVolumePeakLineChart: React.FC<PrintVolumePeakLineChartProps> =
     const overallMax = Math.max(maxCur, maxPrev);
     return Math.ceil((overallMax * 1.15) / 50) * 50;
   }, [currentSeries, previousSeries]);
+
+  const handleSelectFloorTab = (floorId: FloorTabId) => {
+    setActiveFloorTab(floorId);
+    if (floorId === 'all') {
+      setSelectedPrinterIds(availablePrinters.map((p) => p.id));
+    } else {
+      const floorPrinters = availablePrinters.filter((p) => p.floorId === floorId);
+      setSelectedPrinterIds(floorPrinters.map((p) => p.id));
+    }
+  };
 
   const handleTogglePrinter = (id: string) => {
     setSelectedPrinterIds((prev) =>
@@ -121,7 +120,7 @@ export const PrintVolumePeakLineChart: React.FC<PrintVolumePeakLineChartProps> =
   const handleDeselectAll = () => {
     setSelectedPrinterIds((prev) => {
       const remaining = prev.filter((id) => !floorPrintersPool.some((p) => p.id === id));
-      return remaining.length > 0 ? remaining : [floorPrintersPool[0]?.id || MOCK_PRINTER_DEFINITIONS[0].id];
+      return remaining.length > 0 ? remaining : [floorPrintersPool[0]?.id || ''];
     });
   };
 
@@ -164,7 +163,7 @@ export const PrintVolumePeakLineChart: React.FC<PrintVolumePeakLineChartProps> =
         dataPointCount={dataPointCount}
         timeframe={timeframe}
         maxValue={maxValue}
-        activePrinters={activePrinters}
+        activePrinters={activePrinters as any}
       />
 
       {/* 4. Filter Modal */}
@@ -183,3 +182,4 @@ export const PrintVolumePeakLineChart: React.FC<PrintVolumePeakLineChartProps> =
   );
 };
 
+export default PrintVolumePeakLineChart;

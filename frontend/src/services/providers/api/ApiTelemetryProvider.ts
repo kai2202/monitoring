@@ -16,9 +16,9 @@ import {
 import {
   MockLemonDevice,
   MockVolumeTrendPoint,
-  MockAvailabilityPoint,
   MockTopPrinterVolume,
 } from '../../../mocks/mockTelemetry';
+import { AvailabilityTimelinePoint } from '../../../types/dashboardTelemetry';
 
 import {
   FleetHeatmapResponse,
@@ -36,8 +36,8 @@ export class ApiTelemetryProvider implements ITelemetryService {
     return requestApi<MockVolumeTrendPoint[]>(`/telemetry/volume-trend?days=${days}`);
   }
 
-  async getAvailabilityTimeline(hours = 24): Promise<MockAvailabilityPoint[]> {
-    return requestApi<MockAvailabilityPoint[]>(`/telemetry/availability?hours=${hours}`);
+  async getAvailabilityTimeline(hours = 24): Promise<AvailabilityTimelinePoint[]> {
+    return requestApi<AvailabilityTimelinePoint[]>(`/telemetry/availability?hours=${hours}`);
   }
 
   async getLemonDevices(): Promise<MockLemonDevice[]> {

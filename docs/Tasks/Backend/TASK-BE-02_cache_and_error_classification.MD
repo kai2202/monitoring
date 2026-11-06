@@ -3,7 +3,7 @@
 > **Phân hệ:** Backend / Core Engine & Diagnostics  
 > **Mã nhiệm vụ:** TASK-BE-02  
 > **Phiên bản:** 1.0.0 (Tối ưu hóa hạm đội ~100 máy in, In-Memory Singleton Cache)  
-> **Trạng thái:** Sẵn sàng triển khai (Ready for Implementation)  
+> **Trạng thái:** ✅ Hoàn thành 100% (fleetMemoryCache.ts & errorCodeClassifier.ts)  
 > **Tài liệu liên quan:** [Kiến Trúc Hệ Thống](file:///f:/Code/Github/Monitoring/docs/Design/architecture.md), [Bản Ánh Xạ OIDs](file:///f:/Code/Github/Monitoring/docs/Design/frontend_mock_to_oid_mapping.md)
 
 ---

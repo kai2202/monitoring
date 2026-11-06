@@ -12,4 +12,7 @@ export * from './components/drawer';
 export * from './components/comparison';
 export * from './components/supplies';
 export * from './components/sla';
+export * from './utils/costCsvExport';
+export * from './utils/analyticsFloorHelper';
+export * from './hooks/useAnalyticsData';
 export * from './routes';

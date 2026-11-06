@@ -7,10 +7,15 @@
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
  */
 
-import React, { Suspense, useMemo } from 'react';
+import React, { Suspense, useMemo, useEffect } from 'react';
 import { useRoutes, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../app/store';
+import { DATA_SOURCE } from '../config/dataSource';
+import { logout, updateAccessToken, loginSuccess, finishBootstrap } from '../app/slices/authSlice';
+import { registerAuthSessionHandlers } from '../services/providers/api/apiClient';
+import { locationService } from '../services/locationService';
+import { authService } from '../features/auth/services/authService';
 import { AppShell } from '../components/layout/AppShell';
 import { LoginPage } from '../features/auth';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -35,7 +40,46 @@ const RouteLoadingFallback: React.FC = () => (
 export const AppRoutes: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch();
+  const { user, isAuthenticated, isBootstrapping } = useSelector((state: RootState) => state.auth);
+
+  useEffect(() => {
+    registerAuthSessionHandlers({
+      onTokenRefreshed: (newToken) => dispatch(updateAccessToken(newToken)),
+      onSessionExpired: () => {
+        dispatch(logout());
+        navigate('/login', { replace: true });
+      },
+    });
+  }, [dispatch, navigate]);
+
+  useEffect(() => {
+    if (DATA_SOURCE !== 'api') {
+      dispatch(finishBootstrap());
+      return;
+    }
+
+    let cancelled = false;
+    authService
+      .getCurrentSession(user?.token)
+      .then((freshUser) => {
+        if (cancelled) return;
+        if (freshUser) {
+          dispatch(loginSuccess(freshUser));
+          locationService.fetchBranches();
+        } else {
+          dispatch(logout());
+        }
+      })
+      .catch(() => {
+        if (!cancelled) dispatch(logout());
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const role = user?.role;
   const isLoginPage = location.pathname === '/login';
@@ -84,8 +128,9 @@ export const AppRoutes: React.FC = () => {
     }
   };
 
-  // Trang đích mặc định tùy vai trò người dùng
-  const defaultHomePath = role === 'FIELD_TECHNICIAN' ? '/printers/timeline' : '/dashboard';
+  // Trang đích mặc định tùy vai trò người dùng (KTV vào thẳng Lịch trình Gantt)
+  const isFieldTech = role === 'FIELD_TECH' || role === 'FIELD_TECHNICIAN';
+  const defaultHomePath = isFieldTech ? '/printers/timeline' : '/dashboard';
 
   const routes = useMemo(
     () => [
@@ -105,7 +150,13 @@ export const AppRoutes: React.FC = () => {
         element: <ProtectedRoute>{r.element as React.ReactElement}</ProtectedRoute>,
       })),
       ...getPrintersRoutes({
-        onSubTabChange: (sub) => navigate(`/printers/${sub}`),
+        onSubTabChange: (sub) => {
+          if (sub === 'printers' || (sub as string) === 'list') {
+            navigate('/printers/list');
+          } else {
+            navigate(`/printers/${sub}`);
+          }
+        },
         onNavigateModule: (tab) => handleSelectTab(tab),
         onCreateTaskForPrinter: () => navigate('/printers/list'),
       }).map((r) => ({
@@ -113,7 +164,13 @@ export const AppRoutes: React.FC = () => {
         element: <ProtectedRoute>{r.element as React.ReactElement}</ProtectedRoute>,
       })),
       ...getAnalyticsRoutes({
-        onSubTabChange: (sub) => navigate(`/analytics/${sub}`),
+        onSubTabChange: (sub) => {
+          if (sub === 'overview' || (sub as string) === 'analytics') {
+            navigate('/analytics/overview');
+          } else {
+            navigate(`/analytics/${sub}`);
+          }
+        },
         onNavigateModule: (tab) => handleSelectTab(tab),
         onCreateTaskForPrinter: () => navigate('/printers/list'),
       }).map((r) => {
@@ -130,10 +187,15 @@ export const AppRoutes: React.FC = () => {
           ),
         };
       }),
-      ...getSettingsRoutes().map((r) => ({
+      ...getSettingsRoutes({
+        onSubTabChange: (sub) => {
+          navigate(`/settings/${sub}`);
+        },
+        onNavigateModule: (tab) => handleSelectTab(tab),
+      }).map((r) => ({
         ...r,
         element: (
-          <ProtectedRoute allowedRoles={['ADMIN', 'FLEET_MANAGER', 'NOC_ENGINEER']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'FLEET_MANAGER']}>
             {r.element as React.ReactElement}
           </ProtectedRoute>
         ),
@@ -144,13 +206,13 @@ export const AppRoutes: React.FC = () => {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isAuthenticated, role, defaultHomePath]
+    [isAuthenticated, role, defaultHomePath, navigate]
   );
 
   const routeElements = useRoutes(routes);
 
-  // Nếu đang ở màn hình Đăng nhập -> không bọc AppShell
-  if (isLoginPage) {
+  // Nếu đang ở màn hình Đăng nhập hoặc chưa xác thực xong -> không hiển thị Sidebar AppShell
+  if (isLoginPage || (!isAuthenticated && !isBootstrapping)) {
     return <Suspense fallback={<RouteLoadingFallback />}>{routeElements}</Suspense>;
   }
 

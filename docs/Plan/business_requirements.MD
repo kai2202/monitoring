@@ -9,7 +9,7 @@
 
 ## 1. Bối Cảnh Nghiệp Vụ & 4 Trọng Tâm Chiến Lược
 
-Tại các tổ chức và doanh nghiệp quy mô vừa, hạ tầng thiết bị in ấn bao gồm **hạm đội khoảng 100 máy in** đa thương hiệu (Ricoh, HP, Canon, Epson, Brother, Xerox) phân bổ tập trung trên khoảng 5 tầng/khu vực làm việc (trung bình ~15–25 máy/tầng). FleetMonitor giải quyết triệt để 4 bài toán vận hành cốt tử:
+Tại các tổ chức và doanh nghiệp phân tán đa chi nhánh, hạ tầng thiết bị in ấn bao gồm **hạm đội khoảng 100 máy in** đặt tại **Toà nhà Trụ sở chính (quy mô 7 tầng, máy in bố trí linh hoạt ở tùy tầng)** kết hợp với **các chi nhánh/văn phòng vệ tinh khác** kết nối an toàn qua mạng Site-to-Site VPN / SD-WAN. Hệ sinh thái máy in xoay quanh hai hãng chủ lực là **Canon** và **Ricoh**, cùng các dòng máy văn phòng khác: **Epson, HP, Brother, Toshiba và Olivetti**. FleetMonitor giải quyết triệt để 4 bài toán vận hành cốt tử:
 
 1. **Printer Analytics (Phân tích sản lượng máy in hạm đội ~100 máy):**
    - Theo dõi sản lượng in chi tiết theo Chu kỳ: 24 Giờ (Giờ cao điểm), 7 Ngày và 30 Ngày gần nhất.
@@ -18,37 +18,36 @@ Tại các tổ chức và doanh nghiệp quy mô vừa, hạ tầng thiết b�
      + Biểu đồ **Cột Ngang (Horizontal Bar Chart)** phân định tỷ trọng bản in Đen trắng (Mono) & Màu (Color).
      + **Khung Ghim Đối Chiếu (Pinned Comparison Sandbox)**: Cho phép ghim trực tiếp các máy in vào sàn so sánh trên cùng thang đo (scale) để đối chiếu trực diện độ dài thanh, độ lệch tải và chỉ số MTBF/PPM.
      + **Vòng cung bán nguyệt 180° (Donut Arc)**: Phân bổ chi phí in ấn theo phòng ban kèm micro-cards.
-     + **Ma trận nhiệt (Heatmap Matrix)**: 5 khu vực/tầng $\times$ 7 tuần nhận diện điểm nóng sự cố.
+     + **Ma trận nhiệt (Heatmap Matrix)**: Hiển thị động (**Dynamic Render**) theo các Chi nhánh và các Tầng thực tế có đặt máy in $\times$ 7 tuần nhận diện điểm nóng sự cố.
    - Backend tổng hợp dữ liệu counter từ Zabbix API (chu kỳ 1 giờ/lần), tính delta, xử lý rollover/reset, lưu bảng rollup ngày/tháng để phản hồi giao diện $< 50\text{ms}$ qua In-Memory Cache (TTL = 60s).
 
 2. **Maintenance Management (Quản lý bảo trì khép kín & Tái sử dụng lịch sử):**
    - Vòng đời 3 tầng chuẩn mực CMMS: **Ticket $\to$ Task $\to$ Work Log**.
-   - Ghi nhận đầy đủ: Người thực hiện, thiết bị, thời gian bắt đầu/kết thúc, trạng thái, các bước kỹ thuật SOP (Dynamic Stepper), phụ tùng linh kiện thay thế, chi phí vật tư và nhân công (VNĐ), kết quả nghiệm thu in thử.
+   - Ghi nhận đầy đủ: Người thực hiện, thiết bị, thời gian bắt đầu/kết thúc, trạng thái, các bước kỹ thuật SOP (Dynamic Stepper), phụ tùng linh kiện thay thế, chi phí vật tư và nhân công (VNĐ), kết quả nghiệm thu in thử kèm ảnh MinIO S3 (`PASSED`).
    - Sử dụng PostgreSQL làm cơ sở dữ liệu chính, kết hợp MinIO S3 Object Storage để lưu trữ hình ảnh hiện trường, chứng từ và tài liệu kỹ thuật.
    - Quản lý Lịch trình Gantt (Timeline) cho 100 máy in: Tự động nới rộng ô ngày có việc (240px) để hiển thị trọn vẹn thẻ công việc. Khi task hoàn thành, tự động chuyển vào **Kho lịch sử** và xóa khỏi biểu đồ Gantt.
-   - Mục tiêu: Tự động truy xuất và tái sử dụng các giải pháp sửa chữa thành công trong quá khứ cho các máy cùng model khi phát sinh lỗi tương tự.
+   - Bảng đối chiếu Đánh giá Hiệu suất Kỹ thuật viên (Technician Performance KPI Card) phục vụ HR đối soát năng suất, tính thưởng và Quản lý giám sát vận hành.
 
 3. **Error Code Standardization (Chuẩn hóa mã lỗi đa thương hiệu):**
-   - Tổng hợp mã lỗi từ 6 thương hiệu lớn: **Ricoh, HP, Canon, Epson, Brother và Xerox**.
+   - Tổng hợp mã lỗi từ các thương hiệu trong hạm đội: Hai hãng chủ lực **Canon, Ricoh** cùng **HP, Brother, Epson, Toshiba, Olivetti**.
    - Phân loại theo phân hệ cơ điện tử (Cụm sấy, Laser, Quét, Kéo giấy, Trống, Từ, Mực, Băng tải, Nguồn, Mạng), loại bỏ trùng lặp về bản chất hư hỏng và xây dựng bộ mã định danh nội bộ chuẩn `FM-<SUBSYSTEM>-<INDEX>`.
    - Quản lý mã lỗi trên PostgreSQL, nạp dữ liệu bằng cơ chế **Import CSV** trực tiếp từ giao diện Cài đặt (`/settings`) và lưu vết lịch sử thay đổi (Audit Trail).
 
 4. **Role-Based Dashboard & RBAC (Dashboard theo vai trò & Phân quyền dữ liệu):**
-   - Cơ chế RBAC 4 cấp kết hợp **Data Scope** (phân vùng dữ liệu theo phòng ban và chi nhánh).
+   - Cơ chế RBAC 3 vai trò chuẩn hoá (**`ADMIN`**, **`FIELD_TECH`**, **`ASSET_HR`**) kết hợp **Data Scope** (phân vùng dữ liệu theo Chi nhánh, Tầng và Phòng ban).
    - React đảm nhiệm giao diện với bố cục Dashboard tùy biến cho từng vai trò; Backend kiểm soát quyền truy cập và tự động lọc dữ liệu SQL; PostgreSQL lưu thông tin phân quyền và cấu hình widget người dùng.
 
 ---
 
 ## 2. Mô Hình Người Dùng, RBAC & Phân Vùng Dữ Liệu (Data Scope)
 
-FleetMonitor phục vụ 4 nhóm chức danh với trách nhiệm và phạm vi dữ liệu phân định rõ rệt:
+FleetMonitor chuẩn hóa thành **3 nhóm vai trò cốt lõi** gắn liền với trách nhiệm và phạm vi dữ liệu phân cấp theo Chi nhánh (`branch`), Tầng (`floor`) và Phòng ban (`department`):
 
 | Nhóm Vai Trò (Role) | Chức Danh Thực Tế | Phạm Vi Dữ Liệu (Data Scope) | Tiêu Chí KPI & Trọng Tâm Hiển Thị | Quyền Hạn Hệ Thống (Permissions) |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. Fleet Manager** | Trưởng phòng IT / Quản lý Tài sản | **Toàn công ty** (Tất cả chi nhánh, 5 tầng, phòng ban) | Tỷ lệ khả dụng SLA hạm đội (~100 máy), Tỷ lệ máy Lemon cần thanh lý, Tổng chi phí bảo trì & vật tư hàng tháng, Báo cáo SLA & Chi phí phòng ban. | Toàn quyền xem và cấu hình (Full Access); phê duyệt đề xuất thay thế/thanh lý; quản lý tài khoản người dùng; xem báo cáo tài chính máy in. |
-| **2. NOC Engineer** | Kỹ sư vận hành hệ thống NOC / IT System | **Toàn hệ thống kỹ thuật** (Toàn bộ ~100 máy in) | Hàng đợi sự cố (Incidents Queue); Lỗi phần cứng khẩn cấp; Drawer chẩn đoán SNMP OID; Ma trận điểm nóng sự cố; Lịch trình Gantt; Giám sát polling Zabbix. | Quản lý sự cố kỹ thuật; thao tác Dynamic Stepper; nhập/xuất CSV mã lỗi trong Settings; cấu hình quy tắc an toàn Safe Window 10m và Cache TTL 60s. |
-| **3. Field Technician** | Kỹ thuật viên bảo trì hiện trường | **Chỉ các Ticket & Task được phân công** | Danh sách lệnh công việc trong ngày; Lịch trình phân bổ theo ngày; Hướng dẫn quy trình xử lý mã lỗi khuyến nghị; Drawer nhiệm vụ. | Cập nhật tiến độ Task (Planned $\to$ In Progress $\to$ Waiting $\to$ Completed); ghi chép Work Log; nhập chi phí linh kiện; upload ảnh hiện trường lên MinIO; xác nhận nghiệm thu. |
-| **4. Department Head / HR** | Trưởng phòng ban / Kế toán / HR | **Chỉ trong Phòng ban / Tầng của mình** (~15–25 máy) | Tổng sản lượng in 30 ngày (Trang Màu vs Đơn Sắc); Chi phí in ấn phòng ban; Top máy in sử dụng nhiều; Trạng thái vật tư tiêu hao. | Quyền xem dữ liệu phòng ban (Department Data Scope); yêu cầu cấp thêm máy; xuất báo cáo sản lượng nội bộ; tạo ticket báo sự cố máy in phòng mình. |
+| **`ADMIN`**<br>(Quản trị IT & NOC) | Trưởng phòng IT / Kỹ sư giám sát NOC | **Toàn công ty** (Tất cả chi nhánh, toà nhà 7 tầng, toàn bộ ~100 máy in) | Tỷ lệ khả dụng SLA hạm đội, Hàng đợi sự cố phần cứng khẩn cấp, Lịch trình Gantt, Giám sát polling Zabbix qua VPN, Kiểm duyệt từ điển CSV. | Toàn quyền xem và cấu hình (Full Access); **Duy nhất có quyền điều chuyển vị trí/chi nhánh/phòng ban máy in và tạo lệnh bảo trì**; cấu hình Safe Window 10m và nạp CSV mã lỗi. |
+| **`FIELD_TECH`**<br>(Kỹ thuật viên) | Kỹ thuật viên bảo trì hiện trường | **Chỉ các Lệnh bảo trì được phân công** | Danh sách lệnh công việc trong ngày; Lịch trình Gantt; Quy trình Dynamic Stepper; Bảng đối chiếu năng suất cá nhân (MTTR, SLA). | Nhận lệnh và cập nhật tiến độ; ghi chép Work Log; tải ảnh nghiệm thu in test MinIO (`PASSED`). **Ẩn hoàn toàn các số liệu chi phí tiền tệ (VNĐ)**. |
+| **`ASSET_HR`**<br>(HR / Kiểm kê) | Chuyên viên quản lý tài sản / Kế toán | **Quản trị tài sản & Chi phí** (Theo Chi nhánh & Phòng ban) | Kiểm kê số lượng máy in (Serial, Model, Chi nhánh, Tầng); Hạch toán chi phí thuê máy & sản lượng Mono/Color; Bảng đối chiếu KPI Kỹ thuật viên. | Quyền xem kiểm kê tài sản (Read-only, không tự ý sửa vị trí); xem Vòng cung chi phí 180° để đối soát tiền thuê máy; đối soát dữ liệu MTTR/SLA để đánh giá hiệu suất nhân sự. |
 
 ---
 

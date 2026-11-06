@@ -19,11 +19,13 @@ export interface MockVolumeTrendPoint {
 }
 
 export interface MockAvailabilityPoint {
+  timestamp?: string;
   timeLabel: string;
-  onlineRate: number; // percentage
-  onlineCount: number;
-  offlineCount: number;
-  warningCount?: number;
+  onlineRate: number | null; // percentage
+  onlineCount: number | null;
+  offlineCount: number | null;
+  warningCount?: number | null;
+  criticalCount?: number | null;
 }
 
 // 1. Xu hướng sản lượng in 30 ngày gần nhất

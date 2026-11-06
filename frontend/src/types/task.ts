@@ -122,7 +122,11 @@ export interface TaskAttachment {
   id: string;
   fileName: string;
   fileType: 'PDF' | 'IMAGE' | 'LOG' | 'DOC';
+  mimeType?: string;
   fileSize: string;
+  fileUrl?: string;
+  minioObjectKey?: string;
+  isTestPrintProof?: boolean;
   uploadedAt: string;
   uploadedBy: string;
 }
@@ -151,6 +155,7 @@ export interface Task {
   taskType: TaskType;
   priority: TaskPriority;
   status: TaskStatus;
+  assigneeId?: string;
   assignee: string;
   startDate: string;
   dueDate: string;

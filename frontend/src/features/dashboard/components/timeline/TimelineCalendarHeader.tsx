@@ -17,6 +17,7 @@ import {
   faPlus,
   faMagnifyingGlass,
   faFilter,
+  faUserCheck,
 } from '../../../../shared/icons';
 
 interface TimelineCalendarHeaderProps {
@@ -33,6 +34,9 @@ interface TimelineCalendarHeaderProps {
   onlyWithTasks: boolean;
   onToggleOnlyWithTasks: () => void;
   printersWithTasksCount: number;
+  myTasksOnly?: boolean;
+  onToggleMyTasksOnly?: () => void;
+  myTasksCount?: number;
   onOpenCreateModal: () => void;
 }
 
@@ -50,6 +54,9 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
   onlyWithTasks,
   onToggleOnlyWithTasks,
   printersWithTasksCount,
+  myTasksOnly = false,
+  onToggleMyTasksOnly,
+  myTasksCount = 0,
   onOpenCreateModal,
 }) => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -224,24 +231,34 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
           </span>
         </button>
 
+        {/* Nút lọc việc của tôi (KTV cá nhân) */}
+        {onToggleMyTasksOnly && (
+          <button
+            type="button"
+            onClick={onToggleMyTasksOnly}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', fontSize: '11.5px', fontWeight: 600, borderRadius: '10px',
+              border: `1px solid ${myTasksOnly ? '#d97706' : 'var(--border-color, #e2e8f0)'}`,
+              backgroundColor: myTasksOnly ? 'rgba(245, 158, 11, 0.12)' : 'var(--bg-card, #ffffff)',
+              color: myTasksOnly ? '#d97706' : 'var(--text-secondary, #475569)', cursor: 'pointer', transition: 'all 0.15s ease', whiteSpace: 'nowrap',
+            }}
+            title={myTasksOnly ? 'Xem lịch trình toàn đội' : 'Chỉ xem lịch trình công việc phân công cho tôi'}
+          >
+            <FontAwesomeIcon icon={faUserCheck} style={{ fontSize: '11px', color: myTasksOnly ? '#d97706' : '#64748b' }} />
+            <span>Việc của tôi</span>
+            {myTasksCount !== undefined && (
+              <span style={{ padding: '1px 6px', borderRadius: '999px', fontSize: '10px', fontWeight: 700, backgroundColor: myTasksOnly ? '#d97706' : 'var(--bg-subtle, #f1f5f9)', color: myTasksOnly ? '#ffffff' : 'var(--text-muted, #64748b)' }}>
+                {myTasksCount}
+              </span>
+            )}
+          </button>
+        )}
+
         {isAdmin && (
           <button
             type="button"
             onClick={onOpenCreateModal}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '10px',
-              backgroundColor: '#16a34a',
-              color: '#ffffff',
-              fontSize: '12px',
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
-            }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '10px', backgroundColor: '#16a34a', color: '#ffffff', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)' }}
           >
             <FontAwesomeIcon icon={faPlus} style={{ fontSize: '12px' }} />
             <span>Tạo việc mới</span>

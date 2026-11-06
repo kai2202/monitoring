@@ -6,34 +6,44 @@
  *   1. UrgentConsumablesAlertsTable (Bảng Cảnh báo cạn kiệt chủ động <15% & <25%)
  *   2. HighLoadFleetSuppliesTable (Bảng Mức vật tư hạm đội tải cao với Segmented Pills CMYK + Waste Toner)
  * - Tích hợp SuppliesSummaryBentoCards, SuppliesFilterToolbar, SuppliesDispatchModal và Diagnostics Drawer.
+ * - Dữ liệu vật tư nạp từ props suppliesData (Single Source of Truth), loại bỏ mock imports.
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
  */
 
 import React, { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import { FloorTabId, ConsumableAlertItem, PrinterConsumablesOverview } from '../../../../types/analyticsUI';
 import { Printer } from '../../../../types/printer';
-import { MOCK_CONSUMABLE_ALERTS, getMockPrinterConsumablesOverview } from '../../../../mocks/mockAnalyticsUIData';
+import { SuppliesAnalyticsResponse } from '../../../../types/api';
 import { SuppliesFilterToolbar, SuppliesFilterMode } from './SuppliesFilterToolbar';
 import { SuppliesSummaryBentoCards } from './SuppliesSummaryBentoCards';
 import { UrgentConsumablesAlertsTable } from './UrgentConsumablesAlertsTable';
 import { HighLoadFleetSuppliesTable } from './HighLoadFleetSuppliesTable';
 import { SuppliesDispatchModal } from './SuppliesDispatchModal';
 import { PrinterDiagnosticsDrawer } from '../../../dashboard/components/diagnostics/PrinterDiagnosticsDrawer';
+import { taskService, locationService } from '../../../../services';
 
 export interface SuppliesForecastingSectionProps {
   onCreateTaskForPrinter?: (printer: any) => void;
+  selectedBranch?: string;
+  suppliesData?: SuppliesAnalyticsResponse | null;
 }
 
 export const SuppliesForecastingSection: React.FC<SuppliesForecastingSectionProps> = ({
   onCreateTaskForPrinter,
+  selectedBranch: _selectedBranch,
+  suppliesData,
 }) => {
   const [statusFilter, setStatusFilter] = useState<SuppliesFilterMode>('all');
   const [activeFloor, setActiveFloor] = useState<FloorTabId>('all');
   const [selectedAlert, setSelectedAlert] = useState<ConsumableAlertItem | null>(null);
   const [drawerPrinter, setDrawerPrinter] = useState<Printer | null>(null);
 
-  const allAlerts = MOCK_CONSUMABLE_ALERTS;
-  const allDevicesOverview = useMemo(() => getMockPrinterConsumablesOverview(), []);
+  const allAlerts = useMemo(() => suppliesData?.alerts || [], [suppliesData]);
+  const allDevicesOverview = useMemo(() => suppliesData?.devicesOverview || [], [suppliesData]);
+  const availableFloors = useMemo(() => {
+    return locationService.getFloorsByBranch(_selectedBranch);
+  }, [_selectedBranch]);
 
   // Lọc Bảng 1: Cảnh báo cạn kiệt chủ động
   const filteredAlerts = useMemo(() => {
@@ -41,36 +51,31 @@ export const SuppliesForecastingSection: React.FC<SuppliesForecastingSectionProp
       if (statusFilter === 'critical' && item.currentPercent >= 15) return false;
       if (statusFilter === 'warning' && (item.currentPercent < 15 || item.currentPercent >= 25)) return false;
       if (statusFilter === 'normal' && item.currentPercent < 25) return false;
-      if (statusFilter === 'waste_warning') return false; // Bảng 1 theo dõi linh kiện cạn kiệt
+      if (statusFilter === 'waste_warning') return false;
 
       if (activeFloor !== 'all') {
-        const floorMap: Record<FloorTabId, string> = {
-          all: '',
-          'floor-1': 'Tầng 1',
-          'floor-2': 'Tầng 2',
-          'floor-3': 'Tầng 3',
-          'floor-4': 'Tầng 4',
-          'floor-5': 'Tầng 5',
-          'floor-compare': '',
-        };
-        if (floorMap[activeFloor] && !item.floor.includes(floorMap[activeFloor])) {
+        const floorIdx = parseInt(activeFloor.replace('floor-', ''), 10) - 1;
+        const targetFloorName = availableFloors[floorIdx];
+        if (targetFloorName && !item.floor.includes(targetFloorName)) {
           return false;
         }
       }
-
       return true;
     });
-  }, [allAlerts, statusFilter, activeFloor]);
+  }, [allAlerts, activeFloor, statusFilter, availableFloors]);
 
-  // Lọc Bảng 2: Hạm đội máy tải cao đồng bộ theo tầng và trạng thái
-  const filteredHeavyLoadPrinters = useMemo(() => {
+  // Lọc Bảng 2: Thiết bị tải cao
+  const filteredDevices = useMemo(() => {
     let list = allDevicesOverview;
     if (activeFloor !== 'all') {
-      list = list.filter((p) => p.floorId === activeFloor);
+      const floorIdx = parseInt(activeFloor.replace('floor-', ''), 10) - 1;
+      const targetFloorName = availableFloors[floorIdx];
+      if (targetFloorName) {
+        list = list.filter((p) => p.floor.includes(targetFloorName));
+      }
     }
-    if (statusFilter === 'waste_warning') {
-      list = list.filter((p) => p.wasteToner === 'Sắp đầy' || p.wasteToner === 'Đầy');
-    } else if (statusFilter === 'critical') {
+
+    if (statusFilter === 'critical') {
       list = list.filter(
         (p) =>
           (p.tonerK ?? 100) < 15 ||
@@ -94,15 +99,36 @@ export const SuppliesForecastingSection: React.FC<SuppliesForecastingSectionProp
     return list;
   }, [allDevicesOverview, activeFloor, statusFilter]);
 
-  const criticalCount = allAlerts.filter((a) => a.currentPercent < 15).length;
-  const warningCount = allAlerts.filter((a) => a.currentPercent >= 15 && a.currentPercent < 25).length;
-  const wasteWarningCount = allDevicesOverview.filter(
+  const criticalCount = suppliesData?.summary?.criticalCount ?? allAlerts.filter((a) => a.currentPercent < 15).length;
+  const warningCount = suppliesData?.summary?.warningCount ?? allAlerts.filter((a) => a.currentPercent >= 15 && a.currentPercent < 25).length;
+  const wasteWarningCount = suppliesData?.summary?.wasteWarningCount ?? allDevicesOverview.filter(
     (p) => p.wasteToner === 'Sắp đầy' || p.wasteToner === 'Đầy'
   ).length;
-  const soonestEmptyDays = Math.min(...allAlerts.map((a) => a.daysRemaining));
+  const soonestEmptyDays = allAlerts.length > 0 ? Math.min(...allAlerts.map((a) => a.daysRemaining)) : 0;
 
-  // Thao tác tạo Task cấp phát qua modal
-  const handleConfirmDispatch = (payload: { alertItem: ConsumableAlertItem }) => {
+  // Thao tác tạo Task cấp phát qua modal & kết nối CMMS TaskService
+  const handleConfirmDispatch = (payload: {
+    alertItem: ConsumableAlertItem;
+    priority: 'urgent' | 'normal';
+    quantity: number;
+    technician: string;
+    notes: string;
+  }) => {
+    taskService.createTask({
+      title: `Cấp phát & Thay thế: ${payload.alertItem.itemName} (${payload.alertItem.printerName})`,
+      description: `Yêu cầu cấp phát ${payload.quantity} ${payload.alertItem.itemName} cho thiết bị ${payload.alertItem.printerName} tại ${payload.alertItem.floor}. ${payload.notes ? `Ghi chú: ${payload.notes}` : ''}`,
+      taskType: 'Supplies',
+      priority: payload.priority === 'urgent' ? 'P1_Urgent' : 'P2_High',
+      assignee: payload.technician || 'Kỹ thuật viên NOC',
+      dueDate: new Date(Date.now() + 2 * 24 * 3600 * 1000).toISOString().split('T')[0],
+      printerId: payload.alertItem.printerId,
+      printerName: payload.alertItem.printerName,
+      location: payload.alertItem.floor,
+      status: 'Open',
+    });
+
+    toast.success(`Đã lập lệnh cấp phát: ${payload.alertItem.itemName} cho ${payload.alertItem.printerName}`);
+
     if (onCreateTaskForPrinter) {
       onCreateTaskForPrinter({
         id: payload.alertItem.printerId,
@@ -133,16 +159,31 @@ export const SuppliesForecastingSection: React.FC<SuppliesForecastingSectionProp
       cyanTonerLevel: p.tonerC,
       magentaTonerLevel: p.tonerM,
       yellowTonerLevel: p.tonerY,
-      drumLevel: p.drumLife,
-      fuserLevel: p.fuserLife,
-      wasteTonerBoxFull: p.wasteToner === 'Đầy',
+      wasteTonerStatus: p.wasteToner === 'Đầy' ? 'Full' : p.wasteToner === 'Sắp đầy' ? 'Warning' : 'Normal',
+      serial: 'SN-AUTO',
+      macAddress: '00:1B:44:11:3A:B7',
+      firmwareVersion: 'v4.12.0',
+      mfr: 'Ricoh',
+      department: p.department,
+      deviceType: 'Multifunction Color Printer',
+      colorCapability: 'Color',
+      ppm: 35,
+      alerts: [],
     };
     setDrawerPrinter(printerObj);
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', width: '100%' }}>
-      {/* 1. Bộ Lọc Trạng Thái & Vị Trí Tầng */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      {/* 1. Hàng 1: 4 Thẻ KPI Bento */}
+      <SuppliesSummaryBentoCards
+        criticalCount={criticalCount}
+        warningCount={warningCount}
+        wasteWarningCount={wasteWarningCount}
+        soonestEmptyDays={soonestEmptyDays}
+      />
+
+      {/* 2. Thanh Công Cụ Lọc Nhanh Tầng & Trạng Thái Cạn Kiệt */}
       <SuppliesFilterToolbar
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
@@ -151,38 +192,39 @@ export const SuppliesForecastingSection: React.FC<SuppliesForecastingSectionProp
         criticalCount={criticalCount}
         warningCount={warningCount}
         wasteWarningCount={wasteWarningCount}
+        availableFloors={availableFloors}
       />
 
-      {/* 2. Top Summary Metric Cards (Interactive Quick-Filter) */}
-      <SuppliesSummaryBentoCards
-        criticalCount={criticalCount}
-        warningCount={warningCount}
-        soonestEmptyDays={soonestEmptyDays}
-        activeFilter={statusFilter === 'waste_warning' ? 'warning' : statusFilter}
-        onSelectFilter={(mode) => setStatusFilter(mode)}
-      />
+      {/* 3. Danh sách 2 Bảng Dữ Liệu Chi Tiết (Full Width 100%) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', minWidth: 0 }}>
+        {/* Bảng 1: Cảnh báo cạn kiệt chủ động */}
+        <div style={{ width: '100%', minWidth: 0 }}>
+          <UrgentConsumablesAlertsTable
+            alerts={filteredAlerts}
+            onOpenDispatchModal={(alertItem) => setSelectedAlert(alertItem)}
+          />
+        </div>
 
-      {/* 3. BẢNG 1: Bảng Cảnh Báo Cạn Kiệt Chủ Động (Urgent Consumables Alerts Table) */}
-      <UrgentConsumablesAlertsTable
-        alerts={filteredAlerts}
-        onSelectAlertToDispatch={(item) => setSelectedAlert(item)}
-      />
+        {/* Bảng 2: Mức vật tư hạm đội tải cao */}
+        <div style={{ width: '100%', minWidth: 0 }}>
+          <HighLoadFleetSuppliesTable
+            devices={filteredDevices}
+            onSelectDevice={(device) => handleOpenDiagnostics(device)}
+          />
+        </div>
+      </div>
 
-      {/* 4. BẢNG 2: Bảng Mức Vật Tư Hạm Đội Máy Tải Cao (High-Load Fleet Supply Levels Table) */}
-      <HighLoadFleetSuppliesTable
-        printers={filteredHeavyLoadPrinters}
-        onSelectPrinter={handleOpenDiagnostics}
-      />
+      {/* Modal Lập Lệnh Cấp Phát Vật Tư */}
+      {selectedAlert && (
+        <SuppliesDispatchModal
+          isOpen={Boolean(selectedAlert)}
+          alertItem={selectedAlert}
+          onClose={() => setSelectedAlert(null)}
+          onConfirmDispatch={handleConfirmDispatch}
+        />
+      )}
 
-      {/* 5. Modal Lập Lệnh Cấp Phát & Xuất Kho */}
-      <SuppliesDispatchModal
-        isOpen={Boolean(selectedAlert)}
-        onClose={() => setSelectedAlert(null)}
-        alertItem={selectedAlert}
-        onConfirmDispatch={handleConfirmDispatch}
-      />
-
-      {/* 6. Slide-over Diagnostics Drawer */}
+      {/* Diagnostics Drawer (Tab 1: CMYK Counters & Gauges) */}
       <PrinterDiagnosticsDrawer
         printer={drawerPrinter}
         isOpen={Boolean(drawerPrinter)}

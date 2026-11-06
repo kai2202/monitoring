@@ -22,4 +22,5 @@ export * from './suppliesService';
 export * from './telemetryService';
 export * from './settingsService';
 export * from './dashboardService';
-
+export * from './locationService';
+export * from './analyticsService';

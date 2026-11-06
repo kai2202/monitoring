@@ -20,7 +20,7 @@ export class MockDashboardProvider implements IDashboardService {
     const onlineCount = this.printers.filter(p => p.connectionStatus === 'Online').length;
     const offlineCount = this.printers.filter(p => p.connectionStatus === 'Offline').length;
     const unknownCount = this.printers.filter(p => p.connectionStatus === 'Unknown').length;
-    const onlineRate = totalPrinters > 0 ? Number(((onlineCount / totalPrinters) * 100).toFixed(1)) : 0;
+    const onlineRate = totalPrinters > 0 ? Number(((onlineCount / totalPrinters) * 100).toFixed(1)) : null;
 
     const activeIncidents = this.incidents.filter(i => i.status === 'Active');
     const criticalAlertsCount = activeIncidents.filter(i => i.severity === 'Critical').length;

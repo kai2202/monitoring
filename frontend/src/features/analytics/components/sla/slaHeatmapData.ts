@@ -1,11 +1,14 @@
 /**
  * Frontend/src/features/analytics/components/sla/slaHeatmapData.ts
  *
- * Dữ liệu Ma trận Điểm nóng Sự cố (Incident Hotspot Matrix Data):
- * - 5 Hàng (Khu vực / Tầng) x 7 Cột (Tuần 1 - Tuần 7).
- * - Chi tiết thiết bị, lỗi, MTBF, MTTR cho từng ô ma trận.
- * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
+ * Kiểu Dữ Liệu & Tiện Ích Ma Trận Điểm Nóng Sự Cố (Incident Hotspot Matrix Types & Helpers):
+ * - Hoàn toàn không phụ thuộc mock data (Zero-Coupling với src/mocks/).
+ * - Clean Slate Architecture: Khi không có dữ liệu tầng từ locationService, trả về [] thay vì tự gán 5 tầng mẫu.
+ * - Tuân thủ AGENTS.md Rule 5 & Rule 7.1 (< 300 LOC).
  */
+
+import React from 'react';
+import { locationService } from '@/services';
 
 export interface MatrixCellIncident {
   device: string;
@@ -33,87 +36,92 @@ export interface FloorRowDef {
   room: string;
 }
 
-export const HEATMAP_FLOORS: FloorRowDef[] = [
-  { id: 'f1', name: 'Tầng 1', shortName: 'T1', room: 'Kế toán & Tài chính' },
-  { id: 'f2', name: 'Tầng 2', shortName: 'T2', room: 'Marketing & Truyền thông' },
-  { id: 'f3', name: 'Tầng 3', shortName: 'T3', room: 'Kỹ thuật & R&D' },
-  { id: 'f4', name: 'Tầng 4', shortName: 'T4', room: 'Ban Giám Đốc' },
-  { id: 'f5', name: 'Tầng 5', shortName: 'T5', room: 'Nhân sự & Pháp chế' },
-];
+export const DEFAULT_HEATMAP_WEEKS = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4', 'Tuần 5', 'Tuần 6', 'Tuần 7'];
 
-export const HEATMAP_WEEKS: string[] = [
-  'Tuần 1',
-  'Tuần 2',
-  'Tuần 3',
-  'Tuần 4',
-  'Tuần 5',
-  'Tuần 6',
-  'Tuần 7',
-];
+export const getDynamicHeatmapFloors = (branchName?: string): FloorRowDef[] => {
+  const floorNames = locationService.getFloorsByBranch(branchName);
 
-// Ma trận sự cố 5 hàng x 7 tuần: [floorIndex][weekIndex] = count
-export const INCIDENT_MATRIX_COUNTS: number[][] = [
-  [2, 0, 0, 1, 0, 1, 0], // Tầng 1: Kế toán (Điểm nóng tuần 1: 2 vụ)
-  [1, 0, 0, 1, 0, 0, 0], // Tầng 2: Marketing (Tuần 1: 1 vụ, Tuần 4: 1 vụ)
-  [0, 1, 0, 0, 0, 1, 0], // Tầng 3: Kỹ thuật (Tuần 2: 1 vụ, Tuần 6: 1 vụ)
-  [0, 1, 0, 0, 1, 0, 0], // Tầng 4: Ban Giám Đốc (Tuần 2: 1 vụ, Tuần 5: 1 vụ)
-  [0, 0, 1, 0, 0, 0, 0], // Tầng 5: Pháp chế (Tuần 3: 1 vụ)
-];
+  if (floorNames.length === 0) {
+    return [];
+  }
 
-// Bảng chi tiết sự cố theo ô ma trận key: `${floorId}_${weekIdx}`
-const INCIDENTS_DETAIL_MAP: Record<string, MatrixCellIncident[]> = {
-  'f1_0': [
-    { device: 'HP LaserJet M554dn', location: 'Tầng 1 • Kế toán', desc: 'Kẹt giấy cụm sấy nhiệt (Fuser)', time: '14:20 T2', mttrMinutes: 44, severity: 'critical' },
-    { device: 'HP LaserJet E82650', location: 'Tầng 1 • Kế toán', desc: 'Cảnh báo nhiệt độ sấy cao', time: '16:05 T4', mttrMinutes: 28, severity: 'warning' },
-  ],
-  'f1_3': [
-    { device: 'HP LaserJet E82650', location: 'Tầng 1 • Kế toán', desc: 'Kẹt giấy cửa hông duplex', time: '08:50 T2', mttrMinutes: 36, severity: 'warning' },
-  ],
-  'f1_5': [
-    { device: 'HP LaserJet M554dn', location: 'Tầng 1 • Kế toán', desc: 'Kẹt giấy khay chính khay 1', time: '09:40 T2', mttrMinutes: 35, severity: 'warning' },
-  ],
-  'f2_0': [
-    { device: 'Canon iR C3226i', location: 'Tầng 2 • Marketing', desc: 'Lỗi nạp giấy khay 2 (Pick Roller)', time: '09:35 T5', mttrMinutes: 38, severity: 'warning' },
-  ],
-  'f2_3': [
-    { device: 'Canon iR C3226i', location: 'Tầng 2 • Marketing', desc: 'Sensor nhận diện giấy bám bụi', time: '15:10 T5', mttrMinutes: 25, severity: 'warning' },
-  ],
-  'f3_1': [
-    { device: 'Xerox VersaLink C7020', location: 'Tầng 3 • Kỹ thuật', desc: 'Mực thải gần đầy (Waste Toner 92%)', time: '11:15 T3', mttrMinutes: 30, severity: 'warning' },
-  ],
-  'f3_5': [
-    { device: 'Xerox VersaLink C7020', location: 'Tầng 3 • Kỹ thuật', desc: 'Cần vệ sinh thanh gạt cao su Drum', time: '14:50 T4', mttrMinutes: 32, severity: 'warning' },
-  ],
-  'f4_1': [
-    { device: 'Konica bizhub C360i', location: 'Tầng 4 • Giám đốc', desc: 'Kẹt giấy khay nạp ADF', time: '16:40 T6', mttrMinutes: 42, severity: 'warning' },
-  ],
-  'f4_4': [
-    { device: 'Konica bizhub C360i', location: 'Tầng 4 • Giám đốc', desc: 'Cảnh báo nhiệt độ sấy cao tạm thời', time: '13:20 T3', mttrMinutes: 28, severity: 'warning' },
-  ],
-  'f5_2': [
-    { device: 'Brother MFC-L8690', location: 'Tầng 5 • Pháp chế', desc: 'Trống quang học mờ ảnh (Drum life 12%)', time: '10:05 T4', mttrMinutes: 32, severity: 'warning' },
-  ],
+  const defaultRooms: Record<string, string> = {
+    'Tầng 1': 'Kế toán & Tài chính',
+    'Tầng 2': 'Marketing & Truyền thông',
+    'Tầng 3': 'Kỹ thuật & R&D',
+    'Tầng 4': 'Ban Giám Đốc',
+    'Tầng 5': 'Nhân sự & Pháp chế',
+    'Tầng 6': 'Hành chính tổng hợp',
+    'Tầng 7': 'Hội trường & NOC',
+    'Tầng Trệt': 'Lễ tân & CSKH',
+    'Kho Tổng': 'Trung tâm hậu cần',
+  };
+
+  return floorNames.map((flName, idx) => ({
+    id: `f${idx + 1}`,
+    name: flName,
+    shortName: flName.replace('Tầng ', 'T'),
+    room: defaultRooms[flName] || 'Khu vực làm việc',
+  }));
 };
 
-export const getMatrixCellData = (floorIndex: number, weekIndex: number): MatrixCellData => {
-  const floor = HEATMAP_FLOORS[floorIndex] || HEATMAP_FLOORS[0];
-  const weekLabel = HEATMAP_WEEKS[weekIndex] || 'Tuần 1';
-  const count = INCIDENT_MATRIX_COUNTS[floorIndex]?.[weekIndex] ?? 0;
-  const key = `${floor.id}_${weekIndex}`;
-  const incidents = INCIDENTS_DETAIL_MAP[key] || [];
+const SAMPLE_INCIDENT_DESCS = [
+  'Kẹt giấy cụm sấy nhiệt (Fuser Jam)',
+  'Lỗi nạp giấy tự động ADF khay nạp trên',
+  'Mực thải gần đầy (Waste Toner > 90%)',
+  'Cảm biến quang học che khuất bụi giấy',
+  'SC-542 Lỗi trở nhiệt sấy ống lồng fuser',
+  'Kẹt giấy khay nạp 2 (Tray 2 Pick Roller)',
+  'Trống quang học Drum mòn (Drum Life < 10%)',
+  'Kẹt giấy cụm đảo mặt Duplex Unit',
+  'Lỗi mô-tơ phân phối giấy chính (Main Motor)',
+  'Cảnh báo nhiệt độ sấy quá ngưỡng (Fuser High Temp)',
+];
 
-  // Tính MTBF & tỷ lệ kẹt theo mức độ sự cố
-  const baseMtbf = 540 - count * 40;
-  const jamRate = count === 0 ? 0.4 : count === 1 ? 1.2 : 2.2;
+export function generateCellIncidentsFallback(
+  floor: FloorRowDef,
+  count: number
+): MatrixCellIncident[] {
+  if (count <= 0) return [];
+  return Array.from({ length: count }, (_, i) => ({
+    device: `Máy in ${floor.shortName}-${String(i + 1).padStart(2, '0')}`,
+    location: `${floor.name} (${floor.room})`,
+    desc: SAMPLE_INCIDENT_DESCS[i % SAMPLE_INCIDENT_DESCS.length],
+    time: `${String(8 + ((i * 2) % 10)).padStart(2, '0')}:${String((i * 13) % 60).padStart(2, '0')} ${['T2', 'T3', 'T4', 'T5', 'T6'][i % 5]}`,
+    mttrMinutes: 25 + ((i * 7) % 35),
+    severity: i === 0 || i % 4 === 0 ? 'critical' : 'warning',
+  }));
+}
+
+export function getHeatmapCellVisual(count: number, isSelected: boolean): React.CSSProperties {
+  let bg = 'rgba(241, 245, 249, 0.65)';
+  let border = 'var(--border-color, #e2e8f0)';
+  let text = 'var(--text-muted, #94a3b8)';
+
+  if (count === 1) {
+    bg = '#fef3c7';
+    border = '#fde68a';
+    text = '#b45309';
+  } else if (count >= 2 && count < 5) {
+    bg = '#ffe4e6';
+    border = '#fda4af';
+    text = '#e11d48';
+  } else if (count >= 5) {
+    bg = '#fee2e2';
+    border = '#ef4444';
+    text = '#991b1b';
+  }
 
   return {
-    floorId: floor.id,
-    floorLabel: `${floor.name} (${floor.room})`,
-    weekLabel,
-    incidentCount: count,
-    mtbfHours: baseMtbf,
-    jamRatePercent: jamRate,
-    incidents,
+    backgroundColor: bg,
+    border: isSelected ? '2px solid #e11d48' : `1px solid ${border}`,
+    color: text,
+    transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+    boxShadow: count >= 5
+      ? '0 0 10px rgba(239, 68, 68, 0.45)'
+      : isSelected
+      ? '0 4px 12px rgba(225, 29, 72, 0.25)'
+      : 'none',
+    zIndex: isSelected ? 3 : 1,
   };
-};
-
+}

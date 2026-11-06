@@ -21,7 +21,7 @@ import {
 } from '../components/dashboard';
 import { NavTabId } from '../components/layout/Sidebar';
 import { Printer, Incident } from '../types/printer';
-import { MockAvailabilityPoint } from '../mocks/mockTelemetry';
+import { AvailabilityTimelinePoint } from '../types/dashboardTelemetry';
 import { dashboardService, telemetryService, printerService } from '../services';
 
 export interface DashboardPageProps {
@@ -33,22 +33,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onNavigateModule,
   onCreateTaskForPrinter,
 }) => {
-  // State dữ liệu
+  // State dữ liệu chuẩn AGENTS.md Rule 5: MetricValue = number | null, không khởi tạo số mock giả
   const [kpiData, setKpiData] = useState<FleetKpiData>({
-    totalPrinters: 35,
-    onlineCount: 34,
-    offlineCount: 1,
-    unknownCount: 0,
-    onlineRate: 97.1,
-    activeAlertsCount: 4,
-    criticalAlertsCount: 2,
-    warningAlertsCount: 2,
-    lowSuppliesCount: 3,
+    totalPrinters: 0,
+    onlineCount: null,
+    offlineCount: null,
+    unknownCount: null,
+    onlineRate: null,
+    activeAlertsCount: null,
+    criticalAlertsCount: null,
+    warningAlertsCount: null,
+    lowSuppliesCount: null,
   });
 
   const [allPrinters, setAllPrinters] = useState<Printer[]>([]);
   const [attentionPrinters, setAttentionPrinters] = useState<Printer[]>([]);
-  const [timeline, setTimeline] = useState<MockAvailabilityPoint[]>([]);
+  const [timeline, setTimeline] = useState<AvailabilityTimelinePoint[]>([]);
   const [recentIncidents, setRecentIncidents] = useState<Incident[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -109,12 +109,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     } else if (activeKpiFilter === 'low_supplies') {
       result = allPrinters.filter(p => {
         const s = p.supplies;
+        if (!s) return false;
         return (
-          (s.black !== null && s.black <= 10) ||
-          (s.cyan !== null && s.cyan <= 10) ||
-          (s.magenta !== null && s.magenta <= 10) ||
-          (s.yellow !== null && s.yellow <= 10) ||
-          (s.waste !== null && s.waste >= 90)
+          (s.black !== null && s.black !== undefined && s.black <= 10) ||
+          (s.cyan !== null && s.cyan !== undefined && s.cyan <= 10) ||
+          (s.magenta !== null && s.magenta !== undefined && s.magenta <= 10) ||
+          (s.yellow !== null && s.yellow !== undefined && s.yellow <= 10) ||
+          (s.waste !== null && s.waste !== undefined && s.waste >= 90)
         );
       });
     }
@@ -122,17 +123,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (selectedHealth) {
       if (selectedHealth === 'Critical') {
         result = result.filter(
-          p => p.health === 'Critical' || p.alertSeverity === 'critical' || p.connectionStatus === 'Offline'
+          p => (p.health === 'Critical' || p.alertSeverity === 'critical') && p.connectionStatus !== 'Offline' && p.monitoringStatus !== 'Storage' && p.monitoringStatus !== 'Decommissioned'
         );
       } else if (selectedHealth === 'Warning') {
         result = result.filter(
-          p => (p.health === 'Warning' || p.alertSeverity === 'warning') && p.connectionStatus !== 'Offline'
+          p => (p.health === 'Warning' || p.alertSeverity === 'warning') && p.health !== 'Critical' && p.alertSeverity !== 'critical' && p.connectionStatus !== 'Offline'
         );
       } else if (selectedHealth === 'Offline') {
-        result = result.filter(p => p.connectionStatus === 'Offline');
+        result = result.filter(
+          p => p.connectionStatus === 'Offline' || p.monitoringStatus === 'Storage' || p.monitoringStatus === 'Decommissioned'
+        );
       } else if (selectedHealth === 'Healthy') {
         result = result.filter(
-          p => p.health !== 'Critical' && p.health !== 'Warning' && p.connectionStatus === 'Online'
+          p => p.health !== 'Critical' && p.health !== 'Warning' && p.alertSeverity !== 'critical' && p.alertSeverity !== 'warning' && p.connectionStatus === 'Online'
         );
       }
     }
@@ -147,7 +150,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (activeKpiFilter === 'low_supplies') return 'Vật tư thấp (≤ 10%)';
     if (selectedHealth === 'Healthy') return 'Nhóm máy in: Trực tuyến / Ổn định';
     if (selectedHealth === 'Warning') return 'Nhóm máy in: Cảnh báo vật tư';
-    if (selectedHealth === 'Critical') return 'Nhóm máy in: Sự cố nguy cấp & Ngoại tuyến';
+    if (selectedHealth === 'Critical') return 'Nhóm máy in: Sự cố phần cứng';
+    if (selectedHealth === 'Offline') return 'Nhóm máy in: Ngoại tuyến / Lưu kho';
     if (selectedHealth) return `Nhóm sức khỏe: ${selectedHealth}`;
     return null;
   }, [activeKpiFilter, selectedHealth, allPrinters.length]);
@@ -183,7 +187,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   }, [selectedPrinter, filteredPrinters]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1440px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1440px', margin: '0 auto', width: '100%', minWidth: 0 }}>
       {/* 1. Fleet KPI Cards (In-place Filter & ↗ Navigate) */}
       <FleetKpiCards
         data={kpiData}
@@ -200,8 +204,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
           gap: '16px',
+          width: '100%',
+          minWidth: 0,
         }}
       >
         <AvailabilitySplineChart

@@ -3,7 +3,7 @@
 > **Phân hệ:** Backend / Analytics & Telemetry Engine  
 > **Mã nhiệm vụ:** TASK-BE-04  
 > **Phiên bản:** 1.0.0 (Tối ưu hóa hạm đội ~100 máy in, Thuật toán 3 trạng thái Rollover 32-bit, D-Day trượt 7 ngày)  
-> **Trạng thái:** Sẵn sàng triển khai (Ready for Implementation)  
+> **Trạng thái:** ✅ Hoàn thành (Completed & Unit Tested)  
 > **Tài liệu liên quan:** [Kiến Trúc Hệ Thống](file:///f:/Code/Github/Monitoring/docs/Design/architecture.md), [Bản Ánh Xạ OIDs](file:///f:/Code/Github/Monitoring/docs/Design/frontend_mock_to_oid_mapping.md)
 
 ---
@@ -130,8 +130,8 @@ $$\text{daysRemaining} = \text{round}\left(\frac{\text{CurrentPercent}}{\text{da
 
 ## 5. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 
-- [ ] Worker Hourly Rollup chạy định kỳ đầu mỗi giờ, tính đúng delta và không bị trùng lặp dữ liệu (`unique([printerId, hourTimestamp])`).
-- [ ] Xử lý chính xác kịch bản tràn số 32-bit và kịch bản reset bo mạch chủ trong unit test.
-- [ ] API `/api/telemetry/volume-trend` phản hồi dưới $25\text{ms}$ cho cả 3 chế độ xem (24 Giờ, 7 Ngày, 30 Ngày).
-- [ ] Thuật toán D-Day tính toán chính xác số ngày cạn kiệt và tự động loại trừ máy in đơn sắc/không hỗ trợ OID.
+- [x] Worker Hourly Rollup chạy định kỳ đầu mỗi giờ, tính đúng delta và không bị trùng lặp dữ liệu (`unique([printerId, hourTimestamp])`).
+- [x] Xử lý chính xác kịch bản tràn số 32-bit và kịch bản reset bo mạch chủ trong unit test (`telemetryEngine.test.ts`).
+- [x] API `/api/telemetry/volume-trend` (và `/api/analytics/trend`) phản hồi dưới $25\text{ms}$ cho cả 3 chế độ xem (24 Giờ, 7 Ngày, 30 Ngày).
+- [x] Thuật toán D-Day tính toán chính xác số ngày cạn kiệt và tự động loại trừ máy in đơn sắc/không hỗ trợ OID (`computeDDayBurnRate`).
 

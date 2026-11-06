@@ -7,13 +7,20 @@ import {
   faXmark,
   faScaleBalanced,
 } from '../../../../shared/icons';
-import { MockPrinterDef } from '../../../../mocks/mockAnalyticsUIData';
+export interface LineChartPrinterItem {
+  id: string;
+  name: string;
+  model: string;
+  floorId?: string;
+  floorName?: string;
+  department?: string;
+}
 
 interface LineChartFilterModalProps {
   isOpen: boolean;
   onClose: () => void;
   floorLabel: string;
-  floorPrintersPool: MockPrinterDef[];
+  floorPrintersPool: LineChartPrinterItem[];
   selectedPrinterIds: string[];
   onTogglePrinter: (id: string) => void;
   onSelectAll: () => void;

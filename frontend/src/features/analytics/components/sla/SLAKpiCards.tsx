@@ -24,15 +24,7 @@ interface SLAKpiCardsProps {
 }
 
 export const SLAKpiCards: React.FC<SLAKpiCardsProps> = ({ kpis }) => {
-  const safeKpis: SLAOverviewKPIs = kpis || {
-    fleetUptime: 99.4,
-    targetUptime: 99.0,
-    avgMtbfHours: 486,
-    avgMttrMinutes: 38,
-    jamRatePercent: 1.6,
-    totalPrintCost: 42520000,
-    avgCostPerPage: 295,
-  };
+  const hasKpis = Boolean(kpis);
 
   const cardItems = [
     {
@@ -41,10 +33,10 @@ export const SLAKpiCards: React.FC<SLAKpiCardsProps> = ({ kpis }) => {
       iconColor: '#059669',
       iconBg: 'rgba(16, 185, 129, 0.12)',
       badgeIcon: faArrowTrendUp,
-      badgeText: `Mục tiêu ≥ ${safeKpis.targetUptime}%`,
+      badgeText: hasKpis && kpis?.targetUptime != null ? `Mục tiêu ≥ ${kpis.targetUptime}%` : 'Đang đồng bộ',
       badgeColor: '#059669',
       badgeBg: 'rgba(16, 185, 129, 0.1)',
-      value: `${safeKpis.fleetUptime}%`,
+      value: hasKpis && kpis?.fleetUptime != null ? `${kpis.fleetUptime}%` : '—',
       unit: '',
       label: 'Độ sẵn sàng (Uptime SLA)',
     },
@@ -54,10 +46,10 @@ export const SLAKpiCards: React.FC<SLAKpiCardsProps> = ({ kpis }) => {
       iconColor: '#2563eb',
       iconBg: 'rgba(37, 99, 235, 0.12)',
       badgeIcon: faArrowTrendUp,
-      badgeText: '+8.4% vs tháng trước',
+      badgeText: hasKpis ? '+8.4% vs tháng trước' : 'Đang đo lường',
       badgeColor: '#2563eb',
       badgeBg: 'rgba(37, 99, 235, 0.1)',
-      value: `${safeKpis.avgMtbfHours}`,
+      value: hasKpis && kpis?.avgMtbfHours != null ? `${kpis.avgMtbfHours}` : '—',
       unit: 'giờ / máy',
       label: 'MTBF (Thời gian chạy ổn định)',
     },
@@ -67,10 +59,10 @@ export const SLAKpiCards: React.FC<SLAKpiCardsProps> = ({ kpis }) => {
       iconColor: '#8b5cf6',
       iconBg: 'rgba(139, 92, 246, 0.12)',
       badgeIcon: faArrowTrendDown,
-      badgeText: 'Nhanh hơn SLA 60p',
+      badgeText: hasKpis ? 'Nhanh hơn SLA 60p' : 'Đang ghi nhận',
       badgeColor: '#8b5cf6',
       badgeBg: 'rgba(139, 92, 246, 0.1)',
-      value: `${safeKpis.avgMttrMinutes}`,
+      value: hasKpis && kpis?.avgMttrMinutes != null ? `${kpis.avgMttrMinutes}` : '—',
       unit: 'phút',
       label: 'MTTR (Thời gian khắc phục)',
     },
@@ -80,10 +72,10 @@ export const SLAKpiCards: React.FC<SLAKpiCardsProps> = ({ kpis }) => {
       iconColor: '#0284c7',
       iconBg: 'rgba(14, 165, 233, 0.12)',
       badgeIcon: null,
-      badgeText: `CPP: ~${safeKpis.avgCostPerPage}đ / trang`,
+      badgeText: hasKpis && kpis?.avgCostPerPage != null ? `CPP: ~${kpis.avgCostPerPage}đ / trang` : '—',
       badgeColor: '#0284c7',
       badgeBg: 'rgba(14, 165, 233, 0.1)',
-      value: (safeKpis.totalPrintCost || 0).toLocaleString('vi-VN'),
+      value: hasKpis && kpis?.totalPrintCost != null ? kpis.totalPrintCost.toLocaleString('vi-VN') : '—',
       unit: 'đ',
       label: 'Tổng chi phí in kỳ này',
     },

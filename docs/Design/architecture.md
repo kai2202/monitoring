@@ -9,26 +9,27 @@
 
 ## 1. Kiến Trúc Tổng Thể Hệ Thống (System Overview)
 
-Hệ thống FleetMonitor được xây dựng theo mô hình kiến trúc phân lớp hướng dịch vụ (Layered Service-Oriented Architecture), tối ưu hóa chuyên biệt cho quy mô giám sát **hạm đội khoảng 100 máy in** đa thương hiệu (Ricoh, HP, Canon, Epson, Brother, Xerox) phân bổ trên khoảng 5 tầng/khu vực làm việc (~15–25 máy/tầng). Hệ thống đảm bảo thời gian phản hồi giao diện $< 50\text{ms}$ thông qua bộ đệm In-Memory Cache và tổng hợp dữ liệu định kỳ (Rollup Aggregation).
+Hệ thống FleetMonitor được xây dựng theo mô hình kiến trúc phân lớp hướng dịch vụ (Layered Service-Oriented Architecture), tối ưu hóa chuyên biệt cho quy mô giám sát **hạm đội khoảng 100 máy in** đa thương hiệu (Chủ lực: **Canon, Ricoh**; Đồng hành: **Epson, HP, Brother, Toshiba, Olivetti**). Hạ tầng trải rộng trên **Toà nhà Trụ sở chính (quy mô 7 tầng, máy in đặt linh hoạt ở tùy tầng)** kết hợp với **các chi nhánh/văn phòng vệ tinh khác** kết nối an toàn qua mạng Site-to-Site VPN / SD-WAN. Hệ thống đảm bảo thời gian phản hồi giao diện $< 50\text{ms}$ thông qua bộ đệm In-Memory Cache và tổng hợp dữ liệu định kỳ (Rollup Aggregation).
 
 ```mermaid
 flowchart TD
-    subgraph FleetLayer ["1. HẠ TẦNG THIẾT BỊ NGOẠI VI (~100 MÁY IN — 5 TẦNG / KHU VỰC)"]
-        PR1["Ricoh Color/Mono MFP (~25 máy)"]
-        PR2["Canon imageRUNNER / iR-ADV (~25 máy)"]
-        PR3["HP LaserJet / PageWide (~25 máy)"]
-        PR4["Brother / Epson / Xerox (~25 máy)"]
+    subgraph FleetLayer ["1. HẠ TẦNG THIẾT BỊ NGOẠI VI (~100 MÁY IN — ĐA CHI NHÁNH & TOÀ NHÀ 7 TẦNG)"]
+        HQ["Trụ sở chính: Toà nhà 7 tầng\n(Bố trí máy in linh hoạt tại các tầng có nhu cầu)"]
+        Branches["Các Chi Nhánh / Văn phòng vệ tinh ngoại tỉnh\n(Kết nối an toàn qua mạng Site-to-Site VPN / SD-WAN)"]
+        Brands["Thương hiệu: Chủ lực (Canon, Ricoh)\nĐồng hành: Epson, HP, Brother, Toshiba, Olivetti"]
+        HQ --- Brands
+        Branches --- Brands
     end
 
     subgraph MonitoringLayer ["2. TẦNG THU THẬP & CẢNH BÁO (MONITORING ENGINE)"]
-        Zabbix["Zabbix Server 7.0 LTS\n(SNMP Poller v1/v2c/v3, Triggers & ICMP Ping)"]
-        MIBs["Từ điển OID MIBs: RFC 3805 (Printer-MIB),\nRicoh MIB, Canon MIB, HP MIB"]
+        Zabbix["Zabbix Server 7.0 LTS\n(SNMP Poller v1/v2c/v3 qua LAN nội bộ & Site-to-Site VPN)"]
+        MIBs["Từ điển OID MIBs: RFC 3805 (Printer-MIB),\nRicoh MIB, Canon MIB, HP/Brother/Epson/Toshiba"]
     end
 
     subgraph BackendLayer ["3. MÁY CHỦ DỊCH VỤ BACKEND (NODE.JS / EXPRESS / TYPESCRIPT)"]
         Poller["SNMP/Zabbix Poller & Telemetry Aggregator\n(Fast Polling 30s: Triggers/ICMP | Slow Polling 1h: Counters/Supplies)"]
         Cache["In-Memory Cache Engine (TTL = 60s)\n(Phản hồi UI < 50ms theo AGENTS.md, RAM < 1MB)"]
-        AuthMiddleware["RBAC & Data Scope Middleware\n(Kiểm soát 4 vai trò & Tự động tiêm lọc SQL theo Tầng/Phòng ban)"]
+        AuthMiddleware["RBAC & Data Scope Middleware\n(3 Vai trò: ADMIN, FIELD_TECH, ASSET_HR\nPhân vùng dữ liệu: Branch -> Floor -> Department)"]
         APIGateway["Express REST API Endpoints\n(/api/telemetry, /api/maintenance, /api/error-codes)"]
         CSVEngine["CSV Parser & Validation Engine\n(Nạp danh mục mã lỗi từ giao diện Cài đặt)"]
     end
@@ -39,12 +40,12 @@ flowchart TD
     end
 
     subgraph FrontendLayer ["5. GIAO DIỆN VẬN HÀNH NGƯỜI DÙNG (REACT 18 / TYPESCRIPT)"]
-        PureSVG["100% Pure React SVG Data Visualization\n(Spline 2.25px, Cột Ngang Stacked, Sandbox Đối Chiếu, Arc 180°, Heatmap)"]
-        Dashboards["Role-Based Bento Dashboard (Fleet Admin, NOC, Field Tech, HR)\nTùy biến bố cục Widget theo User"]
+        PureSVG["100% Pure React SVG Data Visualization\n(Spline 2.25px, Cột Ngang Stacked, Sandbox Đối Chiếu, Arc 180°, Dynamic Heatmap)"]
+        Dashboards["Role-Based Bento Dashboard (Admin IT/NOC, Field Tech, Asset HR)\nTùy biến bố cục Widget & Bộ lọc Chi nhánh/Tầng"]
         SettingsUI["Settings & CSV Error Code Manager\nTra cứu, nhập/xuất CSV và điều chỉnh ánh xạ lỗi"]
     end
 
-    FleetLayer -->|SNMP Traps / Polling| MonitoringLayer
+    FleetLayer -->|SNMP Traps / Polling qua VPN & LAN| MonitoringLayer
     MonitoringLayer -->|Zabbix JSON-RPC API| Poller
     Poller --> Cache
     Poller -->|Ghi Snapshot & Rollup| Postgres
@@ -455,14 +456,15 @@ flowchart TD
 
 ## 5. Đặc Tả Hạng Mục 4: Role-Based Dashboard & RBAC
 
-### 5.1. Ma Trận Phân Quyền 4 Cấp (RBAC Matrix)
+### 5.1. Ma Trận Phân Quyền 3 Vai Trò Chuẩn Hóa (RBAC 3 Roles Matrix)
 
-| Nhóm Vai Trò (Role) | Đối Tượng Thực Tế | Phạm Vi Truy Cập Dữ Liệu (Data Scope) | Quyền Hạn Chức Năng Cốt Lõi |
+Hệ thống chuẩn hóa thành **3 vai trò cốt lõi** bám sát thực tế vận hành doanh nghiệp (xem chi tiết tại [Đặc Tả Phân Quyền RBAC](file:///f:/Code/Github/Monitoring/docs/Design/rbac_roles_and_ui_permissions_spec.md)):
+
+| Nhóm Vai Trò (Role Code) | Đối Tượng Thực Tế | Phạm Vi Truy Cập Dữ Liệu (Data Scope) | Quyền Hạn Chức Năng Cốt Lõi |
 | :--- | :--- | :--- | :--- |
-| **Fleet Manager** | Trưởng phòng IT / Quản lý Tài sản | **Toàn công ty** (Tất cả chi nhánh, 5 tầng, phòng ban) | Toàn quyền xem và cấu hình; phê duyệt thanh lý thiết bị Lemon; xem báo cáo tổng chi phí bảo trì & SLA; quản lý người dùng; cấu hình quy tắc an toàn. |
-| **NOC Engineer** | Kỹ sư vận hành hệ thống IT | **Toàn hệ thống kỹ thuật** (~100 máy in) | Quản lý hàng đợi sự cố (Incidents); thao tác Stepper chẩn đoán; import/sửa mã lỗi CSV; theo dõi Ma trận nhiệt điểm nóng; quản lý polling Zabbix. |
-| **Field Technician** | Kỹ thuật viên bảo trì hiện trường | **Chỉ những Ticket & Task được giao** | Xem chi tiết lệnh bảo trì được phân công; ghi chép Work Log; nhập chi phí vật tư; chụp ảnh tải lên MinIO; xác nhận in thử nghiệm thu. |
-| **Department Head / HR** | Trưởng phòng ban / Kế toán nội bộ | **Chỉ trong Phòng ban / Tầng của mình** | Xem Dashboard sản lượng phòng ban; theo dõi định mức in ấn tháng; xem tỷ lệ Trang Màu vs Đơn Sắc; yêu cầu cấp thêm máy hoặc tạo ticket sửa máy. |
+| **`ADMIN`** | Trưởng phòng IT / Kỹ sư giám sát NOC | **Toàn công ty** (Tất cả chi nhánh, toà nhà 7 tầng, toàn bộ ~100 máy in) | Toàn quyền xem và cấu hình (Full Access); Duy nhất có quyền điều chuyển máy in, tạo lệnh bảo trì, phê duyệt nghiệm thu; quản lý người dùng; nạp CSV mã lỗi. |
+| **`FIELD_TECH`** | Kỹ thuật viên bảo trì hiện trường | **Chỉ Lệnh bảo trì được phân công** | Xem danh sách lệnh công việc trong ngày; Lịch trình Gantt; thực thi Dynamic Stepper SOP; chụp ảnh in test PASSED tải lên MinIO S3; **Ẩn hoàn toàn chi phí VNĐ**. |
+| **`ASSET_HR`** | Chuyên viên quản lý tài sản / Kế toán | **Quản trị tài sản & Chi phí** (Theo Chi nhánh & Phòng ban) | Quyền xem kiểm kê tài sản (Read-only); xem Vòng cung chi phí 180° đối soát tiền thuê máy; đối soát dữ liệu MTTR/SLA để đánh giá hiệu suất nhân sự. |
 
 ### 5.2. Cơ Chế Thực Thi Phân Vùng Dữ Liệu (Data Scope Enforcement)
 
@@ -471,10 +473,9 @@ flowchart TD
    ```json
    {
      "sub": "usr_9981",
-     "username": "truong_phong_ke_toan",
-     "role": "DEPARTMENT_HEAD",
+     "username": "tech_nam",
+     "role": "FIELD_TECH",
      "dataScope": {
-       "departmentIds": ["dept-ketoan-t1"],
        "branchIds": ["branch-hanoi-hq"]
      }
    }
@@ -486,12 +487,12 @@ flowchart TD
    // Middleware kiểm tra Data Scope
    export const applyDataScope = (req: Request, res: Response, next: NextFunction) => {
      const user = req.user;
-     if (user.role === 'FLEET_MANAGER' || user.role === 'NOC_ENGINEER') {
+     if (user.role === 'ADMIN') {
        req.dataScopeFilter = {}; // Toàn quyền, không lọc
-     } else if (user.role === 'FIELD_TECHNICIAN') {
+     } else if (user.role === 'FIELD_TECH') {
        req.dataScopeFilter = { assigned_to: user.id };
-     } else if (user.role === 'DEPARTMENT_HEAD') {
-       req.dataScopeFilter = { department_id: { in: user.dataScope.departmentIds } };
+     } else if (user.role === 'ASSET_HR') {
+       req.dataScopeFilter = { branch_id: { in: user.dataScope.branchIds } };
      }
      next();
    };

@@ -11,4 +11,4 @@ export * from './ISuppliesService';
 export * from './ITelemetryService';
 export * from './ISettingsService';
 export * from './IDashboardService';
-
+export * from './IAnalyticsService';

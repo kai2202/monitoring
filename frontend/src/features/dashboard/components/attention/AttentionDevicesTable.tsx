@@ -12,6 +12,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   FontAwesomeIcon,
   faTriangleExclamation,
+  faCircleCheck,
   faChevronLeft,
   faChevronRight,
 } from '../../../../shared/icons';
@@ -139,8 +140,24 @@ export const AttentionDevicesTable: React.FC<AttentionDevicesTableProps> = ({
           <tbody>
             {paginatedPrinters.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted, #64748b)' }}>
-                  Không có máy in nào cần xử lý trong bộ lọc hiện tại.
+                <td colSpan={7} style={{ padding: '38px 24px', textAlign: 'center' }}>
+                  {printers.length === 0 ? (
+                    <div>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', borderRadius: '50%', backgroundColor: 'rgba(22, 163, 74, 0.1)', color: '#16a34a', marginBottom: '8px' }}>
+                        <FontAwesomeIcon icon={faCircleCheck} style={{ fontSize: '20px' }} />
+                      </div>
+                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>
+                        Hạm đội vận hành ổn định — 100% an toàn
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #64748b)', marginTop: '4px' }}>
+                        Không phát hiện sự cố phần cứng, ngoại tuyến hay cạn kiệt vật tư nào cần can thiệp.
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ color: 'var(--text-muted, #64748b)', fontSize: '12.5px' }}>
+                      Không có máy in nào khớp với bộ lọc sự cố đã chọn.
+                    </div>
+                  )}
                 </td>
               </tr>
             ) : (

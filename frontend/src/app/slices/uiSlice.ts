@@ -1,9 +1,16 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { AnalyticsTimeframe, FloorTabId } from '../../types/analyticsUI';
+import { DATA_SOURCE } from '../../config/dataSource';
 
 export interface UIState {
   theme: 'dark' | 'light';
   sidebarCollapsed: boolean;
   toastMessage: string | null;
+  selectedBranch: string;
+  selectedTimeframe: AnalyticsTimeframe;
+  selectedFloor: FloorTabId;
+  isSyncingZabbix: boolean;
+  lastSyncTime: string | null;
 }
 
 const getInitialTheme = (): 'dark' | 'light' => {
@@ -14,10 +21,23 @@ const getInitialTheme = (): 'dark' | 'light' => {
   return 'dark'; // Default Matte Onyx Dark
 };
 
+const getInitialBranch = (): string => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('fleetmonitor-selected-branch');
+    if (saved) return saved;
+  }
+  return DATA_SOURCE === 'mock' ? 'Trụ sở chính (HQ)' : '';
+};
+
 const initialState: UIState = {
   theme: getInitialTheme(),
   sidebarCollapsed: false,
   toastMessage: null,
+  selectedBranch: getInitialBranch(),
+  selectedTimeframe: '30days',
+  selectedFloor: 'all',
+  isSyncingZabbix: false,
+  lastSyncTime: null,
 };
 
 export const uiSlice = createSlice({
@@ -47,6 +67,25 @@ export const uiSlice = createSlice({
     setSidebarCollapse: (state, action: PayloadAction<boolean>) => {
       state.sidebarCollapsed = action.payload;
     },
+    setSelectedBranch: (state, action: PayloadAction<string>) => {
+      state.selectedBranch = action.payload;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('fleetmonitor-selected-branch', action.payload);
+      }
+    },
+    setSelectedTimeframe: (state, action: PayloadAction<AnalyticsTimeframe>) => {
+      state.selectedTimeframe = action.payload;
+    },
+    setSelectedFloor: (state, action: PayloadAction<FloorTabId>) => {
+      state.selectedFloor = action.payload;
+    },
+    startZabbixSync: (state) => {
+      state.isSyncingZabbix = true;
+    },
+    finishZabbixSync: (state) => {
+      state.isSyncingZabbix = false;
+      state.lastSyncTime = new Date().toLocaleTimeString('vi-VN');
+    },
     showToast: (state, action: PayloadAction<string>) => {
       state.toastMessage = action.payload;
     },
@@ -61,9 +100,13 @@ export const {
   setTheme,
   toggleSidebarCollapse,
   setSidebarCollapse,
+  setSelectedBranch,
+  setSelectedTimeframe,
+  setSelectedFloor,
+  startZabbixSync,
+  finishZabbixSync,
   showToast,
   clearToast,
 } = uiSlice.actions;
 
 export default uiSlice.reducer;
-

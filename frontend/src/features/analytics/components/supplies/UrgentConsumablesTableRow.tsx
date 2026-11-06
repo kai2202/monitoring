@@ -6,7 +6,9 @@
  */
 
 import React from 'react';
-import { FontAwesomeIcon, faPlus, faFire, faClock } from '../../../../shared/icons';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../../app/store';
+import { FontAwesomeIcon, faPlus, faFire, faWrench } from '../../../../shared/icons';
 import { ConsumableAlertItem } from '../../../../types/analyticsUI';
 
 interface UrgentConsumablesTableRowProps {
@@ -18,7 +20,11 @@ export const UrgentConsumablesTableRow: React.FC<UrgentConsumablesTableRowProps>
   alt,
   onSelectAlertToDispatch,
 }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isAdmin = user?.role === 'ADMIN';
+
   const isCritical = alt.currentPercent < 15;
+  const isToner = ['black', 'cyan', 'magenta', 'yellow'].includes(alt.itemType);
 
   const getItemBadgeColor = (itemType: string) => {
     switch (itemType) {
@@ -77,9 +83,22 @@ export const UrgentConsumablesTableRow: React.FC<UrgentConsumablesTableRowProps>
           >
             {badgeInfo.label}
           </span>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #0f172a)' }}>
-            {alt.itemName}
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #0f172a)' }}>
+              {alt.itemName}
+            </span>
+            <span
+              style={{
+                fontSize: '9.5px',
+                fontWeight: 700,
+                color: isToner ? '#2563eb' : '#ea580c',
+                textTransform: 'uppercase',
+                letterSpacing: '0.02em',
+              }}
+            >
+              {isToner ? 'Mực in CMYK' : 'Cụm sấy / Trống'}
+            </span>
+          </div>
         </div>
       </td>
 
@@ -188,7 +207,7 @@ export const UrgentConsumablesTableRow: React.FC<UrgentConsumablesTableRowProps>
         </div>
       </td>
 
-      {/* Cột 6: Nút Tạo lệnh cấp phát */}
+      {/* Cột 6: Nút Tạo lệnh cấp phát / Chi tiết vật tư */}
       <td style={{ padding: '14px 20px', textAlign: 'right' }}>
         <button
           type="button"
@@ -199,15 +218,13 @@ export const UrgentConsumablesTableRow: React.FC<UrgentConsumablesTableRowProps>
             gap: '6px',
             padding: '6px 12px',
             borderRadius: '10px',
-            backgroundColor: isCritical ? '#e11d48' : '#2563eb',
-            color: '#ffffff',
-            border: 'none',
+            backgroundColor: isAdmin ? (isCritical ? '#e11d48' : '#2563eb') : 'rgba(37, 99, 235, 0.08)',
+            color: isAdmin ? '#ffffff' : '#2563eb',
+            border: isAdmin ? 'none' : '1px solid rgba(37, 99, 235, 0.25)',
             fontSize: '11.5px',
             fontWeight: 700,
             cursor: 'pointer',
-            boxShadow: isCritical
-              ? '0 2px 6px rgba(225, 29, 72, 0.3)'
-              : '0 2px 6px rgba(37, 99, 235, 0.25)',
+            boxShadow: isAdmin ? (isCritical ? '0 2px 6px rgba(225, 29, 72, 0.3)' : '0 2px 6px rgba(37, 99, 235, 0.25)') : 'none',
             transition: 'all 0.16s ease',
             whiteSpace: 'nowrap',
           }}
@@ -218,8 +235,8 @@ export const UrgentConsumablesTableRow: React.FC<UrgentConsumablesTableRowProps>
             e.currentTarget.style.opacity = '1';
           }}
         >
-          <FontAwesomeIcon icon={faPlus} style={{ fontSize: '10.5px' }} />
-          <span>Tạo task vật tư</span>
+          <FontAwesomeIcon icon={isAdmin ? faPlus : faWrench} style={{ fontSize: '10.5px' }} />
+          <span>{isAdmin ? 'Tạo task vật tư' : 'Chi tiết vật tư'}</span>
         </button>
       </td>
     </tr>

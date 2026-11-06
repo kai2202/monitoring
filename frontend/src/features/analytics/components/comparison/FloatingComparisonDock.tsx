@@ -9,10 +9,26 @@
 
 import React from 'react';
 import { FontAwesomeIcon, faScaleBalanced, faXmark, faTrashCan, faArrowRight } from '../../../../shared/icons';
-import { MOCK_PRINTER_DEFINITIONS, DEVICE_PALETTE, MockFleetDeviceDefinition, findAnyFleetDevice } from '../../../../mocks/mockAnalyticsUIData';
+
+const DOCK_PALETTE = [
+  '#2563eb',
+  '#7c3aed',
+  '#0891b2',
+  '#059669',
+  '#d97706',
+  '#dc2626',
+  '#db2777',
+  '#4f46e5',
+];
+
+export interface FloatingComparisonDockDevice {
+  id: string;
+  name: string;
+}
 
 export interface FloatingComparisonDockProps {
   pinnedPrinterIds: string[];
+  devices?: FloatingComparisonDockDevice[];
   onRemovePinnedPrinter: (printerId: string) => void;
   onClearAllPinned: () => void;
   onOpenComparisonModal: () => void;
@@ -20,18 +36,21 @@ export interface FloatingComparisonDockProps {
 
 export const FloatingComparisonDock: React.FC<FloatingComparisonDockProps> = ({
   pinnedPrinterIds,
+  devices = [],
   onRemovePinnedPrinter,
   onClearAllPinned,
   onOpenComparisonModal,
 }) => {
   if (pinnedPrinterIds.length === 0) return null;
 
-  const pinnedDevices = pinnedPrinterIds
-    .map((id, index) => {
-      const dev = findAnyFleetDevice(id) || MOCK_PRINTER_DEFINITIONS.find((p) => p.id === id);
-      return dev ? { ...dev, color: DEVICE_PALETTE[index % DEVICE_PALETTE.length] } : null;
-    })
-    .filter((d): d is (MockFleetDeviceDefinition & { color: string }) => Boolean(d));
+  const pinnedDevices = pinnedPrinterIds.map((id, index) => {
+    const dev = devices.find((p) => p.id === id);
+    return {
+      id,
+      name: dev?.name || id,
+      color: DOCK_PALETTE[index % DOCK_PALETTE.length],
+    };
+  });
 
   return (
     <aside

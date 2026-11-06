@@ -3,10 +3,13 @@
  *
  * Dòng Hiển Thị Lệnh Bảo Trì (Work Order Table Row):
  * - Hỗ trợ bấm mũi tên mở rộng (Expandable Row) và click xem chi tiết lệnh.
+ * - Nút Điều phối KTV và Hủy lệnh cho Admin khi task còn hiệu lực.
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
  */
 
 import React from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../../app/store';
 import {
   FontAwesomeIcon,
   faChevronRight,
@@ -14,6 +17,8 @@ import {
   faFire,
   faTriangleExclamation,
   faClock,
+  faUserGear,
+  faBan,
 } from '../../../../shared/icons';
 import { Task, TaskPriority, TaskStatus } from '../../../../types/task';
 import { Printer } from '../../../../types/printer';
@@ -24,82 +29,53 @@ interface WorkOrderTableRowProps {
   isExpanded: boolean;
   onToggleExpand: (e: React.MouseEvent) => void;
   onOpenDetail: () => void;
+  isAdmin?: boolean;
+  onOpenReassign?: (task: Task) => void;
+  onOpenCancel?: (task: Task) => void;
 }
 
 export const WorkOrderTableRow: React.FC<WorkOrderTableRowProps> = ({
   task,
-  printer,
   isExpanded,
   onToggleExpand,
   onOpenDetail,
+  isAdmin = false,
+  onOpenReassign,
+  onOpenCancel,
 }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isAssetHr = user?.role === 'ASSET_HR' || user?.role === 'DEPARTMENT_HEAD';
+
   const steps = task.dynamicSteps || [];
   const completedSteps = steps.filter((s) => s.status === 'Completed').length;
+  const isActionable = task.status !== 'Completed' && task.status !== 'Cancelled';
 
   const renderPriorityBadge = (priority: TaskPriority) => {
     switch (priority) {
       case 'P1_Urgent':
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontWeight: 700, fontSize: '11.5px' }}>
-            <FontAwesomeIcon icon={faFire} style={{ fontSize: '12px', color: '#dc2626' }} />
-            <span>Critical</span>
-          </span>
-        );
+        return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontWeight: 700, fontSize: '11.5px' }}><FontAwesomeIcon icon={faFire} style={{ fontSize: '12px' }} /><span>Critical</span></span>;
       case 'P2_High':
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#ea580c', fontWeight: 600, fontSize: '11.5px' }}>
-            <FontAwesomeIcon icon={faTriangleExclamation} style={{ fontSize: '12px', color: '#ea580c' }} />
-            <span>High</span>
-          </span>
-        );
+        return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#ea580c', fontWeight: 600, fontSize: '11.5px' }}><FontAwesomeIcon icon={faTriangleExclamation} style={{ fontSize: '12px' }} /><span>High</span></span>;
       case 'P3_Medium':
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#d97706', fontWeight: 600, fontSize: '11.5px' }}>
-            <FontAwesomeIcon icon={faClock} style={{ fontSize: '12px', color: '#d97706' }} />
-            <span>Medium</span>
-          </span>
-        );
+        return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#d97706', fontWeight: 600, fontSize: '11.5px' }}><FontAwesomeIcon icon={faClock} style={{ fontSize: '12px' }} /><span>Medium</span></span>;
       default:
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#0284c7', fontWeight: 500, fontSize: '11.5px' }}>
-            <FontAwesomeIcon icon={faChevronDown} style={{ fontSize: '11px', color: '#0284c7' }} />
-            <span>Low</span>
-          </span>
-        );
+        return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#0284c7', fontWeight: 500, fontSize: '11.5px' }}><FontAwesomeIcon icon={faChevronDown} style={{ fontSize: '11px' }} /><span>Low</span></span>;
     }
   };
 
   const renderStatusBadge = (status: TaskStatus) => {
     switch (status) {
       case 'In_Progress':
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#16a34a' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a' }} />
-            <span>In Progress</span>
-          </span>
-        );
+        return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#16a34a' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a' }} /><span>In Progress</span></span>;
       case 'Planned':
       case 'Waiting':
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#d97706' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#d97706' }} />
-            <span>{status === 'Planned' ? 'Scheduled' : 'On-hold'}</span>
-          </span>
-        );
+        return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#d97706' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#d97706' }} /><span>{status === 'Planned' ? 'Scheduled' : 'On-hold'}</span></span>;
       case 'Completed':
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#059669' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#059669' }} />
-            <span>Completed</span>
-          </span>
-        );
+        return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#059669' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#059669' }} /><span>Completed</span></span>;
+      case 'Cancelled':
+        return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#ef4444' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ef4444' }} /><span>Đã hủy</span></span>;
       default:
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#64748b' }} />
-            <span>Open</span>
-          </span>
-        );
+        return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#64748b' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#64748b' }} /><span>Open</span></span>;
     }
   };
 
@@ -215,24 +191,79 @@ export const WorkOrderTableRow: React.FC<WorkOrderTableRowProps> = ({
 
       {/* 7. Action */}
       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-        <button
-          type="button"
-          onClick={onOpenDetail}
-          style={{
-            padding: '5px 10px',
-            borderRadius: '6px',
-            backgroundColor: 'var(--bg-subtle, #f8fafc)',
-            border: '1px solid var(--border-color, #e2e8f0)',
-            color: '#2563eb',
-            fontSize: '11.5px',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Chi tiết →
-        </button>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          {isAdmin && isActionable && onOpenReassign && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenReassign(task);
+              }}
+              title="Điều phối kỹ thuật viên (Admin)"
+              style={{
+                padding: '4px 7px',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                color: '#2563eb',
+                border: '1px solid rgba(37, 99, 235, 0.2)',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+            >
+              <FontAwesomeIcon icon={faUserGear} style={{ fontSize: '10px' }} />
+              <span>Gán KTV</span>
+            </button>
+          )}
+
+          {isAdmin && isActionable && onOpenCancel && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenCancel(task);
+              }}
+              title="Hủy lệnh bảo trì (Admin)"
+              style={{
+                padding: '4px 7px',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+            >
+              <FontAwesomeIcon icon={faBan} style={{ fontSize: '10px' }} />
+              <span>Hủy</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onOpenDetail}
+            style={{
+              padding: '5px 10px',
+              borderRadius: '6px',
+              backgroundColor: !isAdmin && isActionable ? (isAssetHr ? 'rgba(2, 132, 199, 0.1)' : 'rgba(37, 99, 235, 0.1)') : 'var(--bg-subtle, #f8fafc)',
+              border: `1px solid ${!isAdmin && isActionable ? (isAssetHr ? '#0284c7' : '#2563eb') : 'var(--border-color, #e2e8f0)'}`,
+              color: isAssetHr ? '#0284c7' : '#2563eb',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            {isAdmin ? 'Chi tiết →' : isAssetHr ? 'Hồ sơ đối soát →' : (isActionable ? 'Thực hiện SOP →' : 'Xem lại →')}
+          </button>
+        </div>
       </td>
     </tr>
   );
 };
-
