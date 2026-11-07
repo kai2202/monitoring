@@ -17,6 +17,9 @@ coverage/
 .env
 .env.*
 !.env.example
+!Frontend/.env.mock
+!Frontend/.env.production
+
 
 # Logs
 *.log

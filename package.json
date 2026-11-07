@@ -15,6 +15,7 @@
     "dev:backend": "npm run dev -w Backend",
     "build": "npm run build:frontend",
     "build:frontend": "npm run build -w Frontend",
+    "build:mock": "npm run build:mock -w Frontend",
     "build:backend": "npm run build -w Backend",
     "build:all": "npm run build --workspaces --if-present",
     "start": "npm run start -w Backend",
