@@ -11,6 +11,7 @@ import { baseApi } from './api/baseApi';
 import uiReducer from './slices/uiSlice';
 import comparisonReducer from './slices/comparisonSlice';
 import authReducer from './slices/authSlice';
+import notificationReducer from './slices/notificationSlice';
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ export const store = configureStore({
     ui: uiReducer,
     comparison: comparisonReducer,
     auth: authReducer,
+    notification: notificationReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

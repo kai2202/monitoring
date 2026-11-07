@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { toast } from 'sonner';
 import {
   FontAwesomeIcon,
@@ -20,6 +21,7 @@ import {
 import { useDebounce } from '@/shared/hooks';
 import { PrinterErrorCode } from '@/types/api';
 import { settingsService } from '@/services';
+import { setUnmappedErrors } from '@/app/slices/notificationSlice';
 import {
   CsvImportApiResult,
   ErrorDictionaryLifecycleStatus,
@@ -49,6 +51,7 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
   isLoading,
   onReloadDictionary,
 }) => {
+  const dispatch = useDispatch();
   const [errorSearch, setErrorSearch] = useState('');
   const debouncedSearch = useDebounce(errorSearch, 250);
   const [vendorFilter, setVendorFilter] = useState('all');
@@ -66,10 +69,13 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
     try {
       const status = await settingsService.getErrorDictionaryStatus();
       setLifecycleStatus(status);
+      if (status?.unmappedCodes) {
+        dispatch(setUnmappedErrors(status.unmappedCodes));
+      }
     } catch {
       // Giữ trạng thái hiện tại nếu chưa phản hồi
     }
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     fetchLifecycle();
@@ -115,6 +121,9 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
   const handleImportSuccess = (importedRows: PrinterErrorCode[], apiRes?: CsvImportApiResult) => {
     if (apiRes?.lifecycle) {
       setLifecycleStatus(apiRes.lifecycle);
+      if (apiRes.lifecycle.unmappedCodes) {
+        dispatch(setUnmappedErrors(apiRes.lifecycle.unmappedCodes));
+      }
     } else {
       fetchLifecycle();
     }
@@ -141,6 +150,9 @@ export const ErrorDictionaryCard: React.FC<ErrorDictionaryCardProps> = ({
       const res = await settingsService.unloadErrorDictionaryCsv();
       setCustomErrors([]);
       setLifecycleStatus(res.lifecycle);
+      if (res.lifecycle?.unmappedCodes) {
+        dispatch(setUnmappedErrors(res.lifecycle.unmappedCodes));
+      }
       if (onReloadDictionary) {
         onReloadDictionary();
       }

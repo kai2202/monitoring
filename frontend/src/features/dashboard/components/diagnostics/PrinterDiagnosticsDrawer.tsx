@@ -31,6 +31,7 @@ export interface PrinterDiagnosticsDrawerProps {
   onTaskCompleted?: (task: Task) => void;
   onTaskCreated?: (task: Task) => void;
   onTaskUpdated?: (task: Task) => void;
+  onPrinterUpdated?: (printer: Printer) => void;
 }
 
 export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> = ({
@@ -45,6 +46,7 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
   onTaskCompleted,
   onTaskCreated,
   onTaskUpdated,
+  onPrinterUpdated,
 }) => {
   const { user } = useSelector((state: RootState) => state.auth);
   const [activeTab, setActiveTab] = useState<'diag' | 'tasks'>(
@@ -113,14 +115,27 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
   };
 
   const handleReopenTask = (taskId: string) => {
+    if (user?.role !== 'ADMIN') {
+      toast.error('Chỉ Quản trị viên mới có quyền mở lại nhiệm vụ đã đóng');
+      return;
+    }
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
-    const updated: Task = {
-      ...task,
-      status: 'In_Progress',
-      progressPercent: 80,
-    };
+    const updated: Task = { ...task, status: 'In_Progress', progressPercent: 80 };
     handleUpdateTask(updated);
+    toast.success(`Đã mở lại nhiệm vụ ${task.id}`);
+  };
+
+  const handleReactivatePrinter = async () => {
+    if (!printer) return;
+    try {
+      const updated = await printerService.updatePrinter(printer.id, { monitoringStatus: 'Active' });
+      toast.success(`Đã khôi phục giám sát máy in ${printer.name} (${printer.id}) thành công.`);
+      if (onPrinterUpdated) onPrinterUpdated(updated);
+    } catch (err) {
+      toast.error('Lỗi khi khôi phục giám sát thiết bị.');
+      console.error(err);
+    }
   };
 
   const handleCreateTaskSuccess = async (newTask: Partial<Task>) => {
@@ -172,50 +187,37 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
           onClose={onClose}
           onNextPrinter={onNextPrinter}
           onPrevPrinter={onPrevPrinter}
+          onReactivatePrinter={handleReactivatePrinter}
+          isAdmin={user?.role === 'ADMIN'}
         />
 
         {/* 2. Tabs Switcher */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color, #e2e8f0)', padding: '0 24px', backgroundColor: 'var(--bg-subtle, #f8fafc)' }}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('diag')}
-            className={`subtab-pill-btn ${activeTab === 'diag' ? 'active' : ''}`}
-            style={{
-              padding: '12px 18px',
-              fontSize: '12.5px',
-              fontWeight: activeTab === 'diag' ? 700 : 500,
-              color: activeTab === 'diag' ? '#2563eb' : 'var(--text-muted, #64748b)',
-              borderBottom: activeTab === 'diag' ? '2px solid #2563eb' : '2px solid transparent',
-              background: 'none',
-              borderTop: 'none',
-              borderLeft: 'none',
-              borderRight: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.18s ease',
-            }}
-          >
-            Chẩn đoán &amp; Vật tư CMYK
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('tasks')}
-            className={`subtab-pill-btn ${activeTab === 'tasks' ? 'active' : ''}`}
-            style={{
-              padding: '12px 18px',
-              fontSize: '12.5px',
-              fontWeight: activeTab === 'tasks' ? 700 : 500,
-              color: activeTab === 'tasks' ? '#2563eb' : 'var(--text-muted, #64748b)',
-              borderBottom: activeTab === 'tasks' ? '2px solid #2563eb' : '2px solid transparent',
-              background: 'none',
-              borderTop: 'none',
-              borderLeft: 'none',
-              borderRight: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.18s ease',
-            }}
-          >
-            Lệnh Bảo Trì &amp; Tiến Độ ({tasks.length})
-          </button>
+          {[
+            { id: 'diag', label: 'Chẩn đoán & Vật tư CMYK' },
+            { id: 'tasks', label: `Lệnh Bảo Trì & Tiến Độ (${tasks.length})` },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as 'diag' | 'tasks')}
+              className={`subtab-pill-btn ${activeTab === tab.id ? 'active' : ''}`}
+              style={{
+                padding: '12px 18px',
+                fontSize: '12.5px',
+                fontWeight: activeTab === tab.id ? 700 : 500,
+                color: activeTab === tab.id ? '#2563eb' : 'var(--text-muted, #64748b)',
+                borderBottom: activeTab === tab.id ? '2px solid #2563eb' : '2px solid transparent',
+                background: 'none',
+                borderTop: 'none',
+                borderLeft: 'none',
+                borderRight: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* 3. Tab Content */}
@@ -234,47 +236,30 @@ export const PrinterDiagnosticsDrawer: React.FC<PrinterDiagnosticsDrawerProps> =
               onAddNewStep={(tId, title) => {
                 const t = tasks.find((x) => x.id === tId);
                 if (!t) return;
-                const newStep: TaskStepItem = { id: `s-${Date.now()}`, title, status: 'Pending' };
-                const updatedSteps = [...(t.dynamicSteps || []), newStep];
+                const updatedSteps = [...(t.dynamicSteps || []), { id: `s-${Date.now()}`, title, status: 'Pending' as const }];
                 const completedCount = updatedSteps.filter((s) => s.status === 'Completed').length;
-                const newProgress = Math.round((completedCount / updatedSteps.length) * 100);
-                handleUpdateTask({
-                  ...t,
-                  dynamicSteps: updatedSteps,
-                  progressPercent: newProgress,
-                  status: t.status === 'Completed' ? 'In_Progress' : t.status,
-                });
+                handleUpdateTask({ ...t, dynamicSteps: updatedSteps, progressPercent: Math.round((completedCount / updatedSteps.length) * 100), status: t.status === 'Completed' ? 'In_Progress' : t.status });
               }}
               onToggleStep={(tId, sId) => {
                 const t = tasks.find((x) => x.id === tId);
                 if (!t) return;
-                const updatedSteps = (t.dynamicSteps || []).map((s) =>
-                  s.id === sId ? { ...s, status: s.status === 'Completed' ? ('Pending' as const) : ('Completed' as const) } : s
-                );
+                const updatedSteps = (t.dynamicSteps || []).map((s) => s.id === sId ? { ...s, status: s.status === 'Completed' ? ('Pending' as const) : ('Completed' as const) } : s);
                 const completedCount = updatedSteps.filter((s) => s.status === 'Completed').length;
-                const newProgress = updatedSteps.length > 0 ? Math.round((completedCount / updatedSteps.length) * 100) : 0;
                 const isAllDone = completedCount === updatedSteps.length && updatedSteps.length > 0;
-                const newStatus = isAllDone ? 'Completed' : (t.status === 'Completed' ? 'In_Progress' : t.status);
                 handleUpdateTask({
-                  ...t,
-                  dynamicSteps: updatedSteps,
-                  progressPercent: newProgress,
-                  status: newStatus,
+                  ...t, dynamicSteps: updatedSteps,
+                  progressPercent: updatedSteps.length > 0 ? Math.round((completedCount / updatedSteps.length) * 100) : 0,
+                  status: isAllDone ? 'Pending_Verification' : (t.status === 'Completed' || t.status === 'Pending_Verification' ? 'In_Progress' : t.status),
                   completedDate: isAllDone ? (t.completedDate || new Date().toISOString()) : undefined,
                 });
               }}
               onAddActivityNote={(tId, note) => {
                 const t = tasks.find((x) => x.id === tId);
                 if (!t) return;
-                const newFeed: TaskActivityFeedItem = {
-                  id: `act-${Date.now()}`,
-                  author: 'Kỹ sư NOC',
-                  avatarText: 'OP',
-                  timestamp: 'Vừa xong',
-                  type: 'comment',
-                  content: note,
-                };
-                handleUpdateTask({ ...t, activityFeed: [...(t.activityFeed || []), newFeed] });
+                const authorName = user?.fullName || (user as any)?.name || user?.username || 'Kỹ thuật viên';
+                const words = authorName.trim().split(' ').filter(Boolean);
+                const avatar = words.length > 1 ? (words[0][0] + words[words.length - 1][0]).toUpperCase() : authorName.slice(0, 2).toUpperCase();
+                handleUpdateTask({ ...t, activityFeed: [...(t.activityFeed || []), { id: `act-${Date.now()}`, author: authorName, avatarText: avatar || (user?.role === 'ADMIN' ? 'AD' : 'KT'), timestamp: 'Vừa xong', type: 'comment', content: note }] });
               }}
             />
           )}

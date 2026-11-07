@@ -26,6 +26,7 @@ interface PrinterTableViewProps {
   onOpenRelocate?: (printer: Printer) => void;
   onOpenEdit?: (printer: Printer) => void;
   onDecommissionPrinter?: (printer: Printer) => void;
+  onReactivatePrinter?: (printer: Printer) => void;
   isAdmin?: boolean;
 }
 
@@ -38,6 +39,7 @@ export const PrinterTableView: React.FC<PrinterTableViewProps> = ({
   onOpenRelocate,
   onOpenEdit,
   onDecommissionPrinter,
+  onReactivatePrinter,
   isAdmin = false,
 }) => {
   const [pageSize, setPageSize] = useState<number>(15);
@@ -188,6 +190,7 @@ export const PrinterTableView: React.FC<PrinterTableViewProps> = ({
                   onOpenRelocate={onOpenRelocate}
                   onOpenEdit={onOpenEdit}
                   onDecommissionPrinter={onDecommissionPrinter}
+                  onReactivatePrinter={onReactivatePrinter}
                 />
               ))
             )}

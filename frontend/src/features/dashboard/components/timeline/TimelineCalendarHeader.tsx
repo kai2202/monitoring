@@ -2,9 +2,9 @@
  * Frontend/src/features/dashboard/components/timeline/TimelineCalendarHeader.tsx
  *
  * Header điều khiển Lịch Trình Tiến Độ Công Việc (Timeline Gantt Calendar):
- * - Bộ chuyển đổi dải ngày (7 ngày, 14 ngày, 30 ngày), nút Hôm nay, Prev/Next.
- * - Bộ lọc loại công việc, tìm kiếm máy in và nút Tạo việc mới.
- * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
+ * - Bộ chuyển đổi dải ngày (7, 14, 30 ngày), nút Hôm nay, Prev/Next.
+ * - Bộ lọc loại công việc, lọc theo Kỹ thuật viên (Assignee), tìm kiếm máy in.
+ * - Tuân thủ nghiêm ngặt AGENTS.md Rule 7.1 (< 300 LOC, FontAwesome duy nhất).
  */
 
 import React from 'react';
@@ -17,8 +17,15 @@ import {
   faPlus,
   faMagnifyingGlass,
   faFilter,
+  faUser,
   faUserCheck,
 } from '../../../../shared/icons';
+
+export interface AvailableTechnician {
+  id?: string;
+  name: string;
+  role?: string;
+}
 
 interface TimelineCalendarHeaderProps {
   viewDuration: 7 | 14 | 30;
@@ -34,6 +41,9 @@ interface TimelineCalendarHeaderProps {
   onlyWithTasks: boolean;
   onToggleOnlyWithTasks: () => void;
   printersWithTasksCount: number;
+  technicianFilter: string;
+  onTechnicianFilterChange: (tech: string) => void;
+  availableTechnicians: AvailableTechnician[];
   myTasksOnly?: boolean;
   onToggleMyTasksOnly?: () => void;
   myTasksCount?: number;
@@ -54,6 +64,9 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
   onlyWithTasks,
   onToggleOnlyWithTasks,
   printersWithTasksCount,
+  technicianFilter,
+  onTechnicianFilterChange,
+  availableTechnicians = [],
   myTasksOnly = false,
   onToggleMyTasksOnly,
   myTasksCount = 0,
@@ -83,28 +96,14 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
           <button
             type="button"
             onClick={onPrevRange}
-            style={{
-              padding: '6px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color, #e2e8f0)',
-              background: 'transparent',
-              cursor: 'pointer',
-              color: 'var(--text-secondary, #475569)',
-            }}
+            style={{ padding: '6px', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary, #475569)' }}
           >
             <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: '13px' }} />
           </button>
           <button
             type="button"
             onClick={onNextRange}
-            style={{
-              padding: '6px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color, #e2e8f0)',
-              background: 'transparent',
-              cursor: 'pointer',
-              color: 'var(--text-secondary, #475569)',
-            }}
+            style={{ padding: '6px', borderRadius: '8px', border: '1px solid var(--border-color, #e2e8f0)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary, #475569)' }}
           >
             <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '13px' }} />
           </button>
@@ -117,16 +116,7 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
         <button
           type="button"
           onClick={onJumpToToday}
-          style={{
-            padding: '5px 12px',
-            borderRadius: '8px',
-            fontSize: '11.5px',
-            fontWeight: 700,
-            border: '1px solid var(--border-color, #e2e8f0)',
-            backgroundColor: 'var(--bg-subtle, #f8fafc)',
-            color: '#2563eb',
-            cursor: 'pointer',
-          }}
+          style={{ padding: '5px 12px', borderRadius: '8px', fontSize: '11.5px', fontWeight: 700, border: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-subtle, #f8fafc)', color: '#2563eb', cursor: 'pointer' }}
         >
           Hôm nay
         </button>
@@ -160,8 +150,9 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
         </div>
       </div>
 
-      {/* 2. Filters & Create Button */}
+      {/* 2. Filters & Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        {/* Tìm kiếm máy in */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '10px', padding: '5px 10px' }}>
           <FontAwesomeIcon icon={faMagnifyingGlass} style={{ fontSize: '12px', color: '#64748b' }} />
           <input
@@ -173,16 +164,11 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
           />
         </div>
 
+        {/* Lọc loại việc */}
         <select
           value={typeFilter}
           onChange={(e) => onTypeFilterChange(e.target.value)}
-          style={{
-            padding: '5px 10px',
-            fontSize: '11.5px',
-            borderRadius: '10px',
-            border: '1px solid var(--border-color, #e2e8f0)',
-            backgroundColor: 'var(--bg-card, #ffffff)',
-          }}
+          style={{ padding: '5px 10px', fontSize: '11.5px', borderRadius: '10px', border: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-card, #ffffff)', color: 'var(--text-primary, #0f172a)', outline: 'none', cursor: 'pointer' }}
         >
           <option value="all">Tất cả loại việc</option>
           <option value="CORRECTIVE_REPAIR">Sửa chữa P1</option>
@@ -196,40 +182,50 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
           type="button"
           onClick={onToggleOnlyWithTasks}
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '5px 12px',
-            fontSize: '11.5px',
-            fontWeight: 600,
-            borderRadius: '10px',
+            display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', fontSize: '11.5px', fontWeight: 600, borderRadius: '10px',
             border: `1px solid ${onlyWithTasks ? '#2563eb' : 'var(--border-color, #e2e8f0)'}`,
             backgroundColor: onlyWithTasks ? 'rgba(37, 99, 235, 0.08)' : 'var(--bg-card, #ffffff)',
             color: onlyWithTasks ? '#2563eb' : 'var(--text-secondary, #475569)',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            whiteSpace: 'nowrap',
+            cursor: 'pointer', transition: 'all 0.15s ease', whiteSpace: 'nowrap',
           }}
           title={onlyWithTasks ? 'Hiển thị tất cả máy in' : 'Chỉ hiển thị máy in có lịch trình task'}
         >
-          <FontAwesomeIcon
-            icon={faFilter}
-            style={{ fontSize: '11px', color: onlyWithTasks ? '#2563eb' : '#64748b' }}
-          />
+          <FontAwesomeIcon icon={faFilter} style={{ fontSize: '11px', color: onlyWithTasks ? '#2563eb' : '#64748b' }} />
           <span>Có gắn task</span>
-          <span
-            style={{
-              padding: '1px 6px',
-              borderRadius: '999px',
-              fontSize: '10px',
-              fontWeight: 700,
-              backgroundColor: onlyWithTasks ? '#2563eb' : 'var(--bg-subtle, #f1f5f9)',
-              color: onlyWithTasks ? '#ffffff' : 'var(--text-muted, #64748b)',
-            }}
-          >
+          <span style={{ padding: '1px 6px', borderRadius: '999px', fontSize: '10px', fontWeight: 700, backgroundColor: onlyWithTasks ? '#2563eb' : 'var(--bg-subtle, #f1f5f9)', color: onlyWithTasks ? '#ffffff' : 'var(--text-muted, #64748b)' }}>
             {printersWithTasksCount}
           </span>
         </button>
+
+        {/* Dropdown lọc theo Kỹ thuật viên (bổ sung ở phần có gắn task) */}
+        <div
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            backgroundColor: technicianFilter !== 'all' ? 'rgba(37, 99, 235, 0.08)' : 'var(--bg-card, #ffffff)',
+            border: `1px solid ${technicianFilter !== 'all' ? '#2563eb' : 'var(--border-color, #e2e8f0)'}`,
+            borderRadius: '10px', padding: '4px 8px', transition: 'all 0.15s ease',
+          }}
+        >
+          <FontAwesomeIcon icon={faUser} style={{ fontSize: '11px', color: technicianFilter !== 'all' ? '#2563eb' : '#64748b' }} />
+          <select
+            value={technicianFilter}
+            onChange={(e) => onTechnicianFilterChange(e.target.value)}
+            style={{
+              border: 'none', background: 'transparent', outline: 'none', fontSize: '11.5px',
+              fontWeight: technicianFilter !== 'all' ? 700 : 500,
+              color: technicianFilter !== 'all' ? '#2563eb' : 'var(--text-secondary, #475569)',
+              cursor: 'pointer', maxWidth: '170px',
+            }}
+            title="Lọc task theo Kỹ thuật viên phụ trách"
+          >
+            <option value="all">Tất cả kỹ thuật viên</option>
+            {availableTechnicians.map((tech) => (
+              <option key={tech.id || tech.name} value={tech.name}>
+                {tech.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Nút lọc việc của tôi (KTV cá nhân) */}
         {onToggleMyTasksOnly && (
@@ -240,7 +236,8 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
               display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', fontSize: '11.5px', fontWeight: 600, borderRadius: '10px',
               border: `1px solid ${myTasksOnly ? '#d97706' : 'var(--border-color, #e2e8f0)'}`,
               backgroundColor: myTasksOnly ? 'rgba(245, 158, 11, 0.12)' : 'var(--bg-card, #ffffff)',
-              color: myTasksOnly ? '#d97706' : 'var(--text-secondary, #475569)', cursor: 'pointer', transition: 'all 0.15s ease', whiteSpace: 'nowrap',
+              color: myTasksOnly ? '#d97706' : 'var(--text-secondary, #475569)',
+              cursor: 'pointer', transition: 'all 0.15s ease', whiteSpace: 'nowrap',
             }}
             title={myTasksOnly ? 'Xem lịch trình toàn đội' : 'Chỉ xem lịch trình công việc phân công cho tôi'}
           >
@@ -254,11 +251,15 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
           </button>
         )}
 
+        {/* Nút Tạo việc mới (Admin Only) */}
         {isAdmin && (
           <button
             type="button"
             onClick={onOpenCreateModal}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '10px', backgroundColor: '#16a34a', color: '#ffffff', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)' }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '10px',
+              backgroundColor: '#16a34a', color: '#ffffff', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+            }}
           >
             <FontAwesomeIcon icon={faPlus} style={{ fontSize: '12px' }} />
             <span>Tạo việc mới</span>
@@ -269,3 +270,4 @@ export const TimelineCalendarHeader: React.FC<TimelineCalendarHeaderProps> = ({
   );
 };
 
+export default TimelineCalendarHeader;

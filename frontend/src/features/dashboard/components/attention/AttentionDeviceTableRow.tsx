@@ -3,13 +3,12 @@
  *
  * Dòng Hiển Thị Thiết Bị Cần Chú Ý:
  * - Phân biệt rành mạch Ngoại tuyến (Offline), Lỗi phần cứng (Hardware), Cảnh báo vật tư.
- * - Hỗ trợ sao chép IP, nút [Chẩn đoán] và [+ Lập lệnh].
- * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
+ * - Hỗ trợ sao chép IP nhanh.
+ * - Thao tác: Nút [Tạo Phiếu] mở modal tạo phiếu bảo trì mới trực tiếp tại Dashboard.
+ * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC, 100% FontAwesome).
  */
 
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../../../app/store';
 import {
   FontAwesomeIcon,
   faTriangleExclamation,
@@ -17,7 +16,7 @@ import {
   faBox,
   faCopy,
   faCheck,
-  faWrench,
+  faPlus,
 } from '../../../../shared/icons';
 import { Printer } from '../../../../types/printer';
 import { AttentionCmykMiniBar } from './AttentionCmykMiniBar';
@@ -37,9 +36,6 @@ export const AttentionDeviceTableRow: React.FC<AttentionDeviceTableRowProps> = (
   onSelectPrinter,
   onCreateTask,
 }) => {
-  const { user } = useSelector((state: RootState) => state.auth);
-  const isAdmin = user?.role === 'ADMIN';
-
   const isOffline = printer.connectionStatus === 'Offline';
   const isHardware = !isOffline && (
     printer.alertSeverity === 'critical' ||
@@ -64,7 +60,11 @@ export const AttentionDeviceTableRow: React.FC<AttentionDeviceTableRowProps> = (
         <button
           type="button"
           onClick={(e) => onCopyIp(e, printer.ip)}
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: "'JetBrains Mono', monospace", fontSize: '11.5px', color: '#2563eb' }}
+          style={{
+            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '4px',
+            fontFamily: "'JetBrains Mono', monospace", fontSize: '11.5px', color: '#2563eb',
+          }}
         >
           <span>{printer.ip}</span>
           {copiedIp === printer.ip ? (
@@ -145,77 +145,39 @@ export const AttentionDeviceTableRow: React.FC<AttentionDeviceTableRowProps> = (
         </span>
       </td>
 
-      {/* Thao Tác Kép: [Chẩn đoán] + [+ Lập lệnh] */}
+      {/* Thao Tác: Duy Nhất Nút [Tạo Phiếu] */}
       <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            onClick={() => onSelectPrinter(printer)}
-            title="Mở bảng OID và chẩn đoán kỹ thuật thiết bị"
-            style={{
-              padding: '4px 8px',
-              borderRadius: '6px',
-              backgroundColor: 'var(--bg-subtle, #f8fafc)',
-              border: '1px solid var(--border-color, #e2e8f0)',
-              color: '#2563eb',
-              fontSize: '11px',
-              fontWeight: 600,
-              cursor: 'pointer',
+            onClick={() => {
+              if (onCreateTask) onCreateTask(printer);
+              else onSelectPrinter(printer);
             }}
+            title="Tạo phiếu bảo trì mới cho thiết bị này ngay tại Dashboard"
+            style={{
+              padding: '5px 12px',
+              borderRadius: '8px',
+              backgroundColor: '#2563eb',
+              border: 'none',
+              color: '#ffffff',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
+              transition: 'background-color 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1d4ed8')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2563eb')}
           >
-            Chẩn đoán
+            <FontAwesomeIcon icon={faPlus} style={{ fontSize: '10px' }} />
+            <span>Tạo Phiếu</span>
           </button>
-          {isAdmin ? (
-            <button
-              type="button"
-              onClick={() => {
-                if (onCreateTask) onCreateTask(printer);
-                else onSelectPrinter(printer);
-              }}
-              title="Lập lệnh bảo trì / công việc mới"
-              style={{
-                padding: '4px 8px',
-                borderRadius: '6px',
-                backgroundColor: '#2563eb',
-                border: 'none',
-                color: '#ffffff',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <FontAwesomeIcon icon={faWrench} style={{ fontSize: '9.5px' }} />
-              <span>Lập lệnh</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onSelectPrinter(printer)}
-              title="Xem chi tiết thiết bị &amp; lệnh bảo trì"
-              style={{
-                padding: '4px 8px',
-                borderRadius: '6px',
-                backgroundColor: 'rgba(37, 99, 235, 0.08)',
-                border: '1px solid rgba(37, 99, 235, 0.25)',
-                color: '#2563eb',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <FontAwesomeIcon icon={faWrench} style={{ fontSize: '9.5px' }} />
-              <span>Xem lệnh</span>
-            </button>
-          )}
         </div>
       </td>
     </tr>
   );
 };
-

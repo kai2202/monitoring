@@ -1,9 +1,9 @@
 /**
  * Frontend/src/features/auth/pages/LoginPage.tsx
  *
- * Màn hình Đăng Nhập & Tạo Tài Khoản Split-View Chuẩn Mẫu (Image 3 UI):
- * - Bố cục Split-View 2 nửa: Cột trái form mềm mại, Cột phải phong cảnh Moraine Lake cắt lượn sóng hữu cơ.
- * - Hỗ trợ đầy đủ tương tác: Điền First/Last Name, Email, Password, chuyển vai trò qua [Change method].
+ * Màn hình Đăng Nhập Doanh Nghiệp Split-View Chuẩn Mẫu (Enterprise Portal UI):
+ * - Bố cục Split-View: Cột trái form Enterprise 2 trường, Cột phải banner phong cảnh lượn sóng hữu cơ.
+ * - Tự động nhận diện chế độ MOCK (có nút chọn vai trò demo) hoặc REAL (chuẩn hóa doanh nghiệp thuần khiết).
  * - Đấu nối trực tiếp xác thực JWT (`POST /api/auth/login`) qua authService.
  * - Tuân thủ AGENTS.md Rule 4, Rule 5 & Rule 7.1 (< 300 LOC).
  */
@@ -23,25 +23,22 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const [firstName, setFirstName] = useState('Michał');
-  const [lastName, setLastName] = useState('Masiak');
-  const [email, setEmail] = useState('michal.masiak@anywhere.co');
+  const isMockMode = DATA_SOURCE === 'mock';
+  const [usernameOrEmail, setUsernameOrEmail] = useState('admin');
   const [password, setPassword] = useState('admin123');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
   const handleSelectProfile = (profile: PredefinedRoleProfile) => {
-    setFirstName(profile.firstName);
-    setLastName(profile.lastName);
-    setEmail(profile.email);
+    setUsernameOrEmail(profile.username || profile.email);
     setPassword('admin123');
     setIsRoleModalOpen(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanEmail = email.trim() || 'admin@fleetmonitor.vn';
+    const cleanIdentifier = usernameOrEmail.trim() || 'admin';
     const cleanPass = password.trim() || 'admin123';
 
     setIsSubmitting(true);
@@ -49,9 +46,10 @@ export const LoginPage: React.FC = () => {
     dispatch(loginStart());
 
     try {
+      const isEmail = cleanIdentifier.includes('@');
       const loggedUser = await authService.login({
-        username: cleanEmail,
-        email: cleanEmail,
+        username: isEmail ? undefined : cleanIdentifier,
+        email: isEmail ? cleanIdentifier : undefined,
         password: cleanPass,
       });
 
@@ -106,17 +104,14 @@ export const LoginPage: React.FC = () => {
           position: 'relative',
         }}
       >
-        {/* Cột Trái (~52%): Biểu mẫu nhập liệu Soft Minimalist Form */}
+        {/* Cột Trái (~52%): Biểu mẫu nhập liệu Enterprise Form */}
         <div style={{ flex: '1 1 52%', minWidth: 0 }}>
           <LoginFormSection
-            firstName={firstName}
-            onFirstNameChange={setFirstName}
-            lastName={lastName}
-            onLastNameChange={setLastName}
-            email={email}
-            onEmailChange={setEmail}
+            usernameOrEmail={usernameOrEmail}
+            onUsernameOrEmailChange={setUsernameOrEmail}
             password={password}
             onPasswordChange={setPassword}
+            isMockMode={isMockMode}
             onOpenRolePicker={() => setIsRoleModalOpen(true)}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
@@ -124,18 +119,20 @@ export const LoginPage: React.FC = () => {
           />
         </div>
 
-        {/* Cột Phải (~48%): Banner Ảnh Núi Hồ Uốn Lượn Sóng Hữu Cơ */}
+        {/* Cột Phải (~48%): Banner Phong Cảnh Lượn Sóng Hữu Cơ */}
         <div style={{ flex: '1 1 48%', minWidth: 0, display: 'block' }}>
           <LoginLandscapeBanner />
         </div>
       </div>
 
-      {/* Modal Chuyển Đổi Phương Thức / Vai Trò Vận Hành */}
-      <LoginRoleModal
-        isOpen={isRoleModalOpen}
-        onClose={() => setIsRoleModalOpen(false)}
-        onSelectProfile={handleSelectProfile}
-      />
+      {/* Modal Chọn Nhanh Vai Trò Vận Hành (Chỉ mở khi click ở Mock) */}
+      {isMockMode && (
+        <LoginRoleModal
+          isOpen={isRoleModalOpen}
+          onClose={() => setIsRoleModalOpen(false)}
+          onSelectProfile={handleSelectProfile}
+        />
+      )}
     </div>
   );
 };

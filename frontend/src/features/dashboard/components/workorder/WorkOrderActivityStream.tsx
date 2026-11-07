@@ -12,11 +12,13 @@ import { TaskActivityFeedItem } from '../../../../types/task';
 
 interface WorkOrderActivityStreamProps {
   activityFeed: TaskActivityFeedItem[];
+  isReadOnly?: boolean;
   onAddNote?: (note: string) => void;
 }
 
 export const WorkOrderActivityStream: React.FC<WorkOrderActivityStreamProps> = ({
   activityFeed,
+  isReadOnly = false,
   onAddNote,
 }) => {
   const [noteInput, setNoteInput] = useState('');
@@ -104,41 +106,60 @@ export const WorkOrderActivityStream: React.FC<WorkOrderActivityStreamProps> = (
       </div>
 
       {/* Send Note Input */}
-      <form onSubmit={handleSend} style={{ display: 'flex', gap: '8px' }}>
-        <input
-          type="text"
-          placeholder="Nhập ghi chú hoặc ý kiến kỹ thuật..."
-          value={noteInput}
-          onChange={(e) => setNoteInput(e.target.value)}
+      {isReadOnly ? (
+        <div
           style={{
-            flex: 1,
-            padding: '7px 12px',
-            fontSize: '12px',
-            borderRadius: '10px',
-            border: '1px solid var(--border-color, #e2e8f0)',
-            backgroundColor: 'var(--bg-subtle, #f8fafc)',
-          }}
-        />
-        <button
-          type="submit"
-          style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '7px 14px',
+            justifyContent: 'center',
+            padding: '8px 12px',
             borderRadius: '10px',
-            backgroundColor: '#2563eb',
-            color: '#ffffff',
+            backgroundColor: 'var(--bg-subtle, #f8fafc)',
+            border: '1px dashed var(--border-color, #e2e8f0)',
+            color: 'var(--text-muted, #64748b)',
             fontSize: '11.5px',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
+            fontWeight: 600,
           }}
         >
-          <FontAwesomeIcon icon={faPaperPlane} style={{ fontSize: '12px' }} />
-          <span>Gửi</span>
-        </button>
-      </form>
+          🔒 Nhiệm vụ đã đóng — Luồng thảo luận được lưu trữ chỉ đọc
+        </div>
+      ) : (
+        <form onSubmit={handleSend} style={{ display: 'flex', gap: '8px' }}>
+          <input
+            type="text"
+            placeholder="Nhập ghi chú hoặc ý kiến kỹ thuật..."
+            value={noteInput}
+            onChange={(e) => setNoteInput(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '7px 12px',
+              fontSize: '12px',
+              borderRadius: '10px',
+              border: '1px solid var(--border-color, #e2e8f0)',
+              backgroundColor: 'var(--bg-subtle, #f8fafc)',
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '7px 14px',
+              borderRadius: '10px',
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <FontAwesomeIcon icon={faPaperPlane} style={{ fontSize: '12px' }} />
+            <span>Gửi</span>
+          </button>
+        </form>
+      )}
     </div>
   );
 };

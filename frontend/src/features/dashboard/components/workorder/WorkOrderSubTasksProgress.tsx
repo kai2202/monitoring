@@ -21,6 +21,7 @@ interface WorkOrderSubTasksProgressProps {
   steps: TaskStepItem[];
   progressPercent: number;
   workLogs?: WorkLogEntry[];
+  isReadOnly?: boolean;
   onToggleStep: (stepId: string) => void;
   onAddStep: (stepTitle: string) => void;
   onSelectStepFilter?: (stepId: string | null) => void;
@@ -31,6 +32,7 @@ export const WorkOrderSubTasksProgress: React.FC<WorkOrderSubTasksProgressProps>
   steps,
   progressPercent,
   workLogs = [],
+  isReadOnly = false,
   onToggleStep,
   onAddStep,
   onSelectStepFilter,
@@ -90,15 +92,16 @@ export const WorkOrderSubTasksProgress: React.FC<WorkOrderSubTasksProgressProps>
               <div className="flex items-center gap-3 min-w-0">
                 <button
                   type="button"
+                  disabled={isReadOnly}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onToggleStep(step.id);
+                    if (!isReadOnly) onToggleStep(step.id);
                   }}
                   className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors ${
                     isDone
                       ? 'text-emerald-600 dark:text-emerald-400'
                       : 'text-slate-300 dark:text-slate-600 hover:text-slate-500'
-                  }`}
+                  } ${isReadOnly ? 'cursor-default' : ''}`}
                 >
                   <FontAwesomeIcon icon={isDone ? faCircleCheck : faCircle} className="text-sm" />
                 </button>
@@ -144,39 +147,41 @@ export const WorkOrderSubTasksProgress: React.FC<WorkOrderSubTasksProgressProps>
       </div>
 
       {/* Add Step Form */}
-      {isAdding ? (
-        <form onSubmit={handleAdd} className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Tên bước kỹ thuật mới..."
-            value={newStepTitle}
-            onChange={(e) => setNewStepTitle(e.target.value)}
-            autoFocus
-            className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-indigo-500"
-          />
-          <button
-            type="submit"
-            className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-xs"
-          >
-            Thêm
-          </button>
+      {!isReadOnly && (
+        isAdding ? (
+          <form onSubmit={handleAdd} className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Tên bước kỹ thuật mới..."
+              value={newStepTitle}
+              onChange={(e) => setNewStepTitle(e.target.value)}
+              autoFocus
+              className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-indigo-500"
+            />
+            <button
+              type="submit"
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-xs"
+            >
+              Thêm
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAdding(false)}
+              className="px-2.5 py-1.5 rounded-xl text-xs text-slate-500 hover:text-slate-700"
+            >
+              Hủy
+            </button>
+          </form>
+        ) : (
           <button
             type="button"
-            onClick={() => setIsAdding(false)}
-            className="px-2.5 py-1.5 rounded-xl text-xs text-slate-500 hover:text-slate-700"
+            onClick={() => setIsAdding(true)}
+            className="w-full py-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 text-indigo-600 dark:text-indigo-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
           >
-            Hủy
+            <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+            <span>Thêm bước kỹ thuật vào quy trình</span>
           </button>
-        </form>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setIsAdding(true)}
-          className="w-full py-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 text-indigo-600 dark:text-indigo-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-        >
-          <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
-          <span>Thêm bước kỹ thuật vào quy trình</span>
-        </button>
+        )
       )}
     </div>
   );

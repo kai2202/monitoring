@@ -36,3 +36,4 @@ Thumbs.db
 # AI Agent artifacts
 .agent/
 .agents/
+.docs/

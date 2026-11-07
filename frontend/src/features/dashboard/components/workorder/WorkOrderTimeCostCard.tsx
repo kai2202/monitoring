@@ -16,12 +16,14 @@ import { TimeDurationPicker, formatDurationVi } from './TimeDurationPicker';
 interface WorkOrderTimeCostCardProps {
   timeAndCost: TimeAndCostSummary;
   estimatedTimeAndCost?: TimeAndCostSummary;
+  isReadOnly?: boolean;
   onSaveTimeCost?: (updated: TimeAndCostSummary) => void;
 }
 
 export const WorkOrderTimeCostCard: React.FC<WorkOrderTimeCostCardProps> = ({
   timeAndCost,
   estimatedTimeAndCost,
+  isReadOnly = false,
   onSaveTimeCost,
 }) => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -134,7 +136,7 @@ export const WorkOrderTimeCostCard: React.FC<WorkOrderTimeCostCardProps> = ({
             {isTech ? 'Hạch Toán Thời Gian Thực Tế' : 'Hạch Toán Thời Gian & Chi Phí Bảo Trì'}
           </h4>
         </div>
-        {!isHr && (
+        {!isHr && !isReadOnly && (
           <button
             type="button"
             onClick={() => setIsEditing(!isEditing)}

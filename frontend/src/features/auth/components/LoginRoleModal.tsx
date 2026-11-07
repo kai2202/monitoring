@@ -1,10 +1,10 @@
 /**
  * Frontend/src/features/auth/components/LoginRoleModal.tsx
  *
- * Modal Chọn Nhanh Vai Trò (Change Method / Role Picker Modal):
- * - Hiển thị 3 vai trò demo chuẩn hóa (Admin IT, KTV Hiện trường, HR Quản lý tài sản).
- * - Click chọn vai trò sẽ tự động điền thông tin và hỗ trợ chuyển đổi phương thức đăng nhập.
- * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
+ * Modal Chọn Nhanh Vai Trò Vận Hành (Demo Role Profiles Modal):
+ * - Hỗ trợ chọn nhanh 3 vai trò mẫu (Admin IT, Kỹ thuật viên hiện trường, HR Tài sản).
+ * - Tự động điền tài khoản & mật khẩu phục vụ kiểm thử và trải nghiệm nhanh.
+ * - Tuân thủ AGENTS.md Rule 7 & Rule 7.1 (< 300 LOC).
  */
 
 import React from 'react';
@@ -15,8 +15,6 @@ export interface PredefinedRoleProfile {
   role: UserRole;
   username: string;
   fullName: string;
-  firstName: string;
-  lastName: string;
   email: string;
   title: string;
   badge: string;
@@ -27,13 +25,11 @@ export interface PredefinedRoleProfile {
 export const DEMO_PROFILES: PredefinedRoleProfile[] = [
   {
     role: 'ADMIN',
-    username: 'admin_an',
+    username: 'admin',
     fullName: 'Nguyễn Văn An',
-    firstName: 'Văn An',
-    lastName: 'Nguyễn',
-    email: 'an.nguyen@fleetmonitor.vn',
-    title: 'Quản trị viên IT & NOC 24/7',
-    badge: 'Toàn quyền Hệ thống',
+    email: 'admin@fleetmonitor.vn',
+    title: 'Quản trị viên Hệ thống (IT & NOC 24/7)',
+    badge: 'Toàn quyền Quản trị',
     color: '#0284c7',
     icon: faUserShield,
   },
@@ -41,8 +37,6 @@ export const DEMO_PROFILES: PredefinedRoleProfile[] = [
     role: 'FIELD_TECH',
     username: 'tech_nam',
     fullName: 'Lê Hoàng Nam',
-    firstName: 'Hoàng Nam',
-    lastName: 'Lê',
     email: 'nam.le@fleetmonitor.vn',
     title: 'Kỹ thuật viên Hiện trường (Field Tech)',
     badge: 'Thực thi SOP & Bảo trì',
@@ -51,13 +45,11 @@ export const DEMO_PROFILES: PredefinedRoleProfile[] = [
   },
   {
     role: 'ASSET_HR',
-    username: 'asset_ha',
+    username: 'hr_kiemke',
     fullName: 'Phạm Thu Hà',
-    firstName: 'Thu Hà',
-    lastName: 'Phạm',
     email: 'ha.pham@fleetmonitor.vn',
     title: 'HR / Kiểm kê Tài sản & Chi phí',
-    badge: 'Kiểm kê & Chi phí SLA',
+    badge: 'Kiểm kê & Hợp đồng SLA',
     color: '#ec4899',
     icon: faFileLines,
   },
@@ -114,10 +106,10 @@ export const LoginRoleModal: React.FC<LoginRoleModalProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              Đổi phương thức / Vai trò
+              Chọn Nhanh Vai Trò Vận Hành
             </h3>
             <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0 0' }}>
-              Chọn vai trò mô phỏng để tự động nạp hồ sơ người dùng
+              Hồ sơ tài khoản mô phỏng (Dành cho kiểm thử &amp; Trải nghiệm nhanh)
             </p>
           </div>
           <button
@@ -221,4 +213,3 @@ export const LoginRoleModal: React.FC<LoginRoleModalProps> = ({
 };
 
 export default LoginRoleModal;
-

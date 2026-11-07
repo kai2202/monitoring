@@ -134,7 +134,7 @@ export const AttentionDevicesTable: React.FC<AttentionDevicesTableProps> = ({
               <th style={{ padding: '10px 16px', width: '110px' }}>MỰC CMYK</th>
               <th style={{ padding: '10px 16px', width: '230px' }}>SỰ CỐ HIỆN TẠI</th>
               <th style={{ padding: '10px 16px', width: '110px' }}>TRẠNG THÁI</th>
-              <th style={{ padding: '10px 16px', textAlign: 'right', width: '180px' }}>THAO TÁC</th>
+              <th style={{ padding: '10px 16px', textAlign: 'right', width: '130px' }}>THAO TÁC</th>
             </tr>
           </thead>
           <tbody>

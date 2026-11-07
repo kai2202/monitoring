@@ -25,19 +25,13 @@ export class TaskController {
   async getTasks(req: Request, res: Response) {
     try {
       const { status, printerId, priority, assigneeId } = req.query;
-      const whereClause: any = {};
+      const where: any = {};
+      if (status && status !== 'all') where.status = status;
+      if (printerId && printerId !== 'all') where.printerId = String(printerId);
+      if (priority && priority !== 'all') where.priority = priority;
+      if (assigneeId && assigneeId !== 'all') where.assigneeId = String(assigneeId);
 
-      if (status && status !== 'all') whereClause.status = status;
-      if (printerId && printerId !== 'all') whereClause.printerId = String(printerId);
-      if (priority && priority !== 'all') whereClause.priority = priority;
-      if (assigneeId && assigneeId !== 'all') whereClause.assigneeId = String(assigneeId);
-
-      const dbTasks = await prisma.task.findMany({
-        where: whereClause,
-        include: TASK_RELATIONS,
-        orderBy: { createdAt: 'desc' },
-      });
-
+      const dbTasks = await prisma.task.findMany({ where, include: TASK_RELATIONS, orderBy: { createdAt: 'desc' } });
       return res.status(200).json(dbTasks.map(mapTaskRecord));
     } catch (err: any) {
       console.error('[TaskController.getTasks] Lỗi truy vấn:', err);
@@ -48,15 +42,8 @@ export class TaskController {
   // GET /api/v1/tasks/:id
   async getTaskById(req: Request, res: Response) {
     try {
-      const found = await prisma.task.findUnique({
-        where: { id: req.params.id },
-        include: { ...TASK_RELATIONS, incident: true },
-      });
-
-      if (!found) {
-        return res.status(404).json({ error: 'Không tìm thấy phiếu công việc', id: req.params.id });
-      }
-
+      const found = await prisma.task.findUnique({ where: { id: req.params.id }, include: { ...TASK_RELATIONS, incident: true } });
+      if (!found) return res.status(404).json({ error: 'Không tìm thấy phiếu công việc', id: req.params.id });
       return res.status(200).json(mapTaskRecord(found));
     } catch (err: any) {
       console.error('[TaskController.getTaskById] Lỗi truy vấn:', err);
@@ -67,11 +54,7 @@ export class TaskController {
   // POST /api/v1/tasks
   async createTask(req: Request, res: Response) {
     try {
-      const created = await prisma.task.create({
-        data: buildTaskCreateData(req.body),
-        include: TASK_RELATIONS,
-      });
-
+      const created = await prisma.task.create({ data: buildTaskCreateData(req.body), include: TASK_RELATIONS });
       return res.status(201).json(mapTaskRecord(created));
     } catch (err: any) {
       console.error('[TaskController.createTask] Lỗi tạo công việc:', err);
@@ -83,6 +66,20 @@ export class TaskController {
   async updateTask(req: Request, res: Response) {
     try {
       const { title, priority, status, assignee, newAssignee, assigneeId, progressPercent, percent, dynamicSteps, timeAndCost, dueDate, newDueDate } = req.body;
+      const existing = await prisma.task.findUnique({ where: { id: req.params.id } });
+      if (!existing) return res.status(404).json({ error: 'Không tìm thấy phiếu công việc' });
+
+      // Bảo vệ kho lịch sử: Task đã hoàn tất chỉ Admin mới có quyền mở lại
+      const isAdmin = req.user?.role === 'ADMIN';
+      if (existing.status === 'Completed') {
+        if (!isAdmin) {
+          return res.status(403).json({ error: 'Nhiệm vụ trong kho lịch sử đã đóng, chỉ Quản trị viên mới có quyền mở lại' });
+        }
+        if (status && status === 'Completed') {
+          return res.status(400).json({ error: 'Nhiệm vụ đã hoàn tất trong kho lịch sử, chỉ được phép mở lại' });
+        }
+      }
+
       const resolvedProgress = progressPercent ?? percent;
       const resolvedAssignee = assignee ?? newAssignee;
       const resolvedDue = dueDate ?? newDueDate;
@@ -99,7 +96,7 @@ export class TaskController {
           dynamicSteps: dynamicSteps ?? undefined,
           timeAndCost: timeAndCost ?? undefined,
           dueDate: resolvedDue ? new Date(resolvedDue) : undefined,
-          completedDate: status === 'Completed' ? new Date() : undefined,
+          completedDate: status === 'Completed' ? new Date() : (status === 'In_Progress' ? null : undefined),
         },
         include: TASK_RELATIONS,
       });
@@ -125,6 +122,11 @@ export class TaskController {
   async updateTaskStatus(req: Request, res: Response) {
     try {
       const { status, progressPercent, dynamicSteps, timeAndCost } = req.body;
+      const existing = await prisma.task.findUnique({ where: { id: req.params.id } });
+      if (existing?.status === 'Completed' && req.user?.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Nhiệm vụ trong kho lịch sử đã đóng, chỉ Quản trị viên mới có quyền mở lại' });
+      }
+
       const updated = await prisma.task.update({
         where: { id: req.params.id },
         data: {
@@ -137,7 +139,7 @@ export class TaskController {
               : undefined,
           dynamicSteps: dynamicSteps ?? undefined,
           timeAndCost: timeAndCost ?? undefined,
-          completedDate: status === 'Completed' ? new Date() : undefined,
+          completedDate: status === 'Completed' ? new Date() : (status === 'In_Progress' ? null : undefined),
         },
         include: TASK_RELATIONS,
       });
@@ -156,6 +158,9 @@ export class TaskController {
 
       const task = await prisma.task.findUnique({ where: { id: taskId }, include: { workLogs: true } });
       if (!task) return res.status(404).json({ error: 'Không tìm thấy phiếu công việc' });
+      if (task.status === 'Completed') {
+        return res.status(403).json({ error: 'Nhiệm vụ trong kho lịch sử đã đóng, không thể ghi thêm thao tác' });
+      }
 
       const authorId = req.user?.userId || (await prisma.user.findFirst())?.id;
       if (!authorId) return res.status(400).json({ error: 'Không xác định được kỹ thuật viên thực hiện' });

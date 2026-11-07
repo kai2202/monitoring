@@ -132,7 +132,7 @@ export const LoginLandscapeBanner: React.FC = () => {
             textShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}
         >
-          .AW
+          .FM
         </span>
         {/* Dấu chấm tròn phải */}
         <span

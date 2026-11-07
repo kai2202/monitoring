@@ -26,6 +26,7 @@ interface WorkOrderVendorAndAttachmentsProps {
   uploaderName?: string;
   vendorLogs: VendorCommunicationLog[];
   attachments: TaskAttachment[];
+  isReadOnly?: boolean;
   onAddVendorLog?: (log: Partial<VendorCommunicationLog>) => void;
   onAddAttachment?: (att: TaskAttachment) => void;
 }
@@ -35,6 +36,7 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
   uploaderName = 'Kỹ sư NOC',
   vendorLogs,
   attachments,
+  isReadOnly = false,
   onAddVendorLog,
   onAddAttachment,
 }) => {
@@ -108,7 +110,7 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
               </div>
             ))}
 
-            {isAddingVendor ? (
+            {!isReadOnly && (isAddingVendor ? (
               <form onSubmit={handleAddVendor} className="flex flex-col gap-2 mt-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <input
                   type="text"
@@ -145,7 +147,7 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
                 <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
                 <span>+ Ghi nhận cuộc gọi / trao đổi với hãng</span>
               </button>
-            )}
+            ))}
           </div>
         )}
       </div>
@@ -174,23 +176,27 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
               <span className="text-[11px] text-slate-600 dark:text-slate-300">
                 {attachments.length} tệp tin xác thực
               </span>
-              <button
-                type="button"
-                disabled={isUploading}
-                onClick={() => fileInputRef.current?.click()}
-                className="px-3 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-400 text-xs font-bold transition-colors flex items-center gap-1.5 disabled:opacity-60"
-              >
-                <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
-                <span>{isUploading ? 'Đang tải lên...' : 'Thêm tệp / ảnh test'}</span>
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept=".jpg,.jpeg,.png,.webp,.pdf,.log,.txt,.csv"
-                multiple
-                className="hidden"
-              />
+              {!isReadOnly && (
+                <>
+                  <button
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-400 text-xs font-bold transition-colors flex items-center gap-1.5 disabled:opacity-60"
+                  >
+                    <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                    <span>{isUploading ? 'Đang tải lên...' : 'Thêm tệp / ảnh test'}</span>
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept=".jpg,.jpeg,.png,.webp,.pdf,.log,.txt,.csv"
+                    multiple
+                    className="hidden"
+                  />
+                </>
+              )}
             </div>
 
             {attachments.length === 0 ? (

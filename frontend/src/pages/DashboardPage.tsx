@@ -3,13 +3,16 @@
  *
  * Trang Dashboard trung tâm của FleetMonitor theo chuẩn Matte Onyx Dark:
  * - 4 Thẻ KPI với In-place Filter & nút chuyển module ↗
- * - Biểu đồ đường cong Bezier mượt mà (AvailabilitySplineChart với Chart.js)
- * - Biểu đồ tròn đa tầng tinh xảo với nhãn trung tâm (RefinedFleetDonut với Chart.js)
- * - Bảng Thiết Bị Cần Xử Lý chi tiết 7 cột (AttentionDevicesTable)
+ * - Biểu đồ Bezier mượt mà (AvailabilitySplineChart) & Biểu đồ tròn đa tầng (RefinedFleetDonut)
+ * - Bảng Thiết Bị Cần Xử Lý chi tiết với nút [Tạo Phiếu] mở modal tạo phiếu bảo trì mới trực tiếp tại Dashboard
  * - Slide-over Diagnostics Drawer 4 Tab hỗ trợ phím Esc và j/k
+ * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSelector } from 'react-redux';
+import { toast } from 'sonner';
+import { RootState } from '../app/store';
 import {
   FleetKpiCards,
   KpiFilterType,
@@ -18,11 +21,13 @@ import {
   RefinedFleetDonut,
   AttentionDevicesTable,
   PrinterDiagnosticsDrawer,
+  DiagnosticsCreateTaskForm,
 } from '../components/dashboard';
 import { NavTabId } from '../components/layout/Sidebar';
 import { Printer, Incident } from '../types/printer';
+import { Task } from '../types/task';
 import { AvailabilityTimelinePoint } from '../types/dashboardTelemetry';
-import { dashboardService, telemetryService, printerService } from '../services';
+import { dashboardService, telemetryService, printerService, taskService } from '../services';
 
 export interface DashboardPageProps {
   onNavigateModule: (tab: NavTabId) => void;
@@ -33,7 +38,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onNavigateModule,
   onCreateTaskForPrinter,
 }) => {
-  // State dữ liệu chuẩn AGENTS.md Rule 5: MetricValue = number | null, không khởi tạo số mock giả
+  const { user } = useSelector((state: RootState) => state.auth);
+
   const [kpiData, setKpiData] = useState<FleetKpiData>({
     totalPrinters: 0,
     onlineCount: null,
@@ -49,7 +55,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [allPrinters, setAllPrinters] = useState<Printer[]>([]);
   const [attentionPrinters, setAttentionPrinters] = useState<Printer[]>([]);
   const [timeline, setTimeline] = useState<AvailabilityTimelinePoint[]>([]);
-  const [recentIncidents, setRecentIncidents] = useState<Incident[]>([]);
+  const [, setRecentIncidents] = useState<Incident[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // State bộ lọc In-place Filter
@@ -61,10 +67,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [drawerInitialTab, setDrawerInitialTab] = useState<'diag' | 'tasks' | 'counters'>('diag');
 
+  // State Modal Tạo Phiếu Bảo Trì Mới ngay tại Dashboard
+  const [createTaskPrinter, setCreateTaskPrinter] = useState<Printer | null>(null);
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState<boolean>(false);
+
   // Nạp dữ liệu qua Service Layer
   useEffect(() => {
     let isMounted = true;
-
     async function loadDashboardData() {
       try {
         const [dashSummary, availTimeline, printers] = await Promise.all([
@@ -72,9 +81,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           telemetryService.getAvailabilityTimeline(24),
           printerService.getPrinters(),
         ]);
-
         if (!isMounted) return;
-
         setKpiData(dashSummary.kpis);
         setAttentionPrinters(dashSummary.devicesNeedingAttention);
         setTimeline(availTimeline);
@@ -83,31 +90,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       } catch (err) {
         console.error('Lỗi khi nạp dữ liệu Dashboard Service:', err);
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     }
-
     loadDashboardData();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
-  // Tính toán danh sách thiết bị hiển thị theo In-place Filter (< 50ms)
+  // Tính toán danh sách thiết bị hiển thị theo In-place Filter
   const filteredPrinters = useMemo(() => {
     let result = activeKpiFilter === 'all' ? [...allPrinters] : [...attentionPrinters];
 
     if (activeKpiFilter === 'offline') {
-      result = allPrinters.filter(p => p.connectionStatus === 'Offline');
+      result = allPrinters.filter((p) => p.connectionStatus === 'Offline');
     } else if (activeKpiFilter === 'critical') {
-      result = allPrinters.filter(
-        p => p.alertSeverity === 'critical' || p.health === 'Critical'
-      );
+      result = allPrinters.filter((p) => p.alertSeverity === 'critical' || p.health === 'Critical');
     } else if (activeKpiFilter === 'low_supplies') {
-      result = allPrinters.filter(p => {
+      result = allPrinters.filter((p) => {
         const s = p.supplies;
         if (!s) return false;
         return (
@@ -123,19 +122,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (selectedHealth) {
       if (selectedHealth === 'Critical') {
         result = result.filter(
-          p => (p.health === 'Critical' || p.alertSeverity === 'critical') && p.connectionStatus !== 'Offline' && p.monitoringStatus !== 'Storage' && p.monitoringStatus !== 'Decommissioned'
+          (p) => (p.health === 'Critical' || p.alertSeverity === 'critical') && p.connectionStatus !== 'Offline' && p.monitoringStatus !== 'Storage' && p.monitoringStatus !== 'Decommissioned'
         );
       } else if (selectedHealth === 'Warning') {
         result = result.filter(
-          p => (p.health === 'Warning' || p.alertSeverity === 'warning') && p.health !== 'Critical' && p.alertSeverity !== 'critical' && p.connectionStatus !== 'Offline'
+          (p) => (p.health === 'Warning' || p.alertSeverity === 'warning') && p.health !== 'Critical' && p.alertSeverity !== 'critical' && p.connectionStatus !== 'Offline'
         );
       } else if (selectedHealth === 'Offline') {
         result = result.filter(
-          p => p.connectionStatus === 'Offline' || p.monitoringStatus === 'Storage' || p.monitoringStatus === 'Decommissioned'
+          (p) => p.connectionStatus === 'Offline' || p.monitoringStatus === 'Storage' || p.monitoringStatus === 'Decommissioned'
         );
       } else if (selectedHealth === 'Healthy') {
         result = result.filter(
-          p => p.health !== 'Critical' && p.health !== 'Warning' && p.alertSeverity !== 'critical' && p.alertSeverity !== 'warning' && p.connectionStatus === 'Online'
+          (p) => p.health !== 'Critical' && p.health !== 'Warning' && p.alertSeverity !== 'critical' && p.alertSeverity !== 'warning' && p.connectionStatus === 'Online'
         );
       }
     }
@@ -161,30 +160,46 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     setSelectedHealth(null);
   }, []);
 
-  // Mở Drawer chi tiết
   const handleOpenDrawer = useCallback((printer: Printer, tab: 'diag' | 'tasks' | 'counters' = 'diag') => {
     setSelectedPrinter(printer);
     setDrawerInitialTab(tab);
     setIsDrawerOpen(true);
   }, []);
 
-  const handleCloseDrawer = useCallback(() => {
-    setIsDrawerOpen(false);
-  }, []);
-
   const handleNextPrinter = useCallback(() => {
     if (!selectedPrinter || filteredPrinters.length === 0) return;
-    const currentIndex = filteredPrinters.findIndex(p => p.id === selectedPrinter.id);
-    const nextIndex = (currentIndex + 1) % filteredPrinters.length;
-    setSelectedPrinter(filteredPrinters[nextIndex]);
+    const currentIndex = filteredPrinters.findIndex((p) => p.id === selectedPrinter.id);
+    setSelectedPrinter(filteredPrinters[(currentIndex + 1) % filteredPrinters.length]);
   }, [selectedPrinter, filteredPrinters]);
 
   const handlePrevPrinter = useCallback(() => {
     if (!selectedPrinter || filteredPrinters.length === 0) return;
-    const currentIndex = filteredPrinters.findIndex(p => p.id === selectedPrinter.id);
-    const prevIndex = (currentIndex - 1 + filteredPrinters.length) % filteredPrinters.length;
-    setSelectedPrinter(filteredPrinters[prevIndex]);
+    const currentIndex = filteredPrinters.findIndex((p) => p.id === selectedPrinter.id);
+    setSelectedPrinter(filteredPrinters[(currentIndex - 1 + filteredPrinters.length) % filteredPrinters.length]);
   }, [selectedPrinter, filteredPrinters]);
+
+  // Mở modal Tạo Phiếu Bảo Trì Mới trực tiếp tại Dashboard
+  const handleOpenCreateTaskModal = useCallback((printer: Printer) => {
+    setCreateTaskPrinter(printer);
+    setIsCreateTaskModalOpen(true);
+  }, []);
+
+  const handleCreateTaskSuccess = useCallback(async (newTask: Partial<Task>) => {
+    try {
+      const created = await taskService.createTask(
+        newTask as any,
+        user?.fullName || (user as any)?.name || 'Quản trị viên'
+      );
+      toast.success(`Đã tạo phiếu bảo trì ${created.id} cho thiết bị ${createTaskPrinter?.name || ''} thành công!`);
+      setIsCreateTaskModalOpen(false);
+      setCreateTaskPrinter(null);
+      if (onCreateTaskForPrinter && createTaskPrinter) {
+        onCreateTaskForPrinter(createTaskPrinter);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể tạo phiếu bảo trì mới');
+    }
+  }, [user, createTaskPrinter, onCreateTaskForPrinter]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1440px', margin: '0 auto', width: '100%', minWidth: 0 }}>
@@ -192,7 +207,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       <FleetKpiCards
         data={kpiData}
         activeFilter={activeKpiFilter}
-        onSelectFilter={filter => {
+        onSelectFilter={(filter) => {
           setActiveKpiFilter(filter);
           setSelectedHealth(null);
         }}
@@ -200,43 +215,25 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         isLoading={isLoading}
       />
 
-      {/* 2. Charts Grid: Line Chart (60%) + Refined Donut Chart (40%) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
-          gap: '16px',
-          width: '100%',
-          minWidth: 0,
-        }}
-      >
-        <AvailabilitySplineChart
-          timeline={timeline}
-          isLoading={isLoading}
-        />
-
+      {/* 2. Charts Grid: Line Chart + Donut Chart */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))', gap: '16px', width: '100%', minWidth: 0 }}>
+        <AvailabilitySplineChart timeline={timeline} isLoading={isLoading} />
         <RefinedFleetDonut
           printers={allPrinters}
           selectedHealth={selectedHealth}
-          onSelectHealthGroup={health => {
-            setSelectedHealth(prev => (prev === health ? null : health));
+          onSelectHealthGroup={(health) => {
+            setSelectedHealth((prev) => (prev === health ? null : health));
             setActiveKpiFilter(null);
           }}
           isLoading={isLoading}
         />
       </div>
 
-      {/* 3. Detailed Attention Devices Table (7 Columns) */}
+      {/* 3. Detailed Attention Devices Table với nút [Tạo Phiếu] mở modal tại Dashboard */}
       <AttentionDevicesTable
         printers={filteredPrinters}
-        onSelectPrinter={printer => handleOpenDrawer(printer, 'diag')}
-        onCreateTask={printer => {
-          if (onCreateTaskForPrinter) {
-            onCreateTaskForPrinter(printer);
-          } else {
-            handleOpenDrawer(printer, 'tasks');
-          }
-        }}
+        onSelectPrinter={(printer) => handleOpenDrawer(printer, 'diag')}
+        onCreateTask={handleOpenCreateTaskModal}
         activeFilterTitle={activeFilterTitle}
         onClearFilter={handleClearFilters}
       />
@@ -245,19 +242,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       <PrinterDiagnosticsDrawer
         printer={selectedPrinter}
         isOpen={isDrawerOpen}
-        onClose={handleCloseDrawer}
+        onClose={() => setIsDrawerOpen(false)}
         initialTab={drawerInitialTab}
         onNextPrinter={filteredPrinters.length > 1 ? handleNextPrinter : undefined}
         onPrevPrinter={filteredPrinters.length > 1 ? handlePrevPrinter : undefined}
-        onCreateMaintenanceTask={printer => {
-          if (onCreateTaskForPrinter) {
-            setIsDrawerOpen(false);
-            onCreateTaskForPrinter(printer);
-          } else {
-            setDrawerInitialTab('tasks');
-          }
+        onCreateMaintenanceTask={(printer) => {
+          setIsDrawerOpen(false);
+          handleOpenCreateTaskModal(printer);
         }}
       />
+
+      {/* 5. Modal Tạo Phiếu Bảo Trì Mới ngay tại Dashboard */}
+      {createTaskPrinter && (
+        <DiagnosticsCreateTaskForm
+          isOpen={isCreateTaskModalOpen}
+          onClose={() => {
+            setIsCreateTaskModalOpen(false);
+            setCreateTaskPrinter(null);
+          }}
+          printer={createTaskPrinter}
+          onCreateTask={handleCreateTaskSuccess}
+        />
+      )}
     </div>
   );
 };
+
+export default DashboardPage;

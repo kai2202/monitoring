@@ -32,6 +32,30 @@ export const DiagnosticsCmykTab: React.FC<DiagnosticsCmykTabProps> = ({ printer 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '20px 24px' }}>
+      {printer.monitoringStatus === 'Storage' && (
+        <div
+          style={{
+            padding: '12px 16px',
+            borderRadius: '14px',
+            backgroundColor: 'rgba(100, 116, 139, 0.08)',
+            border: '1px solid rgba(100, 116, 139, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>📦</span>
+          <div>
+            <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>
+              Thiết bị đang ở trạng thái Lưu kho dự phòng
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted, #64748b)', marginTop: '2px' }}>
+              Máy in đang tạm ngưng thu thập dữ liệu giám sát NOC. Để theo dõi lại, bấm nút <strong>"Giám sát lại"</strong> trên thanh tiêu đề hoặc tại bảng danh mục.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 1. CMYK Meter Gauges */}
       <div
         style={{

@@ -15,6 +15,7 @@ import {
   faCopy,
   faCheck,
   faXmark,
+  faRotate,
 } from '../../../../shared/icons';
 import { Printer } from '../../../../types/printer';
 
@@ -23,6 +24,8 @@ interface DiagnosticsDrawerHeaderProps {
   onClose: () => void;
   onNextPrinter?: () => void;
   onPrevPrinter?: () => void;
+  onReactivatePrinter?: () => void;
+  isAdmin?: boolean;
 }
 
 export const DiagnosticsDrawerHeader: React.FC<DiagnosticsDrawerHeaderProps> = ({
@@ -30,6 +33,8 @@ export const DiagnosticsDrawerHeader: React.FC<DiagnosticsDrawerHeaderProps> = (
   onClose,
   onNextPrinter,
   onPrevPrinter,
+  onReactivatePrinter,
+  isAdmin = false,
 }) => {
   const [copiedIp, setCopiedIp] = useState(false);
 
@@ -118,6 +123,37 @@ export const DiagnosticsDrawerHeader: React.FC<DiagnosticsDrawerHeaderProps> = (
             </button>
             <span>•</span>
             <span>{printer.location}</span>
+            {printer.monitoringStatus === 'Storage' && (
+              <>
+                <span>•</span>
+                <span style={{ padding: '1px 6px', borderRadius: '6px', fontSize: '10.5px', fontWeight: 700, backgroundColor: 'rgba(100, 116, 139, 0.15)', color: '#475569' }}>
+                  Lưu kho
+                </span>
+                {isAdmin && onReactivatePrinter && (
+                  <button
+                    type="button"
+                    onClick={onReactivatePrinter}
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                      color: '#16a34a',
+                      border: '1px solid rgba(22, 163, 74, 0.3)',
+                      fontSize: '10.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Khôi phục giám sát thiết bị"
+                  >
+                    <FontAwesomeIcon icon={faRotate} style={{ fontSize: '9px' }} />
+                    <span>Giám sát lại</span>
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

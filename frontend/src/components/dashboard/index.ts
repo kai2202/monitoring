@@ -9,3 +9,4 @@ export * from './AvailabilitySplineChart';
 export * from './RefinedFleetDonut';
 export * from '../../features/dashboard/components/attention/AttentionDevicesTable';
 export * from '../../features/dashboard/components/diagnostics/PrinterDiagnosticsDrawer';
+export * from '../../features/dashboard/components/diagnostics/DiagnosticsCreateTaskForm';

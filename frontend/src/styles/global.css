@@ -109,21 +109,30 @@ button:active:not(:disabled),
   transform: scale(0.975);
 }
 
-/* Accessible & Crisp Keyboard Focus Rings */
+/* Accessible & Crisp Keyboard Focus Rings for Buttons & Links */
 button:focus-visible,
 [role="button"]:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
+a:focus-visible {
   outline: 2px solid #2563eb !important;
   outline-offset: 2px !important;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18) !important;
 }
 
-/* Form Input Smooth Focus Transition */
-input, select, textarea {
+/* Form Input & Select & Textarea: Triệt tiêu viền chữ nhật mặc định khi focus */
+input,
+select,
+textarea {
+  outline: none !important;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
 }
 
 /* Disabled State Visual Guard */

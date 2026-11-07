@@ -22,6 +22,7 @@ import {
   faXmark,
 } from '../../shared/icons';
 import { NavTabId } from './Sidebar';
+import { HeaderNotifications } from './HeaderNotifications';
 
 export interface HeaderProps {
   activeTab: NavTabId;
@@ -222,6 +223,9 @@ export const Header: React.FC<HeaderProps> = ({
           />
           <span className="hidden xs:inline">{isRefreshing ? 'Đang đồng bộ...' : 'Zabbix Live'}</span>
         </div>
+
+        {/* Notifications Bounded Bells */}
+        <HeaderNotifications />
 
         {/* Theme Toggle Button */}
         <button

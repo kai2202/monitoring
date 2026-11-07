@@ -16,6 +16,7 @@ import {
   faLocationDot,
   faPenToSquare,
   faBan,
+  faRotate,
 } from '../../../shared/icons';
 import { Printer } from '../../../types/printer';
 import { Task } from '../../../types/task';
@@ -31,6 +32,7 @@ export interface PrinterTableRowProps {
   onOpenRelocate?: (printer: Printer) => void;
   onOpenEdit?: (printer: Printer) => void;
   onDecommissionPrinter?: (printer: Printer) => void;
+  onReactivatePrinter?: (printer: Printer) => void;
 }
 
 export const PrinterTableRow: React.FC<PrinterTableRowProps> = ({
@@ -43,10 +45,12 @@ export const PrinterTableRow: React.FC<PrinterTableRowProps> = ({
   onOpenRelocate,
   onOpenEdit,
   onDecommissionPrinter,
+  onReactivatePrinter,
 }) => {
   const isOnline = p.connectionStatus === 'Online';
   const isCritical = p.health === 'Critical' || p.alertSeverity === 'critical';
   const isWarning = p.health === 'Warning' || p.alertSeverity === 'warning';
+  const isStored = p.monitoringStatus === 'Storage' || p.monitoringStatus === 'Decommissioned' || p.monitoringStatus === 'Suspended';
   const totalCounter = p.counters?.total;
 
   return (
@@ -152,11 +156,33 @@ export const PrinterTableRow: React.FC<PrinterTableRowProps> = ({
               <FontAwesomeIcon icon={faLocationDot} />
             </button>
           )}
-          {isAdmin && onDecommissionPrinter && (
+          {isAdmin && isStored && onReactivatePrinter && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onReactivatePrinter(p); }}
+              title="Khôi phục giám sát máy in (Admin)"
+              style={{
+                width: '26px',
+                height: '26px',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                color: '#16a34a',
+                border: '1px solid rgba(22, 163, 74, 0.3)',
+                fontSize: '11px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <FontAwesomeIcon icon={faRotate} />
+            </button>
+          )}
+          {isAdmin && !isStored && onDecommissionPrinter && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onDecommissionPrinter(p); }}
-              title={taskInfo && taskInfo.active > 0 ? 'Đang có lệnh bảo trì chưa đóng, không thể ngưng/xóa' : 'Ngưng giám sát (Admin)'}
+              title={taskInfo && taskInfo.active > 0 ? 'Đang có lệnh bảo trì chưa đóng, không thể ngưng/xóa' : 'Ngưng giám sát & Chuyển lưu kho (Admin)'}
               style={{
                 width: '26px',
                 height: '26px',

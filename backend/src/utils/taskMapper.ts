@@ -26,7 +26,7 @@ export function buildTaskCreateData(body: any) {
 
   const rawStatus = String(body.status || 'Planned');
   const normalizedStatus =
-    rawStatus === 'In_Progress' || rawStatus === 'Waiting' || rawStatus === 'Completed' || rawStatus === 'Cancelled'
+    rawStatus === 'In_Progress' || rawStatus === 'Waiting' || rawStatus === 'Pending_Verification' || rawStatus === 'Completed' || rawStatus === 'Cancelled'
       ? rawStatus
       : 'Planned';
 

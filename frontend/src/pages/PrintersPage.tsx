@@ -59,13 +59,7 @@ export const PrintersPage: React.FC<PrintersPageProps> = ({
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const urlDerivedTab = location.pathname.includes('/printers/timeline')
-    ? 'timeline'
-    : location.pathname.includes('/printers/history')
-    ? 'history'
-    : location.pathname.includes('/printers')
-    ? 'printers'
-    : undefined;
+  const urlDerivedTab = location.pathname.includes('/printers/timeline') ? 'timeline' : location.pathname.includes('/printers/history') ? 'history' : location.pathname.includes('/printers') ? 'printers' : undefined;
   const [internalTab, setInternalTab] = useState<'printers' | 'timeline' | 'history'>(
     urlDerivedTab || activeSubTab || (user?.role === 'FIELD_TECH' || user?.role === 'FIELD_TECHNICIAN' ? 'timeline' : 'printers')
   );
@@ -156,13 +150,7 @@ export const PrintersPage: React.FC<PrintersPageProps> = ({
   }, [printers, branchFilter, floorFilter]);
 
   const handleResetAllFilters = useCallback(() => {
-    setSearchQuery('');
-    setStatusFilter('all');
-    setMfrFilter('all');
-    setBranchFilter('all');
-    setFloorFilter('all');
-    setColorFilter('all');
-    setFunctionFilter('all');
+    setSearchQuery(''); setStatusFilter('all'); setMfrFilter('all'); setBranchFilter('all'); setFloorFilter('all'); setColorFilter('all'); setFunctionFilter('all');
   }, []);
 
   const filteredPrinters = useMemo(() => {
@@ -219,6 +207,17 @@ export const PrintersPage: React.FC<PrintersPageProps> = ({
     }
   };
 
+  const handleReactivatePrinter = async (printer: Printer) => {
+    try {
+      await printerService.updatePrinter(printer.id, { monitoringStatus: 'Active' });
+      toast.success(`Đã khôi phục giám sát máy in ${printer.name} (${printer.id}) thành công.`);
+      loadData();
+    } catch (err) {
+      toast.error('Lỗi khi khôi phục giám sát thiết bị.');
+      console.error(err);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '1440px', margin: '0 auto' }}>
       <PrintersPageHeader
@@ -238,25 +237,14 @@ export const PrintersPage: React.FC<PrintersPageProps> = ({
         <>
           <FleetHealthBar printers={printersInScope} selectedFilter={statusFilter} onSelectFilter={setStatusFilter} />
           <PrinterFilterToolbar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
-            mfrFilter={mfrFilter}
-            onMfrFilterChange={setMfrFilter}
-            manufacturers={manufacturers}
-            branchFilter={branchFilter}
-            onBranchFilterChange={(b) => { setBranchFilter(b); if (b !== 'all') dispatch(setSelectedBranch(b)); }}
-            branches={branches}
-            floorFilter={floorFilter}
-            onFloorFilterChange={setFloorFilter}
-            floors={floors}
-            colorFilter={colorFilter}
-            onColorFilterChange={setColorFilter}
-            functionFilter={functionFilter}
-            onFunctionFilterChange={setFunctionFilter}
-            totalPrinters={printersInScope.length}
-            onResetAllFilters={handleResetAllFilters}
+            searchQuery={searchQuery} onSearchChange={setSearchQuery}
+            statusFilter={statusFilter} onStatusFilterChange={setStatusFilter}
+            mfrFilter={mfrFilter} onMfrFilterChange={setMfrFilter} manufacturers={manufacturers}
+            branchFilter={branchFilter} onBranchFilterChange={(b) => { setBranchFilter(b); if (b !== 'all') dispatch(setSelectedBranch(b)); }}
+            branches={branches} floorFilter={floorFilter} onFloorFilterChange={setFloorFilter} floors={floors}
+            colorFilter={colorFilter} onColorFilterChange={setColorFilter}
+            functionFilter={functionFilter} onFunctionFilterChange={setFunctionFilter}
+            totalPrinters={printersInScope.length} onResetAllFilters={handleResetAllFilters}
           />
           <PrinterTableView
             printers={filteredPrinters}
@@ -267,6 +255,7 @@ export const PrintersPage: React.FC<PrintersPageProps> = ({
             onOpenRelocate={(p) => { setRelocatePrinter(p); setIsRelocateModalOpen(true); }}
             onOpenEdit={(p) => { setEditingPrinter(p); setIsEditModalOpen(true); }}
             onDecommissionPrinter={handleDecommissionPrinter}
+            onReactivatePrinter={handleReactivatePrinter}
             isAdmin={isAdmin}
           />
         </>

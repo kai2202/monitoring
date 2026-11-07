@@ -209,11 +209,12 @@ enum TaskPriority {
 }
 
 enum TaskStatus {
-  Planned     // Đã lên lịch
-  In_Progress // Đang xử lý
-  Waiting     // Chờ linh kiện / Chờ hỗ trợ
-  Completed   // Hoàn thành & Nghiệm thu
-  Cancelled   // Đã hủy
+  Planned              // Đã lên lịch
+  In_Progress          // Đang xử lý
+  Waiting              // Chờ linh kiện / Chờ hỗ trợ
+  Pending_Verification // Chờ phê duyệt nghiệm thu
+  Completed            // Hoàn thành & Nghiệm thu
+  Cancelled            // Đã hủy
 }
 
 model Task {

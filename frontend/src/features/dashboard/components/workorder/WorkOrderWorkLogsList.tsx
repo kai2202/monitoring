@@ -15,6 +15,8 @@ interface WorkOrderWorkLogsListProps {
   workLogs: WorkLogEntry[];
   steps?: TaskStepItem[];
   selectedStepIdFilter?: string | null;
+  assigneeName?: string;
+  isReadOnly?: boolean;
   onClearStepFilter?: () => void;
   onAddWorkLog?: (log: Partial<WorkLogEntry>) => void;
 }
@@ -23,6 +25,8 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
   workLogs,
   steps = [],
   selectedStepIdFilter,
+  assigneeName,
+  isReadOnly = false,
   onClearStepFilter,
   onAddWorkLog,
 }) => {
@@ -30,7 +34,6 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
   const [chosenStepId, setChosenStepId] = useState<string>(selectedStepIdFilter || '');
   const [stepTitle, setStepTitle] = useState('');
   const [actions, setActions] = useState('');
-  const [performerName, setPerformerName] = useState('Kỹ sư NOC');
   const [resultStatus, setResultStatus] = useState<'SUCCESS' | 'WAITING_PARTS' | 'FOLLOWUP_NEEDED'>('SUCCESS');
 
   useEffect(() => {
@@ -45,12 +48,15 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
     ? steps.find((s) => s.id === selectedStepIdFilter)
     : null;
 
+  const resolvedPerformer = assigneeName?.trim() || 'Người phụ trách';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!actions.trim()) return;
+    if (!actions.trim() || isReadOnly) return;
 
     const matchedStep = steps.find((s) => s.id === chosenStepId);
     const resolvedStepTitle = matchedStep ? matchedStep.title : stepTitle.trim() || 'Thao tác kỹ thuật chung';
+    const avatar = resolvedPerformer.split(' ').map((w) => w[0]).filter(Boolean).slice(-2).join('').toUpperCase() || 'KT';
 
     if (onAddWorkLog) {
       onAddWorkLog({
@@ -59,8 +65,8 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
         stepTitle: resolvedStepTitle,
         stepNumber: matchedStep ? matchedStep.stepNumber : 0,
         actionsTaken: actions.trim(),
-        performerName,
-        performerAvatar: performerName.slice(0, 2).toUpperCase(),
+        performerName: resolvedPerformer,
+        performerAvatar: avatar,
         resultStatus,
         createdAt: `${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date().toLocaleDateString('vi-VN')}`,
       });
@@ -79,16 +85,22 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
             Nhật Ký Thực Hiện ({filteredLogs.length} bản ghi)
           </h4>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            if (!isAdding && selectedStepIdFilter) setChosenStepId(selectedStepIdFilter);
-            setIsAdding(!isAdding);
-          }}
-          style={{ fontSize: '11px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-        >
-          {isAdding ? 'Đóng' : '+ Ghi nhận thao tác'}
-        </button>
+        {isReadOnly ? (
+          <span style={{ fontSize: '11px', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
+            🔒 Hồ sơ đóng (Chỉ đọc)
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (!isAdding && selectedStepIdFilter) setChosenStepId(selectedStepIdFilter);
+              setIsAdding(!isAdding);
+            }}
+            style={{ fontSize: '11px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+          >
+            {isAdding ? 'Đóng' : '+ Ghi nhận thao tác'}
+          </button>
+        )}
       </div>
 
       {/* Banner lọc theo tiến trình */}
@@ -105,7 +117,7 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
         </div>
       )}
 
-      {isAdding && (
+      {isAdding && !isReadOnly && (
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px', backgroundColor: 'var(--bg-subtle, #f8fafc)', borderRadius: '10px', border: '1px solid var(--border-color, #e2e8f0)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <label style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-muted, #64748b)' }}>Gắn với tiến trình:</label>
@@ -139,18 +151,14 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
             style={{ padding: '6px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
           />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <input
-              type="text"
-              placeholder="Người thực hiện"
-              value={performerName}
-              onChange={(e) => setPerformerName(e.target.value)}
-              style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary, #475569)' }}>
+              Người thực hiện: <strong style={{ color: 'var(--text-primary, #0f172a)' }}>{resolvedPerformer}</strong>
+            </span>
             <select
               value={resultStatus}
               onChange={(e) => setResultStatus(e.target.value as 'SUCCESS' | 'WAITING_PARTS' | 'FOLLOWUP_NEEDED')}
-              style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}
+              style={{ padding: '5px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-card, #ffffff)' }}
             >
               <option value="SUCCESS">Thành công</option>
               <option value="WAITING_PARTS">Chờ linh kiện</option>
