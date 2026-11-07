@@ -38,6 +38,7 @@ jobs:
         env:
           VITE_DATA_SOURCE: mock
           VITE_USE_MOCK: "true"
+          GITHUB_PAGES: "true"
 
       - name: Copy index.html to 404.html (SPA routing support on GitHub Pages)
         run: cp Frontend/dist/index.html Frontend/dist/404.html

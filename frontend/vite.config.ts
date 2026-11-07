@@ -5,6 +5,7 @@ import path from 'path';
 
 export default defineConfig({
   root: path.resolve(__dirname),
+  base: process.env.GITHUB_PAGES === 'true' || process.env.VITE_BASE_URL ? (process.env.VITE_BASE_URL || '/monitoring/') : '/',
   plugins: [react()],
   resolve: {
     alias: {

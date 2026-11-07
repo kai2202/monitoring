@@ -15,9 +15,10 @@ import { AppRoutes } from './routes/AppRoutes';
 import { ErrorBoundary } from './shared/feedback/ErrorBoundary';
 
 export const App: React.FC = () => {
+  const basename = import.meta.env.BASE_URL || '/';
   return (
     <Provider store={store}>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <ErrorBoundary fallbackTitle="Lỗi Hệ Thống FleetMonitor">
           <AppRoutes />
         </ErrorBoundary>
