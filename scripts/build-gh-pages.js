@@ -7,7 +7,7 @@
  *
  * Tự động tạo:
  * - `/index.html`
- * - `/404.html` (SPA Fallback giúp F5 / truy cập trực tiếp các đường dẫn con như `/printers/list` không bị 404)
+ * - `/404.html` (SPA Fallback giúp F5 / truy cập trực tiếp các đường dẫn con không bị 404)
  * - `/assets/*` (Bundles JS/CSS đã tối ưu hóa)
  * - `/.nojekyll` (Tắt bộ xử lý Jekyll của GitHub Pages để tăng tốc độ deploy và giữ nguyên tên file)
  */
@@ -21,10 +21,20 @@ const distDir = path.join(rootDir, 'Frontend', 'dist');
 const rootAssetsDir = path.join(rootDir, 'assets');
 
 console.log('🚀 [GitHub Pages] Đang build Frontend ở chế độ Mock (mode=mock)...');
-execSync('npm run build:mock -w Frontend', {
-  cwd: rootDir,
-  stdio: 'inherit',
-});
+
+const isWin = process.platform === 'win32';
+const npmCmd = isWin ? 'npm.cmd' : 'npm';
+
+try {
+  execSync(`${npmCmd} run build:mock -w Frontend`, {
+    cwd: rootDir,
+    stdio: 'inherit',
+    shell: true,
+  });
+} catch (err) {
+  console.error('❌ Lỗi khi thực thi lệnh build Frontend:', err.message);
+  process.exit(1);
+}
 
 if (!fs.existsSync(distDir)) {
   console.error('❌ Không tìm thấy thư mục Frontend/dist sau khi build!');
@@ -60,5 +70,4 @@ console.log('   - /index.html');
 console.log('   - /404.html (SPA Router Fallback)');
 console.log('   - /assets/*');
 console.log('   - /.nojekyll');
-console.log('👉 Chỉ cần commit & push nhánh `mock`, sau đó chọn Source: "Deploy from a branch" -> `mock` -> `/ (root)` trên GitHub!');
-
+console.log('👉 Chỉ cần commit & push nhánh `mock`, sau đó kiểm tra tab Settings -> Pages trên GitHub!');
