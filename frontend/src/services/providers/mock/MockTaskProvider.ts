@@ -13,39 +13,39 @@ import {
   RescheduleTaskDto,
   AddTaskNoteDto,
 } from '../../interfaces/ITaskService';
-import { Task, TaskActivityLog, TaskAttachment, WorkLogEntry } from '../../../types/task';
+import { Task, TaskAttachment, WorkLogEntry } from '../../../types/task';
 import { mockTasks } from '../../../mocks';
 
-const LOCAL_STORAGE_TASKS_KEY = 'fleetmonitor_tasks';
+const STORAGE_KEY = 'fleetmonitor_tasks';
 
 export class MockTaskProvider implements ITaskService {
   private tasks: Task[];
 
   constructor() {
-    this.tasks = this.loadInitialTasks();
+    this.tasks = this.loadTasks();
   }
 
-  private loadInitialTasks(): Task[] {
+  private loadTasks(): Task[] {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        const stored = window.localStorage.getItem(LOCAL_STORAGE_TASKS_KEY);
+        const stored = window.localStorage.getItem(STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) return parsed;
         }
       } catch (err) {
-        console.warn('[MockTaskProvider] Không thể đọc tasks từ localStorage:', err);
+        console.warn('[MockTaskProvider] Không thể đọc localStorage:', err);
       }
     }
     return [...mockTasks];
   }
 
-  private persistTasks(): void {
+  private persist(): void {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        window.localStorage.setItem(LOCAL_STORAGE_TASKS_KEY, JSON.stringify(this.tasks));
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.tasks));
       } catch (err) {
-        console.warn('[MockTaskProvider] Không thể lưu tasks vào localStorage:', err);
+        console.warn('[MockTaskProvider] Không thể lưu localStorage:', err);
       }
     }
   }
@@ -62,17 +62,8 @@ export class MockTaskProvider implements ITaskService {
   }
 
   async createTask(dto: CreateTaskDto, author: string): Promise<Task> {
-    await new Promise((r) => setTimeout(r, 80));
     const now = new Date().toISOString();
     const newId = `TSK-${now.slice(0, 10).replace(/-/g, '')}-${String(this.tasks.length + 1).padStart(4, '0')}`;
-    const creationLog: TaskActivityLog = {
-      id: `log-${Date.now()}-1`,
-      author,
-      timestamp: now,
-      action: 'CREATED',
-      comment: `Tạo mới công việc: ${dto.title}`,
-    };
-
     const newTask: Task = {
       id: newId,
       title: dto.title,
@@ -100,31 +91,27 @@ export class MockTaskProvider implements ITaskService {
       workLogs: dto.workLogs || [],
       vendorCommunications: dto.vendorCommunications || [],
       attachments: dto.attachments || [],
-      activityLogs: [creationLog],
+      activityLogs: [{ id: `log-${Date.now()}`, author, timestamp: now, action: 'CREATED', comment: `Tạo: ${dto.title}` }],
       createdAt: now,
       updatedAt: now,
     };
-
     this.tasks.unshift(newTask);
-    this.persistTasks();
+    this.persist();
     return { ...newTask };
   }
 
   async updateTask(id: string, updatedFields: Partial<Task>): Promise<Task> {
-    await new Promise((r) => setTimeout(r, 40));
     const taskIndex = this.tasks.findIndex((t) => t.id === id);
-    if (taskIndex === -1) throw new Error(`Không tìm thấy công việc có mã ${id}`);
-    const updatedTask = { ...this.tasks[taskIndex], ...updatedFields, updatedAt: new Date().toISOString() };
-    this.tasks[taskIndex] = updatedTask;
-    this.persistTasks();
-    return { ...updatedTask };
+    if (taskIndex === -1) throw new Error(`Không tìm thấy công việc ${id}`);
+    const updated = { ...this.tasks[taskIndex], ...updatedFields, updatedAt: new Date().toISOString() };
+    this.tasks[taskIndex] = updated;
+    this.persist();
+    return { ...updated };
   }
 
   async updateTaskStatus(id: string, dto: UpdateTaskStatusDto): Promise<Task> {
-    await new Promise((r) => setTimeout(r, 60));
     const task = this.tasks.find((t) => t.id === id);
-    if (!task) throw new Error(`Không tìm thấy công việc có mã ${id}`);
-
+    if (!task) throw new Error(`Không tìm thấy công việc ${id}`);
     const now = new Date().toISOString();
     const oldStatus = task.status;
     task.status = dto.status;
@@ -141,7 +128,6 @@ export class MockTaskProvider implements ITaskService {
     if (dto.attachments) task.attachments = dto.attachments;
     if (dto.workLogs) task.workLogs = dto.workLogs;
     if (dto.timeAndCost) task.timeAndCost = dto.timeAndCost;
-
     task.activityLogs.push({
       id: `log-${Date.now()}`,
       author: dto.author,
@@ -152,65 +138,84 @@ export class MockTaskProvider implements ITaskService {
       newValue: dto.status,
       comment: dto.comment || `Đổi trạng thái từ ${oldStatus} sang ${dto.status}`,
     });
+    this.persist();
+    return { ...task };
+  }
 
-    this.persistTasks();
+  async approveTask(id: string): Promise<Task> {
+    const task = this.tasks.find((t) => t.id === id);
+    if (!task) throw new Error(`Không tìm thấy công việc có mã ${id}`);
+    const now = new Date().toISOString();
+    task.status = 'Completed';
+    task.progressPercent = 100;
+    task.completedDate = now;
+    task.reworkReason = undefined;
+    task.updatedAt = now;
+    task.activityLogs.push({
+      id: `log-${Date.now()}`,
+      author: 'Admin Nghiệm thu',
+      timestamp: now,
+      action: 'STATUS_CHANGED',
+      newValue: 'Completed',
+      comment: 'Phê duyệt nghiệm thu bản in thành công & Đóng lệnh',
+    });
+    this.persist();
+    return { ...task };
+  }
+
+  async reworkTask(id: string, reason: string): Promise<Task> {
+    const task = this.tasks.find((t) => t.id === id);
+    if (!task) throw new Error(`Không tìm thấy công việc có mã ${id}`);
+    const now = new Date().toISOString();
+    task.status = 'In_Progress';
+    task.progressPercent = 80;
+    task.reworkReason = reason;
+    task.updatedAt = now;
+    task.activityLogs.push({
+      id: `log-${Date.now()}`,
+      author: 'Admin Nghiệm thu',
+      timestamp: now,
+      action: 'STATUS_CHANGED',
+      newValue: 'In_Progress',
+      comment: `Yêu cầu làm lại: ${reason}`,
+    });
+    this.persist();
     return { ...task };
   }
 
   async reassignTask(id: string, dto: ReassignTaskDto): Promise<Task> {
-    await new Promise((r) => setTimeout(r, 60));
     const task = this.tasks.find((t) => t.id === id);
     if (!task) throw new Error(`Không tìm thấy công việc ${id}`);
     const now = new Date().toISOString();
-    const oldAssignee = task.assignee;
+    const old = task.assignee;
     task.assignee = dto.newAssignee;
     task.updatedAt = now;
-    task.activityLogs.push({
-      id: `log-${Date.now()}`,
-      author: dto.author,
-      timestamp: now,
-      action: 'REASSIGNED',
-      fieldChanged: 'assignee',
-      oldValue: oldAssignee,
-      newValue: dto.newAssignee,
-      comment: dto.reason,
-    });
-    this.persistTasks();
+    task.activityLogs.push({ id: `log-${Date.now()}`, author: dto.author, timestamp: now, action: 'REASSIGNED', fieldChanged: 'assignee', oldValue: old, newValue: dto.newAssignee, comment: dto.reason });
+    this.persist();
     return { ...task };
   }
 
   async rescheduleTask(id: string, dto: RescheduleTaskDto): Promise<Task> {
-    await new Promise((r) => setTimeout(r, 60));
     const task = this.tasks.find((t) => t.id === id);
     if (!task) throw new Error(`Không tìm thấy công việc ${id}`);
     const now = new Date().toISOString();
-    const oldDueDate = task.dueDate;
+    const old = task.dueDate;
     task.dueDate = dto.newDueDate;
     if (dto.newNextCheckDate) task.nextCheckDate = dto.newNextCheckDate;
     task.updatedAt = now;
-    task.activityLogs.push({
-      id: `log-${Date.now()}`,
-      author: dto.author,
-      timestamp: now,
-      action: 'RESCHEDULED',
-      fieldChanged: 'dueDate',
-      oldValue: oldDueDate,
-      newValue: dto.newDueDate,
-      comment: dto.reason,
-    });
-    this.persistTasks();
+    task.activityLogs.push({ id: `log-${Date.now()}`, author: dto.author, timestamp: now, action: 'RESCHEDULED', fieldChanged: 'dueDate', oldValue: old, newValue: dto.newDueDate, comment: dto.reason });
+    this.persist();
     return { ...task };
   }
 
   async addTaskNote(id: string, dto: AddTaskNoteDto): Promise<Task> {
-    await new Promise((r) => setTimeout(r, 40));
     const task = this.tasks.find((t) => t.id === id);
     if (!task) throw new Error(`Không tìm thấy công việc ${id}`);
     const now = new Date().toISOString();
     task.notes = task.notes ? `${task.notes}\n[${now.slice(0, 16)}] ${dto.note}` : dto.note;
     task.updatedAt = now;
     task.activityLogs.push({ id: `log-${Date.now()}`, author: dto.author, timestamp: now, action: 'NOTE_ADDED', comment: dto.note });
-    this.persistTasks();
+    this.persist();
     return { ...task };
   }
 
@@ -229,19 +234,14 @@ export class MockTaskProvider implements ITaskService {
       resultStatus: log.resultStatus || 'SUCCESS',
     };
     task.workLogs = [...(task.workLogs || []), entry];
-    this.persistTasks();
+    this.persist();
     return { ...task };
   }
 
   async uploadTaskAttachment(id: string, file: File, author: string, isTestPrintProof = false): Promise<TaskAttachment> {
     const ext = file.name.split('.').pop()?.toUpperCase() || '';
     const fileType: 'PDF' | 'IMAGE' | 'LOG' | 'DOC' = ['JPG', 'JPEG', 'PNG', 'WEBP', 'SVG'].includes(ext)
-      ? 'IMAGE'
-      : ext === 'PDF'
-      ? 'PDF'
-      : ['LOG', 'TXT', 'JSON', 'CSV'].includes(ext)
-      ? 'LOG'
-      : 'DOC';
+      ? 'IMAGE' : ext === 'PDF' ? 'PDF' : ['LOG', 'TXT', 'JSON', 'CSV'].includes(ext) ? 'LOG' : 'DOC';
     const sizeKb = file.size / 1024;
     const formattedSize = sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(sizeKb))} KB`;
     const objectUrl = typeof URL !== 'undefined' && URL.createObjectURL ? URL.createObjectURL(file) : undefined;
@@ -259,35 +259,24 @@ export class MockTaskProvider implements ITaskService {
     const task = this.tasks.find((t) => t.id === id);
     if (task) {
       task.attachments = [...(task.attachments || []), created];
-      this.persistTasks();
+      this.persist();
     }
     return created;
   }
 
   async getAttachmentDownloadUrl(id: string, attachmentId: string): Promise<string | null> {
-    const task = this.tasks.find((t) => t.id === id);
-    return task?.attachments?.find((a) => a.id === attachmentId)?.fileUrl || null;
+    return this.tasks.find((t) => t.id === id)?.attachments?.find((a) => a.id === attachmentId)?.fileUrl || null;
   }
 
   async updateProgress(id: string, percent: number, author: string, comment?: string): Promise<Task> {
-    await new Promise((r) => setTimeout(r, 40));
     const task = this.tasks.find((t) => t.id === id);
     if (!task) throw new Error(`Không tìm thấy công việc ${id}`);
     const now = new Date().toISOString();
-    const oldPercent = task.progressPercent;
+    const old = task.progressPercent;
     task.progressPercent = Math.min(100, Math.max(0, percent));
     task.updatedAt = now;
-    task.activityLogs.push({
-      id: `log-${Date.now()}`,
-      author,
-      timestamp: now,
-      action: 'PROGRESS_UPDATED',
-      fieldChanged: 'progressPercent',
-      oldValue: `${oldPercent}%`,
-      newValue: `${percent}%`,
-      comment: comment || `Cập nhật tiến độ: ${percent}%`,
-    });
-    this.persistTasks();
+    task.activityLogs.push({ id: `log-${Date.now()}`, author, timestamp: now, action: 'PROGRESS_UPDATED', fieldChanged: 'progressPercent', oldValue: `${old}%`, newValue: `${percent}%`, comment: comment || `Tiến độ: ${percent}%` });
+    this.persist();
     return { ...task };
   }
 }

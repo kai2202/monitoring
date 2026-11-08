@@ -18,6 +18,8 @@ import {
   faChartLine,
   faGear,
   faChevronLeft,
+  faBox,
+  faFileLines,
 } from '../../shared/icons';
 import { SidebarNavItem } from './SidebarNavItem';
 import { SidebarNavGroup, SubItemConfig } from './SidebarNavGroup';
@@ -31,6 +33,8 @@ export type NavTabId =
   | 'analytics'
   | 'analytics-supplies'
   | 'analytics-sla-cost'
+  | 'inventory'
+  | 'procurement'
   | 'settings';
 
 export interface SidebarProps {
@@ -54,9 +58,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isAssetHr = role === 'ASSET_HR' || role === 'DEPARTMENT_HEAD';
   const isAdmin = !isFieldTech && !isAssetHr;
 
-  const canAccessDashboard = true; // Cả 3 vai trò đều xem Dashboard tổng quan
-  const canAccessAnalytics = true; // Cả 3 vai trò đều xem Phân tích (nhưng sub-items khác nhau)
-  const canAccessSettings = isAdmin; // Chỉ Admin mới có quyền vào Cấu hình hệ thống & CSV
+  const canAccessDashboard = true;
+  const canAccessAnalytics = true;
+  const canAccessInventory = true; // Cả 3 vai trò đều xem Kho vật tư
+  const canAccessProcurement = !isFieldTech; // Chỉ Admin và Asset HR xem/lập đơn PO mua sắm
+  const canAccessSettings = isAdmin;
 
   const [isPrintersOpen, setIsPrintersOpen] = useState(true);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(true);
@@ -79,49 +85,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (isAnalyticsActive && !isAnalyticsOpen) setIsAnalyticsOpen(true);
   }, [isAnalyticsActive]);
 
-  // Cấu hình menu Máy in dựa theo vai trò
   const printerSubItems: SubItemConfig[] = useMemo(() => {
     if (isFieldTech) {
-      return [
-        { id: 'printers-timeline', label: 'Lịch trình bảo trì' },
-        { id: 'printers-history', label: 'Lệnh bảo trì' },
-        { id: 'printers', label: 'Danh sách máy' },
-      ];
+      return [{ id: 'printers-timeline', label: 'Lịch trình bảo trì' }, { id: 'printers-history', label: 'Lệnh bảo trì' }, { id: 'printers', label: 'Danh sách máy' }];
     }
     if (isAssetHr) {
-      return [
-        { id: 'printers', label: 'Danh mục tài sản', badge: 35 },
-        { id: 'printers-history', label: 'Đối soát KPI & Bảo trì' },
-        { id: 'printers-timeline', label: 'Lịch bảo dưỡng' },
-      ];
+      return [{ id: 'printers', label: 'Danh mục tài sản', badge: 35 }, { id: 'printers-history', label: 'Đối soát KPI & Bảo trì' }, { id: 'printers-timeline', label: 'Lịch bảo dưỡng' }];
     }
-    return [
-      { id: 'printers', label: 'Danh sách', badge: 35 },
-      { id: 'printers-timeline', label: 'Lịch trình' },
-      { id: 'printers-history', label: 'Bảo trì' },
-    ];
+    return [{ id: 'printers', label: 'Danh sách', badge: 35 }, { id: 'printers-timeline', label: 'Lịch trình' }, { id: 'printers-history', label: 'Bảo trì' }];
   }, [isFieldTech, isAssetHr]);
 
-  // Cấu hình menu Phân tích dựa theo vai trò
   const analyticsSubItems: SubItemConfig[] = useMemo(() => {
     if (isFieldTech) {
-      return [
-        { id: 'analytics', label: 'Sản lượng in' },
-        { id: 'analytics-supplies', label: 'Vật tư', badge: 4 },
-      ];
+      return [{ id: 'analytics', label: 'Sản lượng in' }, { id: 'analytics-supplies', label: 'Vật tư', badge: 4 }];
     }
     if (isAssetHr) {
-      return [
-        { id: 'analytics', label: 'Sản lượng in' },
-        { id: 'analytics-supplies', label: 'Vật tư D-Day', badge: 4 },
-        { id: 'analytics-sla-cost', label: 'Hạch toán chi phí' },
-      ];
+      return [{ id: 'analytics', label: 'Sản lượng in' }, { id: 'analytics-supplies', label: 'Vật tư D-Day', badge: 4 }, { id: 'analytics-sla-cost', label: 'Hạch toán chi phí' }];
     }
-    return [
-      { id: 'analytics', label: 'Sản lượng in' },
-      { id: 'analytics-supplies', label: 'Vật tư', badge: 4 },
-      { id: 'analytics-sla-cost', label: 'SLA & Chi phí' },
-    ];
+    return [{ id: 'analytics', label: 'Sản lượng in' }, { id: 'analytics-supplies', label: 'Vật tư', badge: 4 }, { id: 'analytics-sla-cost', label: 'SLA & Chi phí' }];
   }, [isFieldTech, isAssetHr]);
 
   return (
@@ -153,12 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div
           onClick={collapsed ? onToggleCollapse : undefined}
           title={collapsed ? 'Nhấn để mở rộng thanh menu' : undefined}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            cursor: collapsed ? 'pointer' : 'default',
-          }}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: collapsed ? 'pointer' : 'default' }}
         >
           <div
             style={{
@@ -172,7 +148,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               color: '#ffffff',
               boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)',
               flexShrink: 0,
-              transition: 'transform 0.15s ease',
             }}
           >
             <FontAwesomeIcon icon={faPrint} size="sm" />
@@ -231,7 +206,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         )}
 
-        {/* Dashboard: Không hiển thị cho Kỹ thuật viên bảo trì */}
+        {/* Dashboard */}
         {canAccessDashboard && (
           <SidebarNavItem
             id="dashboard"
@@ -255,7 +230,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onSelectTab={onSelectTab}
         />
 
-        {/* Phân tích: Không hiển thị cho Kỹ thuật viên bảo trì */}
+        {/* Phân tích */}
         {canAccessAnalytics && (
           <SidebarNavGroup
             label="Phân tích"
@@ -265,6 +240,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
             collapsed={collapsed}
             activeTab={activeTab}
             subItems={analyticsSubItems}
+            onSelectTab={onSelectTab}
+          />
+        )}
+
+        {/* Kho vật tư: Cả 3 vai trò đều dùng (KTV xuất kho, Admin/HR quản lý) */}
+        {canAccessInventory && (
+          <SidebarNavItem
+            id="inventory"
+            label="Kho vật tư"
+            icon={faBox}
+            activeTab={activeTab}
+            collapsed={collapsed}
+            onSelectTab={onSelectTab}
+          />
+        )}
+
+        {/* Mua sắm (PO): Hiển thị cho Admin và Asset HR */}
+        {canAccessProcurement && (
+          <SidebarNavItem
+            id="procurement"
+            label="Mua sắm (PO)"
+            icon={faFileLines}
+            activeTab={activeTab}
+            collapsed={collapsed}
             onSelectTab={onSelectTab}
           />
         )}

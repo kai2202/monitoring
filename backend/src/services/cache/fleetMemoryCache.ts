@@ -59,6 +59,10 @@ export class FleetMemoryCache {
     this.cache = null;
   }
 
+  public invalidate(_tag?: string): void {
+    this.clear();
+  }
+
   public isCacheValid(): boolean {
     if (!this.cache) return false;
     return Date.now() - this.cache.timestamp <= this.TTL_MS && !this.cache.isStale;

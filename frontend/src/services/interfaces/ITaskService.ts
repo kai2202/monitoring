@@ -96,4 +96,6 @@ export interface ITaskService {
   ): Promise<TaskAttachment>;
   getAttachmentDownloadUrl(id: string, attachmentId: string): Promise<string | null>;
   updateProgress(id: string, percent: number, author: string, comment?: string): Promise<Task>;
+  approveTask(taskId: string): Promise<Task>;
+  reworkTask(taskId: string, reason: string): Promise<Task>;
 }

@@ -9,8 +9,7 @@
  */
 
 import React from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '../../../shared/icons';
 
 interface LoginFloatingInputProps {
   label: string;
@@ -18,7 +17,7 @@ interface LoginFloatingInputProps {
   onChange: (val: string) => void;
   type?: string;
   placeholder?: string;
-  icon?: IconDefinition;
+  icon?: any;
   isFocused?: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
@@ -42,24 +41,26 @@ export const LoginFloatingInput: React.FC<LoginFloatingInputProps> = ({
   return (
     <div
       style={{
-        padding: '6px 14px',
-        borderRadius: '14px',
+        padding: '13px 20px',
+        borderRadius: '16px',
         backgroundColor: isFocused ? '#ffffff' : '#f8fafc',
-        border: isFocused ? '1.5px solid #0284c7' : '1px solid #f1f5f9',
-        boxShadow: isFocused ? '0 0 0 3px rgba(2, 132, 199, 0.12)' : 'none',
+        border: isFocused ? '1.5px solid #0284c7' : '1px solid #e2e8f0',
+        boxShadow: isFocused ? '0 0 0 4px rgba(2, 132, 199, 0.12)' : 'none',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        transition: 'all 0.15s ease',
+        transition: 'all 0.18s ease',
+        boxSizing: 'border-box',
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize: '9.5px',
+            fontSize: '11.5px',
             color: isFocused ? '#0284c7' : '#94a3b8',
             fontWeight: isFocused ? 700 : 600,
-            transition: 'color 0.15s ease',
+            transition: 'color 0.18s ease',
+            textTransform: 'none',
           }}
         >
           {label}
@@ -76,11 +77,11 @@ export const LoginFloatingInput: React.FC<LoginFloatingInputProps> = ({
             outline: 'none',
             backgroundColor: 'transparent',
             color: '#0f172a',
-            fontSize: '13px',
+            fontSize: '15.5px',
             fontWeight: 700,
             width: '100%',
             padding: 0,
-            marginTop: '1px',
+            marginTop: '4px',
             letterSpacing: letterSpacing || 'normal',
           }}
         />
@@ -89,7 +90,7 @@ export const LoginFloatingInput: React.FC<LoginFloatingInputProps> = ({
       {rightAction ? (
         rightAction
       ) : icon ? (
-        <span style={{ color: '#cbd5e1', fontSize: '13px', marginLeft: '6px' }}>
+        <span style={{ color: '#94a3b8', fontSize: '15px', marginLeft: '8px' }}>
           <FontAwesomeIcon icon={icon} />
         </span>
       ) : null}

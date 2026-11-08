@@ -36,8 +36,7 @@ function getRoleNameVi(role: UserRole): string {
 
 function mapUserToManagedDto(u: any) {
   const scope: any = u.dataScope && typeof u.dataScope === 'object' ? u.dataScope : {};
-  const defaultBranches =
-    u.role === 'ADMIN' ? ['Trụ sở chính (HQ)', 'Chi nhánh Miền Nam'] : ['Trụ sở chính (HQ)'];
+  const defaultBranches = ['Trụ sở chính'];
   const branchScope =
     Array.isArray(scope.branchScope) && scope.branchScope.length > 0 ? scope.branchScope : defaultBranches;
   const floorsScope =
@@ -134,8 +133,7 @@ export class UserAdminController {
       }
 
       const passwordHash = await bcrypt.hash(resolvedPassword, 10);
-      const defaultBranches =
-        validRole === 'ADMIN' ? ['Trụ sở chính (HQ)', 'Chi nhánh Miền Nam'] : ['Trụ sở chính (HQ)'];
+      const defaultBranches = ['Trụ sở chính'];
 
       const created = await prisma.user.create({
         data: {

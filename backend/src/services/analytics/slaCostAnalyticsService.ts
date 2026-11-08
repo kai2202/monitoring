@@ -15,13 +15,10 @@ export class SLACostAnalyticsService {
   /**
    * Tính toán báo cáo SLA, Chi phí theo phòng ban và Ma trận điểm nóng sự cố
    */
-  public async computeSLACost(branch?: string) {
+  public async computeSLACost(building?: string) {
     const wherePrinter: any = {};
-    if (branch && branch !== 'all') {
-      wherePrinter.OR = [
-        { branch: { contains: branch, mode: 'insensitive' } },
-        { location: { contains: branch, mode: 'insensitive' } },
-      ];
+    if (building && building !== 'all') {
+      wherePrinter.building = { contains: building, mode: 'insensitive' };
     }
 
     const [printers, rateConfig, incidents] = await Promise.all([
@@ -31,7 +28,7 @@ export class SLACostAnalyticsService {
       }),
       prisma.costRateConfig.findFirst({ orderBy: { effectiveDate: 'desc' } }),
       prisma.incident.findMany({
-        where: branch && branch !== 'all' ? { printer: wherePrinter } : undefined,
+        where: building && building !== 'all' ? { printer: wherePrinter } : undefined,
         include: { printer: true },
         orderBy: { detectedAt: 'desc' },
       }),
@@ -176,13 +173,10 @@ export class SLACostAnalyticsService {
   /**
    * Tính toán dự báo cạn kiệt vật tư tiêu hao (Mực CMYK, Drum, Fuser)
    */
-  public async computeSuppliesForecast(branch?: string) {
+  public async computeSuppliesForecast(building?: string) {
     const wherePrinter: any = {};
-    if (branch && branch !== 'all') {
-      wherePrinter.OR = [
-        { branch: { contains: branch, mode: 'insensitive' } },
-        { location: { contains: branch, mode: 'insensitive' } },
-      ];
+    if (building && building !== 'all') {
+      wherePrinter.building = { contains: building, mode: 'insensitive' };
     }
 
     const printers = await prisma.printer.findMany({

@@ -168,6 +168,7 @@ export interface Task {
   incidentId?: string;
   errorCode?: string; // e.g. "SC-542", "E000-0001", "13.01.00"
   dueDateStatus: 'overdue' | 'due_soon' | 'on_track';
+  reworkReason?: string;
   notes: string;
   contingencyPlan?: string;
   activityLogs: TaskActivityLog[];

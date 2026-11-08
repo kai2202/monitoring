@@ -179,6 +179,7 @@ export function mapTaskRecord(t: any) {
     dueDateStatus: isOverdue ? ('overdue' as const) : ('on_track' as const),
     completedDate: t.completedDate ? new Date(t.completedDate).toISOString() : undefined,
     progressPercent: t.progressPercent ?? 0,
+    reworkReason: t.reworkReason || undefined,
     notes: t.description || '',
     activityLogs: [],
     dynamicSteps: Array.isArray(t.dynamicSteps) ? t.dynamicSteps : [],

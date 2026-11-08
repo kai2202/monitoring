@@ -2,12 +2,41 @@
  * backend/prisma/seedSampleData.ts
  *
  * Dữ liệu khởi tạo vận hành chuẩn hóa (Printers, Consumables, CounterRollup 14d, Incidents, Tasks):
- * - Tách riêng để giữ `seed.ts` gọn nhẹ (< 200 LOC) theo AGENTS.md Rule 7.1.
+ * - Tách riêng và tối ưu hóa cấu trúc (< 200 LOC) theo AGENTS.md Rule 7.1.
  * - Bao gồm cả mã lỗi đã có trong CSV (`SC542`, `E000-0001`) và 2 mã lỗi thực tế chưa tích hợp CSV
  *   (`SC899` trên Ricoh & `50.2` trên HP) để Admin kiểm chứng ngay cơ chế đối chiếu tự động tại `/settings/dictionary`.
  */
 
 import { PrismaClient, TaskPriority, TaskStatus } from '@prisma/client';
+
+interface SeedPrinterConfig {
+  id: string;
+  name: string;
+  ip: string;
+  model: string;
+  mfr: string;
+  deviceType: string;
+  serialNumber: string;
+  location: string;
+  department: string;
+  floor: string;
+  floorId?: string;
+  isColor: boolean;
+  health: string;
+  alertSeverity: string;
+  zabbixHostId: string;
+  consumable: {
+    tonerBlack: number | null;
+    tonerCyan: number | null;
+    tonerMagenta: number | null;
+    tonerYellow: number | null;
+    drumLifePercent: number;
+    fuserLifePercent: number;
+    wasteTonerStatus: string;
+  };
+  dailyMono: number;
+  dailyColor: number;
+}
 
 export async function seedOperationalFleetData(
   prisma: PrismaClient,
@@ -15,191 +44,164 @@ export async function seedOperationalFleetData(
     adminId: string;
     techId: string;
     techFullName: string;
-    hqBranchId?: string;
-    sgnBranchId?: string;
     t1FloorId?: string;
     t2FloorId?: string;
     t3FloorId?: string;
+    t4FloorId?: string;
+    t5FloorId?: string;
   }
 ) {
   const now = new Date();
 
-  // 1. Danh mục 5 máy in đa hãng (Ricoh, Canon, HP, Brother)
-  const fleet = [
+  const fleet: SeedPrinterConfig[] = [
     {
-      printer: {
-        id: 'RICOH-T1-01',
-        name: 'Ricoh MP C6004 - P.Kế toán',
-        ip: '192.168.1.101',
-        model: 'MP C6004',
-        mfr: 'Ricoh',
-        deviceType: 'Laser Đa Năng (MFP)',
-        serialNumber: 'RCH-C6004-98412',
-        branch: 'Trụ sở chính (HQ)',
-        branchId: refs.hqBranchId,
-        location: 'Tầng 1 - Phòng Kế toán & Tài chính',
-        department: 'Kế toán & Tài chính',
-        floor: 'Tầng 1',
-        floorId: refs.t1FloorId,
-        isColor: true,
-        connectionStatus: 'Online',
-        health: 'Critical',
-        alertSeverity: 'critical',
-        zabbixHostId: '10582',
-        syncStatus: 'SUCCESS',
-        lastSeenAt: now,
-        lastSyncTime: now,
-      },
-      consumable: {
-        tonerBlack: 78,
-        tonerCyan: 62,
-        tonerMagenta: 14,
-        tonerYellow: 45,
-        drumLifePercent: 76,
-        fuserLifePercent: 84,
-        wasteTonerStatus: 'OK',
-      },
+      id: 'RICOH-T1-01',
+      name: 'Ricoh MP C6004 - P.Kế toán',
+      ip: '192.168.1.101',
+      model: 'MP C6004',
+      mfr: 'Ricoh',
+      deviceType: 'Laser Đa Năng (MFP)',
+      serialNumber: 'RCH-C6004-98412',
+      location: 'Tầng 1 - Phòng Kế toán & Tài chính',
+      department: 'Kế toán & Tài chính',
+      floor: 'T1',
+      floorId: refs.t1FloorId,
+      isColor: true,
+      health: 'Critical',
+      alertSeverity: 'critical',
+      zabbixHostId: '10582',
+      consumable: { tonerBlack: 78, tonerCyan: 62, tonerMagenta: 14, tonerYellow: 45, drumLifePercent: 76, fuserLifePercent: 84, wasteTonerStatus: 'OK' },
       dailyMono: 320,
       dailyColor: 140,
     },
     {
-      printer: {
-        id: 'CANON-T3-02',
-        name: 'Canon iR-ADV C5550i - P.Marketing',
-        ip: '192.168.1.102',
-        model: 'iR-ADV C5550i',
-        mfr: 'Canon',
-        deviceType: 'Laser Đa Năng (MFP)',
-        serialNumber: 'CNN-5550-44210',
-        branch: 'Trụ sở chính (HQ)',
-        branchId: refs.hqBranchId,
-        location: 'Tầng 3 - Kinh doanh & Marketing',
-        department: 'Kinh doanh & Marketing',
-        floor: 'Tầng 3',
-        floorId: refs.t3FloorId,
-        isColor: true,
-        connectionStatus: 'Online',
-        health: 'Warning',
-        alertSeverity: 'warning',
-        zabbixHostId: '10583',
-        syncStatus: 'SUCCESS',
-        lastSeenAt: now,
-        lastSyncTime: now,
-      },
-      consumable: {
-        tonerBlack: 54,
-        tonerCyan: 11,
-        tonerMagenta: 49,
-        tonerYellow: 38,
-        drumLifePercent: 68,
-        fuserLifePercent: 72,
-        wasteTonerStatus: 'WARNING',
-      },
+      id: 'CANON-T3-02',
+      name: 'Canon iR-ADV C5550i - P.Marketing',
+      ip: '192.168.1.102',
+      model: 'iR-ADV C5550i',
+      mfr: 'Canon',
+      deviceType: 'Laser Đa Năng (MFP)',
+      serialNumber: 'CNN-5550-44210',
+      location: 'Tầng 3 - Kinh doanh & Marketing',
+      department: 'Kinh doanh & Marketing',
+      floor: 'T3',
+      floorId: refs.t3FloorId,
+      isColor: true,
+      health: 'Warning',
+      alertSeverity: 'warning',
+      zabbixHostId: '10583',
+      consumable: { tonerBlack: 54, tonerCyan: 11, tonerMagenta: 49, tonerYellow: 38, drumLifePercent: 68, fuserLifePercent: 72, wasteTonerStatus: 'WARNING' },
       dailyMono: 210,
       dailyColor: 260,
     },
     {
-      printer: {
-        id: 'HP-T2-03',
-        name: 'HP LaserJet Enterprise M608dn - P.Nhân sự',
-        ip: '192.168.1.103',
-        model: 'LaserJet M608dn',
-        mfr: 'HP',
-        deviceType: 'A4 Laser Đơn Sắc',
-        serialNumber: 'HPQ-M608-77129',
-        branch: 'Trụ sở chính (HQ)',
-        branchId: refs.hqBranchId,
-        location: 'Tầng 2 - Hành chính - Nhân sự',
-        department: 'Hành chính - Nhân sự',
-        floor: 'Tầng 2',
-        floorId: refs.t2FloorId,
-        isColor: false,
-        connectionStatus: 'Online',
-        health: 'Warning',
-        alertSeverity: 'warning',
-        zabbixHostId: '10584',
-        syncStatus: 'SUCCESS',
-        lastSeenAt: now,
-        lastSyncTime: now,
-      },
-      consumable: {
-        tonerBlack: 64,
-        tonerCyan: null,
-        tonerMagenta: null,
-        tonerYellow: null,
-        drumLifePercent: 81,
-        fuserLifePercent: 65,
-        wasteTonerStatus: 'OK',
-      },
+      id: 'HP-T2-03',
+      name: 'HP LaserJet Enterprise M608dn - P.Nhân sự',
+      ip: '192.168.1.103',
+      model: 'LaserJet M608dn',
+      mfr: 'HP',
+      deviceType: 'A4 Laser Đơn Sắc',
+      serialNumber: 'HPQ-M608-77129',
+      location: 'Tầng 2 - Hành chính - Nhân sự',
+      department: 'Hành chính - Nhân sự',
+      floor: 'T2',
+      floorId: refs.t2FloorId,
+      isColor: false,
+      health: 'Warning',
+      alertSeverity: 'warning',
+      zabbixHostId: '10584',
+      consumable: { tonerBlack: 64, tonerCyan: null, tonerMagenta: null, tonerYellow: null, drumLifePercent: 81, fuserLifePercent: 65, wasteTonerStatus: 'OK' },
       dailyMono: 410,
       dailyColor: 0,
     },
     {
-      printer: {
-        id: 'BROTHER-SGN-04',
-        name: 'Brother MFC-L6900DW - CN Miền Nam',
-        ip: '10.20.1.55',
-        model: 'MFC-L6900DW',
-        mfr: 'Brother',
-        deviceType: 'Laser Đa Năng Đơn Sắc',
-        serialNumber: 'BRT-6900-19283',
-        branch: 'Chi nhánh Miền Nam',
-        branchId: refs.sgnBranchId,
-        location: 'Tầng 1 - Chăm sóc Khách hàng',
-        department: 'Chăm sóc Khách hàng',
-        floor: 'Tầng 1',
-        isColor: false,
-        connectionStatus: 'Online',
-        health: 'Healthy',
-        alertSeverity: 'info',
-        zabbixHostId: '10585',
-        syncStatus: 'SUCCESS',
-        lastSeenAt: now,
-        lastSyncTime: now,
-      },
-      consumable: {
-        tonerBlack: 91,
-        tonerCyan: null,
-        tonerMagenta: null,
-        tonerYellow: null,
-        drumLifePercent: 93,
-        fuserLifePercent: 95,
-        wasteTonerStatus: 'OK',
-      },
+      id: 'BROTHER-T4-04',
+      name: 'Brother MFC-L6900DW - P.Kỹ thuật',
+      ip: '192.168.1.104',
+      model: 'MFC-L6900DW',
+      mfr: 'Brother',
+      deviceType: 'Laser Đa Năng Đơn Sắc',
+      serialNumber: 'BRT-6900-19283',
+      location: 'Tầng 4 - Kỹ thuật & Vận hành',
+      department: 'Kỹ thuật & Vận hành',
+      floor: 'T4',
+      floorId: refs.t4FloorId,
+      isColor: false,
+      health: 'Healthy',
+      alertSeverity: 'info',
+      zabbixHostId: '10585',
+      consumable: { tonerBlack: 91, tonerCyan: null, tonerMagenta: null, tonerYellow: null, drumLifePercent: 93, fuserLifePercent: 95, wasteTonerStatus: 'OK' },
       dailyMono: 185,
       dailyColor: 0,
+    },
+    {
+      id: 'EPSON-T5-05',
+      name: 'Epson WorkForce Enterprise WF-C20590 - Ban Giám Đốc',
+      ip: '192.168.1.105',
+      model: 'WF-C20590',
+      mfr: 'Epson',
+      deviceType: 'Phun Siêu Tốc Đa Năng',
+      serialNumber: 'EPS-20590-33821',
+      location: 'Tầng 5 - Ban Giám Đốc',
+      department: 'Ban Giám Đốc',
+      floor: 'T5',
+      floorId: refs.t5FloorId,
+      isColor: true,
+      health: 'Healthy',
+      alertSeverity: 'info',
+      zabbixHostId: '10586',
+      consumable: { tonerBlack: 88, tonerCyan: 79, tonerMagenta: 82, tonerYellow: 85, drumLifePercent: 90, fuserLifePercent: 92, wasteTonerStatus: 'OK' },
+      dailyMono: 150,
+      dailyColor: 350,
     },
   ];
 
   for (const item of fleet) {
-    await prisma.printer.upsert({
-      where: { id: item.printer.id },
-      update: item.printer,
-      create: item.printer,
-    });
+    const printerData = {
+      id: item.id,
+      name: item.name,
+      ip: item.ip,
+      model: item.model,
+      mfr: item.mfr,
+      deviceType: item.deviceType,
+      serialNumber: item.serialNumber,
+      building: 'Trụ sở chính',
+      location: item.location,
+      department: item.department,
+      floor: item.floor,
+      floorId: item.floorId,
+      isColor: item.isColor,
+      connectionStatus: 'Online',
+      health: item.health,
+      alertSeverity: item.alertSeverity,
+      zabbixHostId: item.zabbixHostId,
+      syncStatus: 'SUCCESS',
+      lastSeenAt: now,
+      lastSyncTime: now,
+    };
 
+    await prisma.printer.upsert({ where: { id: item.id }, update: printerData, create: printerData });
     await prisma.printerConsumable.upsert({
-      where: { printerId: item.printer.id },
+      where: { printerId: item.id },
       update: { ...item.consumable, lastUpdated: now },
-      create: { printerId: item.printer.id, ...item.consumable, lastUpdated: now },
+      create: { printerId: item.id, ...item.consumable, lastUpdated: now },
     });
 
-    // Nạp 14 ngày CounterRollup thực tế
     let runningMono = 45000;
-    let runningColor = item.printer.isColor ? 18000 : 0;
+    let runningColor = item.isColor ? 18000 : 0;
     for (let d = 13; d >= 0; d--) {
       const recDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - d));
       const factor = recDate.getUTCDay() === 0 || recDate.getUTCDay() === 6 ? 0.25 : 1 + ((d % 3) - 1) * 0.15;
       const dMono = Math.round(item.dailyMono * factor);
-      const dColor = item.printer.isColor ? Math.round(item.dailyColor * factor) : 0;
+      const dColor = item.isColor ? Math.round(item.dailyColor * factor) : 0;
       runningMono += dMono;
       runningColor += dColor;
 
       await prisma.counterRollup.upsert({
-        where: { printerId_recordedDate: { printerId: item.printer.id, recordedDate: recDate } },
+        where: { printerId_recordedDate: { printerId: item.id, recordedDate: recDate } },
         update: {},
         create: {
-          printerId: item.printer.id,
+          printerId: item.id,
           recordedDate: recDate,
           monoPages: runningMono,
           colorPages: runningColor,
@@ -212,7 +214,6 @@ export async function seedOperationalFleetData(
     }
   }
 
-  // 2. Khởi tạo Sự cố mẫu (bao gồm mã đã ánh xạ SC542 và 2 mã chưa tích hợp CSV: SC899, 50.2)
   const existingIncidents = await prisma.incident.count();
   if (existingIncidents === 0) {
     const incSc542 = await prisma.incident.create({
@@ -275,7 +276,6 @@ export async function seedOperationalFleetData(
     });
   }
 
-  // 3. Lưu vết đợt nạp CSV khởi tạo để hiển thị thời gian nạp rõ ràng trên UI
   const existingCsvJob = await prisma.csvImportJob.count({ where: { entityType: 'ERROR_DICT' } });
   if (existingCsvJob === 0) {
     await prisma.csvImportJob.create({
@@ -292,4 +292,3 @@ export async function seedOperationalFleetData(
     });
   }
 }
-

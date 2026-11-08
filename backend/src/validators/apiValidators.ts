@@ -19,7 +19,7 @@ export const createPrinterSchema = z.object({
   mfr: z.string().trim().min(1).max(60).optional(),
   deviceType: z.string().trim().max(60).optional(),
   serialNumber: z.string().trim().max(80).nullable().optional(),
-  branch: z.string().trim().max(100).optional(),
+  building: z.string().trim().max(100).optional(),
   location: z.string().trim().max(200).optional(),
   floor: z.string().trim().max(50).optional(),
   department: z.string().trim().max(120).optional(),
@@ -33,7 +33,7 @@ export const createPrinterSchema = z.object({
 export const updatePrinterSchema = createPrinterSchema.partial();
 
 export const relocatePrinterSchema = z.object({
-  branch: z.string().trim().min(1).max(100).optional(),
+  building: z.string().trim().min(1).max(100).optional(),
   floor: z.string().trim().min(1).max(50).optional(),
   department: z.string().trim().min(1).max(120).optional(),
   location: z.string().trim().min(1).max(200).optional(),

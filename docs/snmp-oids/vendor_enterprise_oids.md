@@ -1,8 +1,9 @@
 # Vendor Enterprise SNMP OIDs & Error Code Architecture
 
-> **Phạm vi:** Các OID doanh nghiệp tư nhân (Private Enterprise MIBs) cho 6 thương hiệu chủ lực  
-> **Áp dụng:** Ricoh, Canon, HP, Epson, Brother, Toshiba, Olivetti  
-> **Phân hệ sử dụng:** `backend/src/services/zabbix/`, `TASK-BE-01`, `TASK-BE-02`, `TASK-BE-05`
+> **Phạm vi:** Các OID doanh nghiệp tư nhân (Private Enterprise MIBs) cho 6 thương hiệu chủ lực (Ricoh, Canon, HP, Brother, Epson, Xerox)  
+> **Mục đích:** Cấu hình Zabbix Vendor Templates & làm căn cứ để Backend chuẩn hóa dữ liệu vi mô từ Zabbix Item Keys  
+> **Cơ chế:** Zabbix Server 7.0 LTS đọc trực tiếp qua SNMP; Backend tiếp nhận qua Zabbix JSON-RPC API 2.0  
+> **Tham chiếu nhiệm vụ:** `TASK-BE-04` (Zabbix Integration), `TASK-BE-05` (Telemetry Normalization), `TASK-BE-07` (Error Standardization)
 
 ---
 

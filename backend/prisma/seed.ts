@@ -12,6 +12,7 @@
 import { PrismaClient, UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { seedOperationalFleetData } from './seedSampleData';
+import { seedEnterpriseExtensions } from './seedEnterpriseExtensions';
 
 const prisma = new PrismaClient();
 
@@ -114,44 +115,20 @@ export async function main() {
     });
   }
 
-  const branches = [
-    {
-      name: 'Trụ sở chính (HQ)',
-      code: 'HQ-HN',
-      address: 'Tòa nhà Central Plaza, Hà Nội',
-      isHq: true,
-      floors: ['Tầng 1', 'Tầng 2', 'Tầng 3', 'Tầng 4', 'Tầng 5', 'Tầng 6', 'Tầng 7'],
-    },
-    {
-      name: 'Chi nhánh Miền Nam',
-      code: 'BR-SGN',
-      address: 'Quận 1, TP. Hồ Chí Minh',
-      isHq: false,
-      floors: ['Tầng Trệt', 'Tầng 1', 'Tầng 2', 'Tầng 3'],
-    },
-    {
-      name: 'Chi nhánh Miền Trung',
-      code: 'BR-DAD',
-      address: 'Hải Châu, TP. Đà Nẵng',
-      isHq: false,
-      floors: ['Tầng 1', 'Tầng 2'],
-    },
+  const floors = [
+    { code: 'T1', name: 'Tầng 1', building: 'Trụ sở chính' },
+    { code: 'T2', name: 'Tầng 2', building: 'Trụ sở chính' },
+    { code: 'T3', name: 'Tầng 3', building: 'Trụ sở chính' },
+    { code: 'T4', name: 'Tầng 4', building: 'Trụ sở chính' },
+    { code: 'T5', name: 'Tầng 5', building: 'Trụ sở chính' },
   ];
 
-  for (const b of branches) {
-    const branchRecord = await prisma.branch.upsert({
-      where: { code: b.code },
-      update: { name: b.name, address: b.address, isHq: b.isHq },
-      create: { name: b.name, code: b.code, address: b.address, isHq: b.isHq },
+  for (const fl of floors) {
+    await prisma.floor.upsert({
+      where: { code: fl.code },
+      update: { name: fl.name, building: fl.building },
+      create: { code: fl.code, name: fl.name, building: fl.building },
     });
-
-    for (const flName of b.floors) {
-      await prisma.floor.upsert({
-        where: { branchId_name: { branchId: branchRecord.id, name: flName } },
-        update: {},
-        create: { branchId: branchRecord.id, name: flName },
-      });
-    }
   }
 
   const sampleErrors = [
@@ -198,27 +175,25 @@ export async function main() {
     });
   }
 
-  const hqBranch = await prisma.branch.findUnique({ where: { code: 'HQ-HN' } });
-  const sgnBranch = await prisma.branch.findUnique({ where: { code: 'BR-SGN' } });
-  const t1Floor = hqBranch
-    ? await prisma.floor.findFirst({ where: { branchId: hqBranch.id, name: 'Tầng 1' } })
-    : null;
-  const t2Floor = hqBranch
-    ? await prisma.floor.findFirst({ where: { branchId: hqBranch.id, name: 'Tầng 2' } })
-    : null;
-  const t3Floor = hqBranch
-    ? await prisma.floor.findFirst({ where: { branchId: hqBranch.id, name: 'Tầng 3' } })
-    : null;
+  const t1Floor = await prisma.floor.findUnique({ where: { code: 'T1' } });
+  const t2Floor = await prisma.floor.findUnique({ where: { code: 'T2' } });
+  const t3Floor = await prisma.floor.findUnique({ where: { code: 'T3' } });
+  const t4Floor = await prisma.floor.findUnique({ where: { code: 'T4' } });
+  const t5Floor = await prisma.floor.findUnique({ where: { code: 'T5' } });
 
   await seedOperationalFleetData(prisma, {
     adminId: adminUser.id,
     techId: techUser.id,
     techFullName: techUser.fullName,
-    hqBranchId: hqBranch?.id,
-    sgnBranchId: sgnBranch?.id,
     t1FloorId: t1Floor?.id,
     t2FloorId: t2Floor?.id,
     t3FloorId: t3Floor?.id,
+    t4FloorId: t4Floor?.id,
+    t5FloorId: t5Floor?.id,
+  });
+
+  await seedEnterpriseExtensions(prisma, {
+    adminId: adminUser.id,
   });
 
   console.log('[Seed] Hoàn tất nạp dữ liệu khởi tạo thành công!');

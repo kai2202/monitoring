@@ -2,10 +2,12 @@
  * Frontend/src/features/dashboard/components/workorder/WorkOrderDetailView.tsx
  *
  * Giao diện Chi Tiết Lệnh Bảo Trì (Work Order Detail View):
- * - Áp dụng thiết kế Slide-over Task Inspector từ Image 3.
+ * - Áp dụng thiết kế Slide-over Task Inspector.
  * - Quy tắc phê duyệt đóng lệnh & yêu cầu làm lại:
- *   + Khi task CHƯA hoàn thành (hoặc KTV chưa bấm gửi duyệt): ẨN HOÀN TOÀN 2 nút.
- *   + Khi task ĐÃ HOÀN THÀNH / KTV bấm gửi nghiệm thu: HIỂN THỊ ĐỒNG THỜI CẢ 2 NÚT cho Admin.
+ *   + Khi task Planned: KTV bấm [Nhận việc & Bắt đầu] -> chuyển sang In_Progress.
+ *   + Khi task In_Progress: KTV bấm [Gửi duyệt nghiệm thu] -> chuyển sang Pending_Verification.
+ *   + Khi task Pending_Verification / hoàn thành các bước: Admin duyệt [Phê duyệt đóng lệnh] hoặc [Yêu cầu làm lại].
+ *   + Đấu nối trực tiếp taskService (approveTask, reworkTask, updateTaskStatus).
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC, 100% FontAwesome).
  */
 
@@ -16,11 +18,9 @@ import { RootState } from '../../../../app/store';
 import { addTaskNotification, removeTaskNotificationByTaskId } from '../../../../app/slices/notificationSlice';
 import { DATA_SOURCE } from '../../../../config/dataSource';
 import { taskService } from '../../../../services';
-import {
-  FontAwesomeIcon, faRotate, faCircleCheck, faEye, faFlag,
-  faCalendar, faUser, faPaperPlane, faClock,
-} from '../../../../shared/icons';
+import { FontAwesomeIcon, faTriangleExclamation } from '../../../../shared/icons';
 import { Task, TimeAndCostSummary, WorkLogEntry, TaskAttachment, VendorCommunicationLog } from '../../../../types/task';
+import { WorkOrderHeaderCard } from './WorkOrderHeaderCard';
 import { WorkOrderTimeCostCard } from './WorkOrderTimeCostCard';
 import { WorkOrderSubTasksProgress } from './WorkOrderSubTasksProgress';
 import { WorkOrderWorkLogsList } from './WorkOrderWorkLogsList';
@@ -40,7 +40,13 @@ export interface WorkOrderDetailViewProps {
 }
 
 export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
-  task, onUpdateTask, onCompleteTask, onReopenTask, onAddNewStep, onToggleStepStatus, onAddActivityNote,
+  task,
+  onUpdateTask,
+  onCompleteTask,
+  onReopenTask,
+  onAddNewStep,
+  onToggleStepStatus,
+  onAddActivityNote,
 }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -50,35 +56,111 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
   const [isTestPrintModalOpen, setIsTestPrintModalOpen] = useState(false);
   const [isReworkModalOpen, setIsReworkModalOpen] = useState(false);
 
-  const steps = task.dynamicSteps || [];
+  // Phân quyền: Người phụ trách hoặc Admin
+  const isAssignee = Boolean(
+    (user?.id && task.assigneeId === user.id) ||
+    (user?.fullName && task.assignee && user.fullName.toLowerCase().includes(task.assignee.toLowerCase())) ||
+    (task.assignee && user?.fullName && task.assignee.toLowerCase().includes(user.fullName.toLowerCase())) ||
+    (task.assignee && user?.username && task.assignee.toLowerCase().includes(user.username.toLowerCase())) ||
+    (user?.role === 'FIELD_TECH' && (!task.assignee || task.assignee === 'Chưa phân công'))
+  );
+  const canEditTask = isAdmin || isAssignee;
   const isCompleted = task.status === 'Completed';
+  const isGeneralReadOnly = isCompleted || !canEditTask;
+
+  const steps = task.dynamicSteps || [];
   const completedStepsCount = steps.filter((s) => s.status === 'Completed').length;
   const allStepsCompleted = steps.length > 0 && completedStepsCount === steps.length;
+  const isReworking = Boolean(task.reworkReason && task.status === 'In_Progress');
   const isReadyForApproval =
-    task.status === 'Pending_Verification' || allStepsCompleted || (task.progressPercent ?? 0) >= 100;
+    task.status === 'Pending_Verification' || (!isReworking && allStepsCompleted && (task.progressPercent ?? 0) >= 100);
 
-  const handleRequestRework = (reason: string) => {
-    if (onUpdateTask) onUpdateTask({ ...task, status: 'In_Progress', progressPercent: 80 });
-    if (onAddActivityNote) onAddActivityNote(task.id, `[YÊU CẦU LÀM LẠI TỪ ADMIN]: ${reason}`);
-    dispatch(removeTaskNotificationByTaskId(task.id));
-    dispatch(addTaskNotification({
-      id: `notif-${Date.now()}`, taskId: task.id, taskTitle: task.title, printerId: task.printerId,
-      type: 'REWORK_REQUIRED', message: reason, assigneeName: task.assignee || 'Kỹ thuật viên',
-      requestedByName: user?.fullName || 'Quản trị viên (Admin)', reworkReason: reason,
-      timestamp: 'Vừa xong', isRead: false,
-    }));
-    toast.success(`Đã gửi yêu cầu làm lại cho KTV ${task.assignee || ''}`);
+  // 1. KTV Nhận việc (Planned -> In_Progress)
+  const handleStartTask = async () => {
+    try {
+      const updated = await taskService.updateTaskStatus(task.id, {
+        status: 'In_Progress',
+        author: user?.fullName || 'Kỹ thuật viên',
+        comment: 'Kỹ thuật viên đã nhận lệnh và bắt đầu tiến hành xử lý',
+      });
+      onUpdateTask?.(updated);
+      toast.success('Đã nhận việc thành công. Bắt đầu xử lý!');
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể nhận lệnh bảo trì');
+    }
   };
 
-  const handleSubmitApproval = () => {
-    if (onUpdateTask) onUpdateTask({ ...task, status: 'Pending_Verification', progressPercent: 100 });
-    if (onAddActivityNote) onAddActivityNote(task.id, `[KỸ THUẬT VIÊN]: Đã hoàn tất các bước và gửi yêu cầu phê duyệt nghiệm thu.`);
-    dispatch(addTaskNotification({
-      id: `notif-${Date.now()}`, taskId: task.id, taskTitle: task.title, printerId: task.printerId,
-      type: 'PENDING_APPROVAL', message: `KTV ${user?.fullName || 'Hiện trường'} đã gửi yêu cầu nghiệm thu đóng lệnh`,
-      assigneeName: task.assignee || 'Kỹ thuật viên', timestamp: 'Vừa xong', isRead: false,
-    }));
-    toast.success('Đã gửi yêu cầu nghiệm thu lên Quản trị viên');
+  // 2. KTV Gửi duyệt nghiệm thu (In_Progress -> Pending_Verification)
+  const handleSubmitApproval = async () => {
+    try {
+      const updated = await taskService.updateTaskStatus(task.id, {
+        status: 'Pending_Verification',
+        progressPercent: 100,
+        author: user?.fullName || 'Kỹ thuật viên',
+        comment: 'Kỹ thuật viên đã hoàn tất các bước và gửi yêu cầu phê duyệt nghiệm thu',
+      });
+      onUpdateTask?.(updated);
+      if (onAddActivityNote) {
+        onAddActivityNote(task.id, `[KỸ THUẬT VIÊN]: Đã hoàn tất các bước và gửi yêu cầu phê duyệt nghiệm thu.`);
+      }
+      dispatch(
+        addTaskNotification({
+          id: `notif-${Date.now()}`,
+          taskId: task.id,
+          taskTitle: task.title,
+          printerId: task.printerId,
+          type: 'PENDING_APPROVAL',
+          message: `KTV ${user?.fullName || 'Hiện trường'} đã gửi yêu cầu nghiệm thu đóng lệnh`,
+          assigneeName: task.assignee || 'Kỹ thuật viên',
+          timestamp: 'Vừa xong',
+          isRead: false,
+        })
+      );
+      toast.success('Đã gửi yêu cầu nghiệm thu lên Quản trị viên');
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể gửi yêu cầu nghiệm thu');
+    }
+  };
+
+  // 3. Admin Phê duyệt nghiệm thu & Đóng lệnh (Pending_Verification -> Completed)
+  const handleApproveTask = async () => {
+    try {
+      const updated = await taskService.approveTask(task.id);
+      dispatch(removeTaskNotificationByTaskId(task.id));
+      onUpdateTask?.(updated);
+      onCompleteTask?.(task.id);
+      toast.success('Đã phê duyệt nghiệm thu & Đóng lệnh thành công!');
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể phê duyệt nhiệm vụ');
+    }
+  };
+
+  // 4. Admin Yêu cầu làm lại (Pending_Verification -> In_Progress kèm lý do)
+  const handleRequestRework = async (reason: string) => {
+    try {
+      const updated = await taskService.reworkTask(task.id, reason);
+      dispatch(removeTaskNotificationByTaskId(task.id));
+      onUpdateTask?.(updated);
+      if (onAddActivityNote) onAddActivityNote(task.id, `[YÊU CẦU LÀM LẠI TỪ ADMIN]: ${reason}`);
+      dispatch(
+        addTaskNotification({
+          id: `notif-${Date.now()}`,
+          taskId: task.id,
+          taskTitle: task.title,
+          printerId: task.printerId,
+          type: 'REWORK_REQUIRED',
+          message: reason,
+          assigneeName: task.assignee || 'Kỹ thuật viên',
+          requestedByName: user?.fullName || 'Quản trị viên (Admin)',
+          reworkReason: reason,
+          timestamp: 'Vừa xong',
+          isRead: false,
+        })
+      );
+      toast.success(`Đã gửi yêu cầu làm lại cho KTV ${task.assignee || ''}`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể gửi yêu cầu làm lại');
+    }
   };
 
   const handleSaveTimeCost = (tc: TimeAndCostSummary) => onUpdateTask?.({ ...task, timeAndCost: tc });
@@ -102,9 +184,13 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
     if (DATA_SOURCE === 'api') {
       try {
         const updated = await taskService.addTaskWorkLog(task.id, {
-          stepNumber: 0, stepTitle: 'Trao đổi hãng', performerName: user?.fullName || 'Kỹ sư NOC', performerAvatar: 'KT',
+          stepNumber: 0,
+          stepTitle: 'Trao đổi hãng',
+          performerName: user?.fullName || 'Kỹ sư NOC',
+          performerAvatar: 'KT',
           actionsTaken: `[HÃNG: ${log.vendorName || 'Chính hãng'} | ${log.contactPerson || ''}] ${log.discussionContent || ''}`,
-          resultStatus: 'SUCCESS', additionalTimeHours: 0,
+          resultStatus: 'SUCCESS',
+          additionalTimeHours: 0,
         });
         onUpdateTask?.(updated);
         toast.success('Đã lưu trao đổi với hãng');
@@ -118,166 +204,112 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* 1. Header Card with Image 3 Task Inspector Badges */}
-      <div className={`p-5 rounded-3xl border flex items-center justify-between flex-wrap gap-4 shadow-xs ${
-        isCompleted ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800' : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800'
-      }`}>
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="text-[10.5px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              🔗 {task.id}
-            </span>
-            <span className="text-[10.5px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200/60 flex items-center gap-1">
-              <FontAwesomeIcon icon={faFlag} className="text-[9px]" />
-              <span>{task.priority || 'P2_High'}</span>
-            </span>
-            {isCompleted && (
-              <span className="text-[10.5px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
-                ✓ Đã hoàn tất
+      {/* 1. Header Card with Task Inspector Badges & Contextual Action Buttons */}
+      <WorkOrderHeaderCard
+        task={task}
+        isAdmin={Boolean(isAdmin)}
+        isHr={Boolean(isHr)}
+        canEditTask={canEditTask}
+        isCompleted={isCompleted}
+        isReworking={isReworking}
+        isReadyForApproval={isReadyForApproval}
+        completedStepsCount={completedStepsCount}
+        totalStepsCount={steps.length}
+        allStepsCompleted={allStepsCompleted}
+        onOpenTestPrintModal={() => setIsTestPrintModalOpen(true)}
+        onOpenReworkModal={() => setIsReworkModalOpen(true)}
+        onStartTask={handleStartTask}
+        onSubmitApproval={handleSubmitApproval}
+        onApproveAndClose={handleApproveTask}
+        onReopenTask={onReopenTask}
+      />
+
+      {/* 1.1 Alert Banner khi Admin yêu cầu làm lại */}
+      {isReworking && (
+        <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-start gap-3 shadow-xs">
+          <FontAwesomeIcon icon={faTriangleExclamation} className="text-amber-600 dark:text-amber-400 text-sm mt-0.5 shrink-0" />
+          <div className="flex-1 flex flex-col gap-0.5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                Yêu cầu làm lại từ Quản trị viên
               </span>
-            )}
-            {!isCompleted && task.status === 'Pending_Verification' && (
-              <span className="text-[10.5px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 border border-indigo-200 flex items-center gap-1">
-                ⏱ Chờ Admin nghiệm thu
+              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                Tiến độ: {task.progressPercent ?? 80}%
               </span>
-            )}
-          </div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mt-0.5">{task.title}</h3>
-          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
-            <span className="flex items-center gap-1.5">
-              <FontAwesomeIcon icon={faUser} className="text-[10px] text-slate-400" />
-              <span>Phụ trách: <strong className="text-slate-700 dark:text-slate-200">{task.assignee || 'Kỹ sư NOC'}</strong></span>
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1.5">
-              <FontAwesomeIcon icon={faCalendar} className="text-[10px] text-indigo-500" />
-              <span>Hạn SLA: <strong className="text-slate-700 dark:text-slate-200">{task.dueDate || 'Hôm nay'}</strong></span>
+            </div>
+            <p className="text-xs text-amber-800 dark:text-amber-300 font-medium m-0">
+              {task.reworkReason}
+            </p>
+            <span className="text-[11px] text-amber-700/80 dark:text-amber-400/80 mt-0.5">
+              💡 Hãy khắc phục theo yêu cầu và chụp ảnh bản in nghiệm thu mới để gửi duyệt lại.
             </span>
           </div>
         </div>
-
-        {/* Action Buttons: Điều chỉnh theo đúng trạng thái xử lý của KTV */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setIsTestPrintModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-          >
-            <FontAwesomeIcon icon={faEye} className="text-xs" />
-            <span>Xem ảnh in test</span>
-          </button>
-
-          {isCompleted ? (
-            isAdmin ? (
-              <button
-                type="button"
-                onClick={() => onReopenTask?.(task.id)}
-                className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-              >
-                <FontAwesomeIcon icon={faRotate} className="text-xs" />
-                <span>Mở lại nhiệm vụ</span>
-              </button>
-            ) : null
-          ) : isHr ? (
-            <span className="px-3.5 py-2 rounded-xl bg-sky-50 text-sky-700 text-xs font-bold border border-sky-200/60">
-              Hồ sơ đối soát kiểm kê
-            </span>
-          ) : (
-            <>
-              {/* Khi task ĐÃ HOÀN THÀNH / KTV bấm gửi nghiệm thu: Hiển thị cả 2 nút cho Admin */}
-              {isReadyForApproval ? (
-                isAdmin ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setIsReworkModalOpen(true)}
-                      className="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 dark:text-amber-400 text-xs font-bold border border-amber-200 flex items-center gap-1.5 transition-colors"
-                    >
-                      <FontAwesomeIcon icon={faRotate} className="text-xs" />
-                      <span>Yêu cầu làm lại</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        dispatch(removeTaskNotificationByTaskId(task.id));
-                        onCompleteTask?.(task.id);
-                      }}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-colors"
-                    >
-                      <FontAwesomeIcon icon={faCircleCheck} className="text-xs" />
-                      <span>Phê duyệt đóng lệnh</span>
-                    </button>
-                  </>
-                ) : (
-                  <span className="px-3.5 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-200 flex items-center gap-1.5">
-                    <FontAwesomeIcon icon={faClock} className="text-indigo-500 text-xs" />
-                    <span>Đã gửi chờ Admin duyệt</span>
-                  </span>
-                )
-              ) : (
-                /* Khi task CHƯA hoàn thành (hoặc KTV chưa bấm gửi duyệt): Ẩn hoàn toàn hai nút */
-                isAdmin ? (
-                  <span className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-200/80 flex items-center gap-1.5">
-                    <FontAwesomeIcon icon={faClock} className="text-slate-400 text-xs" />
-                    <span>Đang chờ KTV xử lý</span>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleSubmitApproval}
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-colors"
-                  >
-                    <FontAwesomeIcon icon={faPaperPlane} className="text-xs" />
-                    <span>Gửi duyệt nghiệm thu</span>
-                  </button>
-                )
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* 2. Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <div className="flex flex-col gap-4">
           <WorkOrderWorkLogsList
-            workLogs={task.workLogs || []} steps={steps} selectedStepIdFilter={selectedStepFilter}
-            assigneeName={task.assignee} isReadOnly={isCompleted}
-            onClearStepFilter={() => setSelectedStepFilter(null)} onAddWorkLog={handleAddWorkLog}
+            workLogs={task.workLogs || []}
+            steps={steps}
+            selectedStepIdFilter={selectedStepFilter}
+            assigneeName={task.assignee}
+            isReadOnly={isGeneralReadOnly}
+            onClearStepFilter={() => setSelectedStepFilter(null)}
+            onAddWorkLog={handleAddWorkLog}
           />
           <WorkOrderVendorAndAttachments
-            taskId={task.id} uploaderName={user?.fullName || 'Kỹ thuật viên'}
-            vendorLogs={task.vendorCommunications || []} attachments={task.attachments || []} isReadOnly={isCompleted}
-            onAddVendorLog={handleAddVendorLog} onAddAttachment={handleAddAttachment}
+            taskId={task.id}
+            uploaderName={user?.fullName || 'Kỹ thuật viên'}
+            vendorLogs={task.vendorCommunications || []}
+            attachments={task.attachments || []}
+            isReadOnly={isGeneralReadOnly}
+            onAddVendorLog={handleAddVendorLog}
+            onAddAttachment={handleAddAttachment}
           />
           <WorkOrderActivityStream
-            activityFeed={task.activityFeed || []} isReadOnly={isCompleted}
+            activityFeed={task.activityFeed || []}
+            isReadOnly={isCompleted}
             onAddNote={(note) => onAddActivityNote?.(task.id, note)}
           />
         </div>
 
         <div className="flex flex-col gap-4">
           <WorkOrderSubTasksProgress
-            steps={steps} workLogs={task.workLogs || []} progressPercent={task.progressPercent || 0} isReadOnly={isCompleted}
+            steps={steps}
+            workLogs={task.workLogs || []}
+            progressPercent={task.progressPercent || 0}
+            isReadOnly={isGeneralReadOnly}
             onToggleStep={(sId) => onToggleStepStatus?.(task.id, sId)}
             onAddStep={(title) => onAddNewStep?.(task.id, title)}
-            selectedStepIdFilter={selectedStepFilter} onSelectStepFilter={setSelectedStepFilter}
+            selectedStepIdFilter={selectedStepFilter}
+            onSelectStepFilter={setSelectedStepFilter}
           />
           <WorkOrderTimeCostCard
             timeAndCost={task.timeAndCost || { repairTimeHours: null, waitingTimeHours: null, downtimeHours: null, laborCostVnd: null, partsCostVnd: null, totalCostVnd: null }}
-            estimatedTimeAndCost={task.estimatedTimeAndCost} isReadOnly={isCompleted} onSaveTimeCost={handleSaveTimeCost}
+            estimatedTimeAndCost={task.estimatedTimeAndCost}
+            isReadOnly={isGeneralReadOnly}
+            onSaveTimeCost={handleSaveTimeCost}
           />
         </div>
       </div>
 
       <TestPrintReviewModal
-        isOpen={isTestPrintModalOpen} onClose={() => setIsTestPrintModalOpen(false)} task={task}
-        onApproveAndClose={() => onCompleteTask?.(task.id)} onRequestRework={handleRequestRework}
+        isOpen={isTestPrintModalOpen}
+        onClose={() => setIsTestPrintModalOpen(false)}
+        task={task}
+        onApproveAndClose={handleApproveTask}
+        onRequestRework={handleRequestRework}
         isAdmin={Boolean(isAdmin && isReadyForApproval)}
       />
       <ReworkReasonModal
-        isOpen={isReworkModalOpen} taskId={task.id} taskTitle={task.title} assigneeName={task.assignee}
-        onClose={() => setIsReworkModalOpen(false)} onSubmit={handleRequestRework}
+        isOpen={isReworkModalOpen}
+        taskId={task.id}
+        taskTitle={task.title}
+        assigneeName={task.assignee}
+        onClose={() => setIsReworkModalOpen(false)}
+        onSubmit={handleRequestRework}
       />
     </div>
   );

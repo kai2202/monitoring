@@ -21,6 +21,9 @@ Qua rà soát toàn bộ thư mục `frontend/src/`, hiện có **hai mô hình 
    - Các components trong phân hệ Phân tích (`features/analytics/`) như `PrintVolumePeakLineChart.tsx`, `ProductionHorizontalBarChart.tsx`, `PinnedComparisonSandbox.tsx`, `SuppliesForecastingSection.tsx`, `SLACostSection.tsx`, `DeviceComparisonModal.tsx` và `AnalyticsPage.tsx` đang import trực tiếp từ `mocks/mockAnalyticsUIData.ts` hoặc `mocks/mockTelemetry.ts`.
 
 ### 1.2. Ba Quyết Định Kiến Trúc Đã Được Thống Nhất (/grill-me Alignment)
+> [!IMPORTANT]
+> **Ranh giới thu thập:** Zabbix 7.0 LTS là thành phần duy nhất đọc các OIDs liệt kê trong tài liệu này qua SNMP. Backend FleetMonitor kết nối với Zabbix qua JSON-RPC API 2.0 (hoặc nhận Webhook sự kiện), thực hiện chuẩn hóa dữ liệu và cung cấp REST API cho Frontend.
+
 1. **Mô hình Bóc tách Mock Analytics:** Mở rộng `TelemetryService` theo chuẩn **Provider Factory Pattern** (`MockTelemetryProvider` vs `ApiTelemetryProvider` chuyển đổi qua `DATA_SOURCE = 'mock' | 'api'`), đồng bộ hoàn toàn với kiến trúc đã vận hành ổn định tại `PrinterService` và `TaskService`.
 2. **Độ phân giải Chuỗi thời gian 24h:** Áp dụng **Slow Polling Zabbix mỗi 1 giờ** để lấy `prtMarkerLifeCount` cho ~100 máy in, Backend tính toán Delta Rollup lưu trữ vào bảng `printer_hourly_volume` (tối ưu tải CPU/I/O, không gây nghẽn mạng).
 3. **Chính sách Null-Safety cho vật tư không hỗ trợ:** Giữ nguyên quy tắc `MetricValue = number | null`, hiển thị dấu `—` khi máy in không hỗ trợ cảm biến Fuser/Drum hoặc là máy in đơn sắc (Mono); tự động **loại trừ các thiết bị này khỏi Bảng Cảnh Báo Khẩn Cấp D-Day** để tránh phát sinh cảnh báo giả gây phiền toái cho Kỹ thuật viên NOC.

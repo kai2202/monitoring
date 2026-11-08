@@ -11,6 +11,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { storageService } from '../services/storage/minioClient';
+import { taskAttachmentController } from './taskAttachmentController';
 import {
   TASK_RELATIONS,
   buildTaskCreateData,
@@ -65,12 +66,35 @@ export class TaskController {
   // PATCH /api/v1/tasks/:id
   async updateTask(req: Request, res: Response) {
     try {
-      const { title, priority, status, assignee, newAssignee, assigneeId, progressPercent, percent, dynamicSteps, timeAndCost, dueDate, newDueDate } = req.body;
+      const {
+        title,
+        priority,
+        status,
+        assignee,
+        newAssignee,
+        assigneeId,
+        progressPercent,
+        percent,
+        dynamicSteps,
+        timeAndCost,
+        dueDate,
+        newDueDate,
+        reworkReason,
+      } = req.body;
       const existing = await prisma.task.findUnique({ where: { id: req.params.id } });
       if (!existing) return res.status(404).json({ error: 'Không tìm thấy phiếu công việc' });
 
-      // Bảo vệ kho lịch sử: Task đã hoàn tất chỉ Admin mới có quyền mở lại
       const isAdmin = req.user?.role === 'ADMIN';
+      const isAssignee = Boolean(req.user?.userId && existing.assigneeId === req.user.userId);
+
+      // Phân quyền gắt gao theo RBAC: Chỉ Admin hoặc KTV được giao mới có quyền cập nhật tiến độ / SOP
+      if (!isAdmin && existing.assigneeId && !isAssignee) {
+        return res.status(403).json({
+          error: 'Từ chối truy cập: Chỉ Quản trị viên hoặc Kỹ thuật viên được giao việc mới có quyền cập nhật lệnh này.',
+        });
+      }
+
+      // Bảo vệ kho lịch sử: Task đã hoàn tất chỉ Admin mới có quyền mở lại
       if (existing.status === 'Completed') {
         if (!isAdmin) {
           return res.status(403).json({ error: 'Nhiệm vụ trong kho lịch sử đã đóng, chỉ Quản trị viên mới có quyền mở lại' });
@@ -93,6 +117,7 @@ export class TaskController {
           assigneeId: assigneeId ?? undefined,
           assigneeName: resolvedAssignee ?? undefined,
           progressPercent: resolvedProgress !== undefined ? Number(resolvedProgress) : undefined,
+          reworkReason: reworkReason !== undefined ? reworkReason : undefined,
           dynamicSteps: dynamicSteps ?? undefined,
           timeAndCost: timeAndCost ?? undefined,
           dueDate: resolvedDue ? new Date(resolvedDue) : undefined,
@@ -121,9 +146,19 @@ export class TaskController {
   // PATCH /api/v1/tasks/:id/status
   async updateTaskStatus(req: Request, res: Response) {
     try {
-      const { status, progressPercent, dynamicSteps, timeAndCost } = req.body;
+      const { status, progressPercent, dynamicSteps, timeAndCost, reworkReason } = req.body;
       const existing = await prisma.task.findUnique({ where: { id: req.params.id } });
-      if (existing?.status === 'Completed' && req.user?.role !== 'ADMIN') {
+      if (!existing) return res.status(404).json({ error: 'Không tìm thấy phiếu công việc' });
+
+      const isAdmin = req.user?.role === 'ADMIN';
+      const isAssignee = Boolean(req.user?.userId && existing.assigneeId === req.user.userId);
+      if (!isAdmin && existing.assigneeId && !isAssignee) {
+        return res.status(403).json({
+          error: 'Từ chối truy cập: Bạn không phải người được giao việc của lệnh bảo trì này.',
+        });
+      }
+
+      if (existing.status === 'Completed' && !isAdmin) {
         return res.status(403).json({ error: 'Nhiệm vụ trong kho lịch sử đã đóng, chỉ Quản trị viên mới có quyền mở lại' });
       }
 
@@ -137,12 +172,21 @@ export class TaskController {
               : progressPercent !== undefined
               ? Number(progressPercent)
               : undefined,
+          reworkReason: reworkReason !== undefined ? reworkReason : undefined,
           dynamicSteps: dynamicSteps ?? undefined,
           timeAndCost: timeAndCost ?? undefined,
           completedDate: status === 'Completed' ? new Date() : (status === 'In_Progress' ? null : undefined),
         },
         include: TASK_RELATIONS,
       });
+
+      // Đồng bộ trạng thái sự cố nếu KTV bắt đầu xử lý
+      if (status === 'In_Progress' && existing.incidentId) {
+        await prisma.incident.update({
+          where: { id: existing.incidentId },
+          data: { status: 'IN_PROGRESS' },
+        }).catch((err) => console.warn('[TaskController] Không thể đồng bộ trạng thái Incident:', err.message));
+      }
 
       return res.status(200).json({ success: true, task: mapTaskRecord(updated) });
     } catch (err: any) {
@@ -204,83 +248,12 @@ export class TaskController {
 
   // POST /api/v1/tasks/:id/attachments
   async uploadAttachment(req: Request, res: Response) {
-    try {
-      const taskId = req.params.id;
-      const file = req.file;
-      if (!file) {
-        return res.status(400).json({ error: 'Vui lòng chọn tệp đính kèm hợp lệ (<= 10MB)' });
-      }
-
-      const taskExists = await prisma.task.findUnique({ where: { id: taskId }, select: { id: true } });
-      if (!taskExists) {
-        return res.status(404).json({ error: 'Không tìm thấy lệnh bảo trì tương ứng.' });
-      }
-
-      const uploaderId = req.user?.userId || (await prisma.user.findFirst())?.id;
-      if (!uploaderId) {
-        return res.status(401).json({ error: 'Chưa xác thực người tải lên.' });
-      }
-
-      const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const objectKey = `tasks/${taskId}/${Date.now()}_${sanitizedName}`;
-      await storageService.uploadBuffer(file.buffer, objectKey, file.mimetype);
-      const fileUrl = await storageService.getPresignedUrl(objectKey, 15 * 60);
-
-      const isImageProof =
-        req.body?.isTestPrintProof === 'true' || file.mimetype.toLowerCase().startsWith('image/');
-
-      const attachment = await prisma.taskAttachment.create({
-        data: {
-          taskId,
-          fileName: file.originalname,
-          fileUrl,
-          fileType: file.mimetype,
-          fileSize: file.size,
-          minioObjectKey: objectKey,
-          isTestPrintProof: isImageProof,
-          uploadedById: uploaderId,
-        },
-        include: { uploadedBy: { select: { fullName: true } } },
-      });
-
-      return res.status(201).json({
-        success: true,
-        data: mapAttachmentRecord(attachment, req.user?.fullName),
-      });
-    } catch (err: any) {
-      console.error('[TaskController.uploadAttachment] Lỗi tải tệp:', err);
-      return res.status(502).json({
-        error: err?.message || 'Không thể tải lên tệp đính kèm vào MinIO S3',
-      });
-    }
+    return taskAttachmentController.uploadAttachment(req, res);
   }
 
   // GET /api/v1/tasks/:id/attachments/:attachmentId/download
   async getAttachmentDownloadUrl(req: Request, res: Response) {
-    try {
-      const { id: taskId, attachmentId } = req.params;
-      const found = await prisma.taskAttachment.findFirst({
-        where: { id: attachmentId, taskId },
-      });
-
-      if (!found) {
-        return res.status(404).json({ error: 'Không tìm thấy tệp đính kèm yêu cầu.' });
-      }
-
-      const freshUrl = await storageService.getPresignedUrl(found.minioObjectKey, 15 * 60);
-      return res.status(200).json({
-        success: true,
-        data: {
-          downloadUrl: freshUrl,
-          fileName: found.fileName,
-        },
-      });
-    } catch (err: any) {
-      console.error('[TaskController.getAttachmentDownloadUrl] Lỗi tạo link tải:', err);
-      return res.status(502).json({
-        error: err?.message || 'Không thể sinh liên kết tải tệp từ MinIO S3',
-      });
-    }
+    return taskAttachmentController.getAttachmentDownloadUrl(req, res);
   }
 }
 

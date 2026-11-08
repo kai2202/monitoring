@@ -24,6 +24,9 @@ import { getPrintersRoutes } from '../features/printers';
 import { getAnalyticsRoutes } from '../features/analytics';
 import { getSettingsRoutes } from '../features/settings';
 
+const InventoryPage = React.lazy(() => import('../features/inventory').then((m) => ({ default: m.InventoryPage })));
+const ProcurementPage = React.lazy(() => import('../features/procurement').then((m) => ({ default: m.ProcurementPage })));
+
 const RouteLoadingFallback: React.FC = () => (
   <div className="flex flex-col gap-6 p-6 w-full animate-pulse">
     <div className="h-14 rounded-2xl bg-secondary/60 w-full" />
@@ -93,6 +96,8 @@ export const AppRoutes: React.FC = () => {
     if (path.startsWith('/analytics/supplies')) return 'analytics-supplies';
     if (path.startsWith('/analytics/sla-cost')) return 'analytics-sla-cost';
     if (path.startsWith('/analytics')) return 'analytics';
+    if (path.startsWith('/inventory')) return 'inventory';
+    if (path.startsWith('/procurement')) return 'procurement';
     if (path.startsWith('/settings')) return 'settings';
     return 'dashboard';
   };
@@ -119,6 +124,12 @@ export const AppRoutes: React.FC = () => {
         break;
       case 'analytics-sla-cost':
         navigate('/analytics/sla-cost');
+        break;
+      case 'inventory':
+        navigate('/inventory');
+        break;
+      case 'procurement':
+        navigate('/procurement');
         break;
       case 'settings':
         navigate('/settings');
@@ -200,6 +211,22 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         ),
       })),
+      {
+        path: '/inventory',
+        element: (
+          <ProtectedRoute>
+            <InventoryPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '/procurement',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMIN', 'ASSET_HR', 'FLEET_MANAGER', 'DEPARTMENT_HEAD']}>
+            <ProcurementPage />
+          </ProtectedRoute>
+        ),
+      },
       {
         path: '*',
         element: <Navigate to={defaultHomePath} replace />,

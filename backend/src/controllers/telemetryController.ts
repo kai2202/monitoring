@@ -8,7 +8,7 @@
 import { Request, Response } from 'express';
 import { backendTelemetryService } from '../services/telemetryService';
 import { telemetryExtendedService } from '../services/telemetryExtendedService';
-import { buildComparisonAnalytics } from '../services/compareAnalyticsService';
+import { computeDeviceComparison } from '../services/analytics/compareAnalyticsService';
 import { zabbixClient } from '../services/zabbixClient';
 
 export class TelemetryController {
@@ -97,8 +97,8 @@ export class TelemetryController {
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
-      const comparison = await buildComparisonAnalytics(rawIds);
-      return res.status(200).json(comparison.items);
+      const items = await computeDeviceComparison(rawIds);
+      return res.status(200).json(items);
     } catch (err: any) {
       return res.status(500).json({ error: 'Không thể đối chiếu máy in', message: err.message });
     }

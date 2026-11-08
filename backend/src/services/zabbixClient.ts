@@ -63,7 +63,7 @@ export class ZabbixClient {
         throw new Error(`Zabbix HTTP error ${res.status}: ${res.statusText}`);
       }
 
-      const json: ZabbixJsonRpcResponse<T> = await res.json();
+      const json = (await res.json()) as ZabbixJsonRpcResponse<T>;
 
       if (json.error) {
         throw new Error(`Zabbix API Error [${json.error.code}]: ${json.error.message} (${json.error.data})`);

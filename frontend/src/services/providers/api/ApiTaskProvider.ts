@@ -130,4 +130,19 @@ export class ApiTaskProvider implements ITaskService {
     });
     return (res?.task ?? res) as Task;
   }
+
+  async approveTask(taskId: string): Promise<Task> {
+    const res = await requestApi<any>(`/tasks/${encodeURIComponent(taskId)}/approve`, {
+      method: 'POST',
+    });
+    return (res?.data ?? res?.task ?? res) as Task;
+  }
+
+  async reworkTask(taskId: string, reason: string): Promise<Task> {
+    const res = await requestApi<any>(`/tasks/${encodeURIComponent(taskId)}/rework`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    return (res?.data ?? res?.task ?? res) as Task;
+  }
 }

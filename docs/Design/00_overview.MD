@@ -15,7 +15,7 @@ FleetMonitor là giải pháp quản trị vòng đời thiết bị in ấn t�
 flowchart LR
     A["1. Printer Analytics\n(Sản Lượng, D-Day & SLA)"] --- B["2. Maintenance CMMS\n(Ticket -> Task -> Work Log)"]
     B --- C["3. Error Standardization\n(FM-Subsystem-Index CSV)"]
-    C --- D["4. Role-Based RBAC\n(Data Scope 4 Roles)"]
+    C --- D["4. Role-Based RBAC\n(Data Scope 3 Roles)"]
 ```
 
 1. **Printer Analytics & Telemetry:**
@@ -59,10 +59,10 @@ docs/
 │       ├── README.md                         # Mục lục quy trình vận hành
 │       ├── maintenance_lifecycle.md          # Vòng đời bảo trì 3 tầng (Ticket -> Task -> Work Log)
 │       └── alert_and_incident_flow.md        # Luồng xử lý sự cố, Safe Window 10m & Khóa Auto-Closure
-├── snmp-oids/                                # Thư mục từ điển SNMP OIDs & MIBs đa thương hiệu
-│   ├── README.md                             # Tổng quan kiến trúc thu thập Zabbix Poller & Tra cứu OID
-│   ├── rfc3805_printer_mib.md                # Đặc tả OID chuẩn RFC 3805 (Printer-MIB) & RFC 2790
-│   └── vendor_enterprise_oids.md             # Tra cứu Private Enterprise OIDs (Ricoh, Canon, HP...)
+├── snmp-oids/                                # Thư mục đặc tả cấu hình Zabbix Templates & OIDs đa thương hiệu
+│   ├── README.md                             # Đặc tả Zabbix Templates, ranh giới Zabbix vs Backend & Tra cứu OID
+│   ├── rfc3805_printer_mib.md                # Đặc tả OID chuẩn RFC 3805 (Printer-MIB) & RFC 2790 cho Zabbix Items
+│   └── vendor_enterprise_oids.md             # Tra cứu Vendor Enterprise OIDs (Ricoh, Canon, HP...) cho Zabbix Templates
 ├── Tasks/
 │   ├── README.md                             # Sổ bộ tổng hợp danh mục Tasks & Bảng trạng thái
 │   ├── task_template.MD                      # Mẫu chuẩn hóa tạo nhiệm vụ kỹ thuật mới
@@ -71,13 +71,25 @@ docs/
 │   │   ├── TASK-FE-02_printers_diagnostics_and_tasks.MD
 │   │   ├── TASK-FE-03_analytics_charts_and_rankings.MD
 │   │   └── TASK-FE-04_settings_error_dictionary_rules.MD
-│   └── Backend/                              # Bộ 6 Task Đặc tả kỹ thuật Backend sẵn sàng lập trình
-│       ├── TASK-BE-01_zabbix_gateway.MD
-│       ├── TASK-BE-02_cache_and_error_classification.MD
-│       ├── TASK-BE-03_maintenance_cmms.MD
-│       ├── TASK-BE-04_analytics_rollup_engine.MD
-│       ├── TASK-BE-05_error_dictionary_csv.MD
-│       └── TASK-BE-06_rbac_data_scope.MD
+│   └── Backend/                              # Danh mục 18 Task Đặc tả kỹ thuật Backend (BE-01 đến BE-18)
+│       ├── TASK-BE-01_backend_foundation.MD
+│       ├── TASK-BE-02_database_architecture.MD
+│       ├── TASK-BE-03_auth_and_rbac.MD
+│       ├── TASK-BE-04_zabbix_api_integration.MD
+│       ├── TASK-BE-05_telemetry_sync_normalization.MD
+│       ├── TASK-BE-06_printer_asset_management.MD
+│       ├── TASK-BE-07_error_dictionary_incidents.MD
+│       ├── TASK-BE-08_cmms_maintenance_lifecycle.MD
+│       ├── TASK-BE-09_inventory_warehouse.MD
+│       ├── TASK-BE-10_procurement_management.MD
+│       ├── TASK-BE-11_vendor_management.MD
+│       ├── TASK-BE-12_financial_budget_contract.MD
+│       ├── TASK-BE-13_approval_workflow.MD
+│       ├── TASK-BE-14_dashboard_analytics_api.MD
+│       ├── TASK-BE-15_notification_background_processing.MD
+│       ├── TASK-BE-16_performance_inmemory_caching.MD
+│       ├── TASK-BE-17_security_audit_compliance.MD
+│       └── TASK-BE-18_system_integration_acceptance.MD
 └── Test/
     └── test_plan.md                          # Kế hoạch kiểm thử toàn diện đa tầng (Vitest)
 ```

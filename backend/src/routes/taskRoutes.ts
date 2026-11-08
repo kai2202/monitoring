@@ -3,12 +3,14 @@
  *
  * Định tuyến REST API cho Lệnh Bảo Trì (Tasks CMMS API):
  * - Bắt buộc `authenticateToken` trước `sanitizeCostData` để tự động che chi phí tài chính đối với FIELD_TECH.
- * - Hỗ trợ GET /, POST /, PATCH /:id, POST /:id/worklogs, POST /:id/attachments và tải Presigned URL.
+ * - Hỗ trợ GET /, POST /, PATCH /:id, POST /:id/worklogs, POST /:id/attachments, tải Presigned URL,
+ *   và endpoint phê duyệt / yêu cầu làm lại (POST /:taskId/approve, POST /:taskId/rework).
  * - Tuân thủ AGENTS.md Rule 4 & Rule 7.1 (< 300 LOC).
  */
 
 import { Router } from 'express';
 import { taskController } from '../controllers/taskController';
+import { approvalController } from '../controllers/approvalController';
 import { handleAttachmentUpload } from '../middlewares/uploadMiddleware';
 import { authenticateToken, requireRoles, sanitizeCostData } from '../middlewares/authMiddleware';
 
@@ -42,6 +44,14 @@ taskRouter.post('/:id/attachments', requireRoles(['ADMIN', 'FIELD_TECH']), handl
 );
 taskRouter.get('/:id/attachments/:attachmentId/download', (req, res) =>
   taskController.getAttachmentDownloadUrl(req, res)
+);
+
+// Endpoints phê duyệt đóng lệnh & yêu cầu làm lại (hỗ trợ gọi trực tiếp qua /tasks/:taskId/...)
+taskRouter.post('/:taskId/approve', requireRoles(['ADMIN', 'ASSET_HR']), (req, res) =>
+  approvalController.approveTask(req, res)
+);
+taskRouter.post('/:taskId/rework', requireRoles(['ADMIN', 'ASSET_HR']), (req, res) =>
+  approvalController.reworkTask(req, res)
 );
 
 export default taskRouter;

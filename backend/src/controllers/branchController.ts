@@ -1,195 +1,186 @@
 /**
  * Backend/src/controllers/branchController.ts
  *
- * Controller quản lý Danh mục Chi nhánh / Trụ sở & Sơ đồ Tầng (Branches & Floors API):
- * - Kết nối 100% PostgreSQL qua Prisma ORM (`Branch` & `Floor`).
- * - Bảo vệ toàn vẹn dữ liệu: Không cho phép xóa Tầng / Chi nhánh đang còn máy in hoạt động,
- *   và không cho phép xóa Trụ sở chính (HQ) khi còn chi nhánh vệ tinh.
+ * Controller quản lý Sơ đồ Tòa nhà & Tầng (Building & Floors API - LAN-Only):
+ * - Kết nối 100% PostgreSQL qua Prisma ORM (`Floor` & `Printer`), loại bỏ hoàn toàn thực thể `Branch`.
+ * - Bảo vệ toàn vẹn dữ liệu: Không cho phép xóa Tầng đang còn máy in hoạt động.
+ * - Duy trì tương thích hợp đồng JSON cho cả `/settings/branches` và `/settings/floors`.
  * - Tuân thủ AGENTS.md Rule 4, Rule 5 & Rule 7.1 (< 300 LOC).
  */
 
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 
-const formatBranchResponse = (b: {
-  id: string;
-  name: string;
-  code: string;
-  address: string | null;
-  isHq: boolean;
-  floors: { name: string }[];
-}) => ({
-  id: b.id,
-  name: b.name,
-  code: b.code,
-  address: b.address || undefined,
-  isHq: b.isHq,
-  floors: b.floors.map((f) => f.name),
-});
+const DEFAULT_BUILDING = 'Trụ sở chính';
+
+function deriveFloorCode(floorName: string): string {
+  const digits = floorName.replace(/\D/g, '');
+  if (digits) return `T${digits}`;
+  const clean = floorName
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+  return clean.slice(0, 6) || `FL-${Date.now().toString().slice(-3)}`;
+}
+
+async function buildBuildingFloorSummary(buildingName = DEFAULT_BUILDING) {
+  const floors = await prisma.floor.findMany({
+    where: { building: { equals: buildingName, mode: 'insensitive' } },
+    orderBy: { code: 'asc' },
+  });
+
+  return {
+    id: 'hq-main',
+    name: buildingName,
+    code: 'HQ-MAIN',
+    address: 'Khuôn viên Mạng LAN Nội bộ',
+    isHq: true,
+    floors: floors.map((f) => f.name),
+    floorItems: floors.map((f) => ({ id: f.id, code: f.code, name: f.name, building: f.building })),
+  };
+}
 
 export class BranchController {
   // GET /api/v1/settings/branches
   public async getBranches(_req: Request, res: Response) {
     try {
-      const branches = await prisma.branch.findMany({
-        include: { floors: { orderBy: { createdAt: 'asc' } } },
-        orderBy: [{ isHq: 'desc' }, { createdAt: 'asc' }],
+      const floors = await prisma.floor.findMany({
+        orderBy: { code: 'asc' },
       });
-      return res.status(200).json(branches.map(formatBranchResponse));
+
+      const buildingMap = new Map<string, string[]>();
+      buildingMap.set(DEFAULT_BUILDING, []);
+
+      for (const fl of floors) {
+        const bName = fl.building || DEFAULT_BUILDING;
+        const list = buildingMap.get(bName) || [];
+        list.push(fl.name);
+        buildingMap.set(bName, list);
+      }
+
+      const result = Array.from(buildingMap.entries()).map(([bName, flNames], index) => ({
+        id: index === 0 ? 'hq-main' : `building-${index + 1}`,
+        name: bName,
+        code: index === 0 ? 'HQ-MAIN' : `BLD-0${index + 1}`,
+        address: 'Khuôn viên Mạng LAN Nội bộ',
+        isHq: index === 0,
+        floors: flNames,
+      }));
+
+      return res.status(200).json(result);
     } catch (err: any) {
-      console.error('[BranchController.getBranches] Lỗi truy vấn:', err);
-      return res.status(500).json({ error: 'Không thể lấy danh sách chi nhánh', message: err.message });
+      console.error('[BranchController.getBranches] Lỗi truy vấn sơ đồ tầng:', err);
+      return res.status(500).json({ error: 'Không thể lấy sơ đồ tòa nhà và tầng', message: err.message });
     }
   }
 
   // POST /api/v1/settings/branches
   public async createBranch(req: Request, res: Response) {
     try {
-      const { name, code, address, floors } = req.body || {};
-      const cleanName = String(name || '').trim();
-      if (!cleanName) {
-        return res.status(400).json({ error: 'Tên chi nhánh / trụ sở không được để trống.' });
+      const { name, floors } = req.body || {};
+      const cleanBuilding = String(name || DEFAULT_BUILDING).trim();
+      if (!cleanBuilding) {
+        return res.status(400).json({ error: 'Tên tòa nhà / trụ sở không được để trống.' });
       }
 
-      const existingCount = await prisma.branch.count();
-      const rawCode = String(code || '').trim().toUpperCase();
-      const finalCode = rawCode || `BR-${Date.now().toString().slice(-4)}`;
       const floorNames: string[] =
         Array.isArray(floors) && floors.length > 0
           ? floors.map((f: unknown) => String(f).trim()).filter(Boolean)
           : ['Tầng 1'];
 
-      const created = await prisma.branch.create({
-        data: {
-          name: cleanName,
-          code: finalCode,
-          address: address ? String(address).trim() : null,
-          isHq: existingCount === 0,
-          floors: {
-            create: Array.from(new Set(floorNames)).map((fName) => ({ name: fName })),
-          },
-        },
-        include: { floors: { orderBy: { createdAt: 'asc' } } },
-      });
+      for (const fName of Array.from(new Set(floorNames))) {
+        const code = deriveFloorCode(fName);
+        await prisma.floor.upsert({
+          where: { code },
+          update: { name: fName, building: cleanBuilding },
+          create: { code, name: fName, building: cleanBuilding },
+        });
+      }
 
+      const summary = await buildBuildingFloorSummary(cleanBuilding);
       return res.status(201).json({
         success: true,
-        data: formatBranchResponse(created),
+        data: summary,
       });
     } catch (err: any) {
-      console.error('[BranchController.createBranch] Lỗi tạo chi nhánh:', err);
+      console.error('[BranchController.createBranch] Lỗi khởi tạo tầng:', err);
       return res.status(400).json({
-        error: 'Không thể tạo chi nhánh mới (Tên hoặc Mã chi nhánh có thể đã tồn tại).',
+        error: 'Không thể khởi tạo khu vực mới.',
         message: err.message,
       });
     }
   }
 
   // DELETE /api/v1/settings/branches/:id
-  public async deleteBranch(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const branch = await prisma.branch.findUnique({ where: { id } });
-      if (!branch) {
-        return res.status(404).json({ error: 'Không tìm thấy trụ sở / chi nhánh.' });
-      }
-
-      const totalBranches = await prisma.branch.count();
-      if (branch.isHq && totalBranches > 1) {
-        return res.status(400).json({
-          error: 'Không thể xóa Trụ sở chính (HQ) của hệ thống khi còn chi nhánh khác.',
-        });
-      }
-
-      const activePrinters = await prisma.printer.count({
-        where: {
-          OR: [{ branchId: branch.id }, { branch: { equals: branch.name, mode: 'insensitive' } }],
-        },
-      });
-
-      if (activePrinters > 0) {
-        return res.status(400).json({
-          error: `Không thể xóa trụ sở này vì đang có ${activePrinters} máy in hoạt động. Vui lòng điều chuyển máy in trước!`,
-        });
-      }
-
-      await prisma.$transaction([
-        prisma.floor.deleteMany({ where: { branchId: branch.id } }),
-        prisma.branch.delete({ where: { id: branch.id } }),
-      ]);
-
-      return res.status(200).json({ success: true, message: 'Đã xóa chi nhánh thành công.' });
-    } catch (err: any) {
-      console.error('[BranchController.deleteBranch] Lỗi xóa chi nhánh:', err);
-      return res.status(500).json({ error: 'Không thể xóa chi nhánh', message: err.message });
-    }
+  public async deleteBranch(_req: Request, res: Response) {
+    return res.status(400).json({
+      error: 'Hệ thống vận hành theo kiến trúc LAN-Only một Trụ sở chính duy nhất, không được phép xóa Trụ sở chính.',
+    });
   }
 
   // POST /api/v1/settings/branches/:id/floors
   public async addFloor(req: Request, res: Response) {
     try {
-      const { id } = req.params;
       const cleanFloor = String(req.body?.name || req.body?.floorName || '').trim();
       if (!cleanFloor) {
         return res.status(400).json({ error: 'Tên tầng không được để trống.' });
       }
 
-      const branch = await prisma.branch.findFirst({
-        where: { OR: [{ id }, { name: { equals: id, mode: 'insensitive' } }] },
+      const code = String(req.body?.code || deriveFloorCode(cleanFloor)).trim().toUpperCase();
+      const existing = await prisma.floor.findFirst({
+        where: {
+          OR: [{ code }, { name: { equals: cleanFloor, mode: 'insensitive' } }],
+        },
       });
-      if (!branch) {
-        return res.status(404).json({ error: 'Không tìm thấy chi nhánh tương ứng.' });
+
+      if (existing) {
+        return res.status(409).json({ error: `Tầng '${cleanFloor}' (${code}) đã tồn tại trong hệ thống.` });
       }
 
       await prisma.floor.create({
-        data: { branchId: branch.id, name: cleanFloor },
+        data: {
+          building: DEFAULT_BUILDING,
+          name: cleanFloor,
+          code,
+        },
       });
 
-      const updated = await prisma.branch.findUniqueOrThrow({
-        where: { id: branch.id },
-        include: { floors: { orderBy: { createdAt: 'asc' } } },
-      });
-
+      const summary = await buildBuildingFloorSummary(DEFAULT_BUILDING);
       return res.status(201).json({
         success: true,
-        data: formatBranchResponse(updated),
+        data: summary,
       });
     } catch (err: any) {
       console.error('[BranchController.addFloor] Lỗi thêm tầng:', err);
-      return res.status(400).json({ error: 'Tầng này đã tồn tại hoặc dữ liệu không hợp lệ.', message: err.message });
+      return res.status(400).json({ error: 'Không thể thêm tầng mới.', message: err.message });
     }
   }
 
   // DELETE /api/v1/settings/branches/:id/floors/:floorName
   public async removeFloor(req: Request, res: Response) {
     try {
-      const { id, floorName } = req.params;
+      const { floorName } = req.params;
       const decodedFloor = decodeURIComponent(floorName).trim();
 
-      const branch = await prisma.branch.findFirst({
-        where: { OR: [{ id }, { name: { equals: id, mode: 'insensitive' } }] },
-      });
-      if (!branch) {
-        return res.status(404).json({ error: 'Không tìm thấy chi nhánh tương ứng.' });
-      }
-
       const floorRecord = await prisma.floor.findFirst({
-        where: { branchId: branch.id, name: { equals: decodedFloor, mode: 'insensitive' } },
+        where: {
+          OR: [
+            { name: { equals: decodedFloor, mode: 'insensitive' } },
+            { code: { equals: decodedFloor, mode: 'insensitive' } },
+          ],
+        },
       });
+
       if (!floorRecord) {
-        return res.status(404).json({ error: `Không tìm thấy '${decodedFloor}' trong chi nhánh này.` });
+        return res.status(404).json({ error: `Không tìm thấy '${decodedFloor}' trong Trụ sở chính.` });
       }
 
       const activePrinters = await prisma.printer.count({
         where: {
           OR: [
             { floorId: floorRecord.id },
-            {
-              AND: [
-                { branch: { equals: branch.name, mode: 'insensitive' } },
-                { floor: { equals: decodedFloor, mode: 'insensitive' } },
-              ],
-            },
+            { floor: { equals: floorRecord.code, mode: 'insensitive' } },
+            { floor: { equals: floorRecord.name, mode: 'insensitive' } },
           ],
         },
       });
@@ -210,4 +201,3 @@ export class BranchController {
 }
 
 export const branchController = new BranchController();
-

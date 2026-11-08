@@ -14,18 +14,18 @@ import { authenticateToken, requirePermissions, requireRoles } from '../middlewa
 
 export const settingsRouter = Router();
 
-// 1. Danh mục Chi nhánh & Sơ đồ Tầng (Xem: Mọi user đã đăng nhập; Sửa/Xóa: ADMIN)
-settingsRouter.get('/branches', authenticateToken, (req, res) => branchController.getBranches(req, res));
-settingsRouter.post('/branches', authenticateToken, requireRoles(['ADMIN']), (req, res) =>
+// 1. Danh mục Tòa nhà & Sơ đồ Tầng (Hỗ trợ cả /floors và /branches tương thích)
+settingsRouter.get(['/branches', '/floors'], authenticateToken, (req, res) => branchController.getBranches(req, res));
+settingsRouter.post(['/branches', '/floors'], authenticateToken, requireRoles(['ADMIN']), (req, res) =>
   branchController.createBranch(req, res)
 );
-settingsRouter.delete('/branches/:id', authenticateToken, requireRoles(['ADMIN']), (req, res) =>
+settingsRouter.delete(['/branches/:id', '/floors/:id'], authenticateToken, requireRoles(['ADMIN']), (req, res) =>
   branchController.deleteBranch(req, res)
 );
-settingsRouter.post('/branches/:id/floors', authenticateToken, requireRoles(['ADMIN']), (req, res) =>
+settingsRouter.post(['/branches/:id/floors', '/floors/:id/items'], authenticateToken, requireRoles(['ADMIN']), (req, res) =>
   branchController.addFloor(req, res)
 );
-settingsRouter.delete('/branches/:id/floors/:floorName', authenticateToken, requireRoles(['ADMIN']), (req, res) =>
+settingsRouter.delete(['/branches/:id/floors/:floorName', '/floors/:id/items/:floorName'], authenticateToken, requireRoles(['ADMIN']), (req, res) =>
   branchController.removeFloor(req, res)
 );
 

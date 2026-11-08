@@ -13,17 +13,17 @@ import { slaCostAnalyticsService } from '../services/analytics/slaCostAnalyticsS
 import { computeDeviceComparison } from '../services/analytics/compareAnalyticsService';
 
 export class AnalyticsController {
-  private buildWherePrinter(branch?: string, floorId?: string) {
+  private buildWherePrinter(building?: string, floorId?: string, department?: string) {
     const where: any = {};
-    if (branch && branch !== 'all') {
-      where.OR = [
-        { branch: { contains: branch, mode: 'insensitive' } },
-        { location: { contains: branch, mode: 'insensitive' } },
-      ];
+    if (building && building !== 'all') {
+      where.building = { contains: building, mode: 'insensitive' };
     }
     if (floorId && floorId !== 'all') {
       const floorNum = floorId.replace('floor-', '');
       where.floor = { contains: floorNum, mode: 'insensitive' };
+    }
+    if (department && department !== 'all') {
+      where.department = { contains: department, mode: 'insensitive' };
     }
     return where;
   }
@@ -31,13 +31,14 @@ export class AnalyticsController {
   // GET /api/v1/analytics/summary
   async getSummary(req: Request, res: Response) {
     try {
-      const branch = req.query.branch as string | undefined;
+      const building = (req.query.building || req.query.branch) as string | undefined;
       const floorId = req.query.floorId as string | undefined;
+      const department = req.query.department as string | undefined;
       const timeframe = (req.query.timeframe as string) || '30days';
       const days = timeframe === 'hourly' ? 1 : timeframe === '7days' ? 7 : 30;
 
       const printers = await prisma.printer.findMany({
-        where: this.buildWherePrinter(branch, floorId),
+        where: this.buildWherePrinter(building, floorId, department),
         include: { counterRollups: { take: days * 2, orderBy: { recordedDate: 'desc' } } },
       });
 
@@ -84,13 +85,14 @@ export class AnalyticsController {
   // GET /api/v1/analytics/trend
   async getTrend(req: Request, res: Response) {
     try {
-      const branch = req.query.branch as string | undefined;
+      const building = (req.query.building || req.query.branch) as string | undefined;
       const floorId = req.query.floorId as string | undefined;
+      const department = req.query.department as string | undefined;
       const timeframe = (req.query.timeframe as string) || '30days';
       const count = timeframe === 'hourly' ? 24 : timeframe === '7days' ? 7 : 30;
 
       const printers = await prisma.printer.findMany({
-        where: this.buildWherePrinter(branch, floorId),
+        where: this.buildWherePrinter(building, floorId, department),
         include: { counterRollups: { take: count * 2, orderBy: { recordedDate: 'asc' } } },
       });
 
@@ -148,13 +150,14 @@ export class AnalyticsController {
   // GET /api/v1/analytics/distribution
   async getDistribution(req: Request, res: Response) {
     try {
-      const branch = req.query.branch as string | undefined;
+      const building = (req.query.building || req.query.branch) as string | undefined;
       const floorId = req.query.floorId as string | undefined;
+      const department = req.query.department as string | undefined;
       const timeframe = (req.query.timeframe as string) || '30days';
       const days = timeframe === 'hourly' ? 1 : timeframe === '7days' ? 7 : 30;
 
       const printers = await prisma.printer.findMany({
-        where: this.buildWherePrinter(branch, floorId),
+        where: this.buildWherePrinter(building, floorId, department),
         include: { counterRollups: { take: days, orderBy: { recordedDate: 'desc' } } },
       });
 
@@ -173,7 +176,8 @@ export class AnalyticsController {
           mfr: p.mfr,
           ip: p.ip,
           serial: p.serialNumber || '—',
-          branch: p.branch,
+          branch: p.building,
+          building: p.building,
           floorId: `floor-${floorNum}`,
           floorName: `Tầng ${floorNum}`,
           department: p.department,
@@ -216,8 +220,8 @@ export class AnalyticsController {
   // GET /api/v1/analytics/supplies
   async getSupplies(req: Request, res: Response) {
     try {
-      const branch = req.query.branch as string | undefined;
-      const result = await slaCostAnalyticsService.computeSuppliesForecast(branch);
+      const building = (req.query.building || req.query.branch) as string | undefined;
+      const result = await slaCostAnalyticsService.computeSuppliesForecast(building);
       return res.status(200).json(result);
     } catch (err: any) {
       return res.status(500).json({ error: 'Không thể lấy dự báo vật tư', message: err.message });
@@ -227,8 +231,8 @@ export class AnalyticsController {
   // GET /api/v1/analytics/sla-cost
   async getSLACost(req: Request, res: Response) {
     try {
-      const branch = req.query.branch as string | undefined;
-      const result = await slaCostAnalyticsService.computeSLACost(branch);
+      const building = (req.query.building || req.query.branch) as string | undefined;
+      const result = await slaCostAnalyticsService.computeSLACost(building);
       return res.status(200).json(result);
     } catch (err: any) {
       return res.status(500).json({ error: 'Không thể lấy dữ liệu SLA & Chi phí', message: err.message });

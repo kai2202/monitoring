@@ -41,6 +41,10 @@ model User {
   attachments   TaskAttachment[]
   csvImportJobs CsvImportJob[]
   auditLogs     AuditLog[]
+  inventoryTransactions InventoryTransaction[]
+  procurementRequests   ProcurementRequest[]
+  createdPOs            PurchaseOrder[]        @relation("POCreator")
+  approvedPOs           PurchaseOrder[]        @relation("POApprover")
 
   @@map("users")
 }
@@ -74,34 +78,19 @@ model UserDashboardPreference {
 }
 
 // ------------------------------------------------------------------------------
-// 1.5. Phân Hệ Quản Lý Vị Trí Doanh Nghiệp (Branches & Floors)
+// 1.5. Phân Hệ Quản Lý Vị Trí Doanh Nghiệp (Floors & Departments - LAN-Only)
 // ------------------------------------------------------------------------------
-
-model Branch {
-  id        String   @id @default(uuid())
-  name      String   @unique // "Trụ sở chính (HQ)", "Chi nhánh Miền Nam"...
-  code      String   @unique // "HQ-HN", "BR-SGN"...
-  address   String?
-  isHq      Boolean  @default(false) @map("is_hq")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  floors   Floor[]
-  printers Printer[]
-
-  @@map("branches")
-}
 
 model Floor {
   id        String   @id @default(uuid())
-  branchId  String   @map("branch_id")
-  name      String   // "Tầng 1", "Tầng 2"... "Tầng 7", "Tầng Trệt"
+  building  String   @default("Trụ sở chính") // Khuôn viên duy nhất tại mạng LAN
+  name      String   // "Tầng 1", "Tầng 2", "Tầng 3", "Tầng 4", "Tầng 5"
+  code      String   @unique // "T1", "T2", "T3", "T4", "T5"
   createdAt DateTime @default(now()) @map("created_at")
 
-  branch   Branch    @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  printers Printer[]
+  printers  Printer[]
 
-  @@unique([branchId, name])
+  @@unique([building, name])
   @@map("floors")
 }
 
@@ -117,11 +106,10 @@ model Printer {
   mfr              String    // CANON, RICOH, EPSON, HP, BROTHER, TOSHIBA, OLIVETTI
   deviceType       String    @default("Laser Đa Năng (MFP)") @map("device_type")
   serialNumber     String?   @map("serial_number")
-  branch           String    @default("Trụ sở chính") @map("branch") // Tên hiển thị chi nhánh
-  branchId         String?   @map("branch_id")
+  building         String    @default("Trụ sở chính") @map("building")
   location         String    // Ví dụ: "Tầng 1 - Sảnh chính"
   department       String    // Phòng Hành chính, Marketing, Kế toán...
-  floor            String    @default("T1") // Tầng hiển thị (Trụ sở 7 tầng: T1-T7; Chi nhánh...)
+  floor            String    @default("T1") // Tầng hiển thị (T1 đến T5)
   floorId          String?   @map("floor_id")
   isColor          Boolean   @default(true) @map("is_color")
   connectionStatus String    @default("Online") @map("connection_status") // Online, Offline
@@ -139,16 +127,16 @@ model Printer {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  branchRef      Branch?            @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  floorRef       Floor?             @relation(fields: [floorId], references: [id], onDelete: Restrict)
-  counterRollups CounterRollup[]
-  incidents      Incident[]
-  tasks          Task[]
-  consumable     PrinterConsumable?
+  floorRef            Floor?               @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  counterRollups      CounterRollup[]
+  incidents           Incident[]
+  tasks               Task[]
+  consumable          PrinterConsumable?
+  contracts           PrinterContract[]
+  procurementRequests ProcurementRequest[]
 
-  @@index([branch])
+  @@index([building])
   @@index([floor])
-  @@index([branchId])
   @@index([floorId])
   @@index([department])
   @@index([connectionStatus])
@@ -230,15 +218,18 @@ model Task {
   dueDate         DateTime?    @map("due_date")
   completedDate   DateTime?    @map("completed_date")
   progressPercent Int          @default(0) @map("progress_percent")
+  reworkReason    String?      @map("rework_reason")
   dynamicSteps    Json         @default("[]") @map("dynamic_steps") // [{id, title, status}]
   timeAndCost     Json         @default("{}") @map("time_and_cost") // {repairHours, laborCost, partsCost}
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
 
-  printer     Printer          @relation(fields: [printerId], references: [id], onDelete: Cascade)
-  incident    Incident?        @relation(fields: [incidentId], references: [id], onDelete: SetNull)
-  workLogs    WorkLog[]
-  attachments TaskAttachment[]
+  printer               Printer                  @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  incident              Incident?                @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  workLogs              WorkLog[]
+  attachments           TaskAttachment[]
+  inventoryTransactions InventoryTransaction[]
+  vendorLogs            VendorCommunicationLog[]
 
   @@index([printerId])
   @@index([status])
@@ -379,6 +370,10 @@ enum AuditAction {
   EXPORT_CSV
   PRINTER_RELOCATE
   TASK_UPDATE
+  TASK_APPROVE
+  TASK_REWORK
+  STOCK_TRANSACTION
+  PO_STATUS_CHANGE
 }
 
 model AuditLog {
@@ -415,6 +410,230 @@ model CostRateConfig {
 
   @@index([effectiveDate])
   @@map("cost_rate_configs")
+}
+
+// ------------------------------------------------------------------------------
+// 9. Phân Hệ Quản Lý Kho Vật Tư Tiêu Hao (TASK-BE-09 Inventory & Warehouse)
+// ------------------------------------------------------------------------------
+
+model InventoryItem {
+  id               String   @id @default(uuid())
+  sku              String   @unique // Ví dụ: "TN-3448", "MP-2501-TONER"
+  name             String   // "Hộp mực Ricoh MP 2501 Black"
+  category         String   // TONER, DRUM, FUSER, WASTE_BOX, ROLLER
+  compatibleModels String[] @default([]) @map("compatible_models")
+  currentStock     Int      @default(0) @map("current_stock")
+  safetyStock      Int      @default(5) @map("safety_stock")
+  unit             String   @default("Hộp")
+  unitCost         Float    @default(0) @map("unit_cost") // VNĐ
+  location         String   @default("Kho T1 - Kệ A1")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  transactions InventoryTransaction[]
+
+  @@index([category])
+  @@index([sku])
+  @@map("inventory_items")
+}
+
+model InventoryTransaction {
+  id            String   @id @default(uuid())
+  itemId        String   @map("item_id")
+  type          String   // IMPORT, EXPORT, RETURN, ADJUSTMENT
+  quantity      Int      // Dương (+) hoặc Âm (-)
+  balanceAfter  Int      @map("balance_after")
+  taskId        String?  @map("task_id")
+  performedById String?  @map("performed_by_id")
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  item        InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  task        Task?         @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  performedBy User?         @relation(fields: [performedById], references: [id], onDelete: SetNull)
+
+  @@index([itemId])
+  @@index([taskId])
+  @@index([performedById])
+  @@index([createdAt])
+  @@map("inventory_transactions")
+}
+
+// ------------------------------------------------------------------------------
+// 10. Phân Hệ Mua Sắm & Đề Xuất Vật Tư (TASK-BE-10 Supplies Procurement)
+// ------------------------------------------------------------------------------
+
+model ProcurementRequest {
+  id            String   @id @default(uuid())
+  requestedById String   @map("requested_by_id")
+  printerId     String?  @map("printer_id")
+  sku           String?
+  itemName      String   @map("item_name")
+  quantity      Int      @default(1)
+  reason        String
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED, ORDERED
+  urgency       String   @default("NORMAL")  // NORMAL, URGENT, CRITICAL
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  requestedBy User     @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  printer     Printer? @relation(fields: [printerId], references: [id], onDelete: SetNull)
+
+  @@index([requestedById])
+  @@index([printerId])
+  @@index([status])
+  @@map("procurement_requests")
+}
+
+model PurchaseOrder {
+  id           String    @id @default(uuid())
+  poNumber     String    @unique @map("po_number")
+  vendorId     String?   @map("vendor_id")
+  status       String    @default("DRAFT") // DRAFT, PENDING_APPROVAL, ORDERED, RECEIVED, CANCELLED
+  totalAmount  Float     @default(0) @map("total_amount")
+  itemsJson    Json      @default("[]") @map("items_json") // [{sku, name, quantity, unitPrice}]
+  createdById  String    @map("created_by_id")
+  approvedById String?   @map("approved_by_id")
+  orderedAt    DateTime? @map("ordered_at")
+  receivedAt   DateTime? @map("received_at")
+  note         String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  vendor     Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  createdBy  User    @relation("POCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  approvedBy User?   @relation("POApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([createdById])
+  @@map("purchase_orders")
+}
+
+// ------------------------------------------------------------------------------
+// 11. Phân Hệ Quản Lý Nhà Cung Cấp & Hỗ Trợ Hãng (TASK-BE-11 Vendor Management)
+// ------------------------------------------------------------------------------
+
+model Vendor {
+  id               String   @id @default(uuid())
+  name             String
+  code             String   @unique // RICOH-VN, CANON-AK, HP-ENT...
+  contactPerson    String?  @map("contact_person")
+  phone            String?
+  email            String?
+  address          String?
+  slaResponseHours Int      @default(4) @map("sla_response_hours")
+  rating           Float    @default(5.0)
+  notes            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  communications VendorCommunicationLog[]
+  purchaseOrders PurchaseOrder[]
+  contracts      PrinterContract[]
+
+  @@map("vendors")
+}
+
+model VendorCommunicationLog {
+  id                   String   @id @default(uuid())
+  vendorId             String   @map("vendor_id")
+  taskId               String?  @map("task_id")
+  callerName           String   @map("caller_name")
+  vendorAgent          String?  @map("vendor_agent")
+  channel              String   @default("PHONE") // PHONE, EMAIL, ONSITE, PORTAL
+  externalTicketNumber String?  @map("external_ticket_number")
+  content              String
+  result               String?
+  loggedAt             DateTime @default(now()) @map("logged_at")
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  task   Task?  @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([taskId])
+  @@map("vendor_communication_logs")
+}
+
+// ------------------------------------------------------------------------------
+// 12. Phân Hệ Chi Phí, Ngân Sách & Hợp Đồng (TASK-BE-12 Financial & Contract)
+// ------------------------------------------------------------------------------
+
+model DepartmentBudget {
+  id               String   @id @default(uuid())
+  department       String
+  monthlyQuotaVnd  Float    @default(10000000) @map("monthly_quota_vnd")
+  monthlyPageQuota Int      @default(50000) @map("monthly_page_quota")
+  fiscalYear       Int      @default(2026) @map("fiscal_year")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@unique([department, fiscalYear])
+  @@map("department_budgets")
+}
+
+model PrinterContract {
+  id                String   @id @default(uuid())
+  contractNumber    String   @unique @map("contract_number")
+  vendorId          String?  @map("vendor_id")
+  printerId         String?  @map("printer_id")
+  contractType      String   @default("LEASE") // LEASE, PURCHASE, MAINTENANCE
+  monthlyRentalCost Float    @default(0) @map("monthly_rental_cost")
+  freePagesPerMonth Int      @default(3000) @map("free_pages_per_month")
+  overageMonoRate   Float    @default(120) @map("overage_mono_rate")
+  overageColorRate  Float    @default(900) @map("overage_color_rate")
+  startDate         DateTime @map("start_date")
+  endDate           DateTime @map("end_date")
+  status            String   @default("ACTIVE") // ACTIVE, EXPIRING_SOON, TERMINATED
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  vendor  Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  printer Printer? @relation(fields: [printerId], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([printerId])
+  @@map("printer_contracts")
+}
+
+model MonthlyExpenseSummary {
+  id              String   @id @default(uuid())
+  yearMonth       String   @map("year_month") // "2026-03"
+  department      String
+  monoPages       Int      @default(0) @map("mono_pages")
+  colorPages      Int      @default(0) @map("color_pages")
+  printingCost    Float    @default(0) @map("printing_cost")
+  maintenanceCost Float    @default(0) @map("maintenance_cost")
+  rentalCost      Float    @default(0) @map("rental_cost")
+  totalCost       Float    @default(0) @map("total_cost")
+  budgetQuota     Float    @default(0) @map("budget_quota")
+  isOverBudget    Boolean  @default(false) @map("is_over_budget")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([yearMonth, department])
+  @@map("monthly_expense_summaries")
+}
+
+// ------------------------------------------------------------------------------
+// 13. Phân Hệ Phê Duyệt Nghiệp Vụ Đa Tầng (TASK-BE-13 Enterprise Approval Engine)
+// ------------------------------------------------------------------------------
+
+model ApprovalAction {
+  id             String   @id @default(uuid())
+  targetType     String   @map("target_type") // TASK_ACCEPTANCE, PO_APPROVAL, STOCK_EXPORT
+  targetId       String   @map("target_id")
+  action         String   // APPROVED, REJECTED_REWORK, CANCELLED
+  actorId        String   @map("actor_id")
+  actorName      String   @map("actor_name")
+  actorRole      String   @map("actor_role")
+  decisionReason String?  @map("decision_reason")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([targetType, targetId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("approval_actions")
 }
 
 

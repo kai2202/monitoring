@@ -4,8 +4,9 @@
  * Khối Banner Phong Cảnh Hồ Núi & Đường Cong Lượn Sóng Hữu Cơ (Organic S-Curve Wave):
  * - Tái hiện chuẩn xác thiết kế ảnh mẫu (Sample Design UI).
  * - Sử dụng đường cắt SVG mềm mại ngăn cách giữa form trắng và ảnh thiên nhiên.
+ * - Trải dài toàn bộ chiều cao màn hình (100vh Full-Bleed), không co thắt hay chừa viền xám thừa.
  * - Đường nét đứt (dashed guideline) uốn lượn song song tạo chiều sâu thị giác.
- * - Monogram tối giản góc dưới phải.
+ * - Monogram .FM tối giản góc dưới phải.
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
  */
 
@@ -13,7 +14,7 @@ import React from 'react';
 
 // Ảnh phong cảnh hồ nước trong vắt phản chiếu núi tuyết và rừng thông (Lake Moraine style)
 const ALPINE_LAKE_IMAGE =
-  'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80';
+  'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1400&q=80';
 
 export const LoginLandscapeBanner: React.FC = () => {
   return (
@@ -22,7 +23,6 @@ export const LoginLandscapeBanner: React.FC = () => {
         position: 'relative',
         width: '100%',
         height: '100%',
-        minHeight: '580px',
         overflow: 'hidden',
         backgroundColor: '#ffffff',
       }}
@@ -98,12 +98,12 @@ export const LoginLandscapeBanner: React.FC = () => {
         />
       </svg>
 
-      {/* 3. Monogram Badge Minimalist Tại Góc Dưới Phải (Tương tự ảnh mẫu) */}
+      {/* 3. Monogram Badge Minimalist Tại Góc Dưới Phải */}
       <div
         style={{
           position: 'absolute',
           bottom: '36px',
-          right: '40px',
+          right: '44px',
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
@@ -150,4 +150,3 @@ export const LoginLandscapeBanner: React.FC = () => {
 };
 
 export default LoginLandscapeBanner;
-

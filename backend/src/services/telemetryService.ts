@@ -225,7 +225,7 @@ export class BackendTelemetryService {
           recordedDate: { gte: sinceDate },
         },
         orderBy: { recordedDate: 'asc' },
-        include: { printer: { select: { name: true, model: true, branch: true, floor: true } } },
+        include: { printer: { select: { name: true, model: true, building: true, floor: true } } },
       });
 
       this.setCache(cacheKey, records);

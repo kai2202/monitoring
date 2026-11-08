@@ -1,8 +1,9 @@
 # RFC 3805 Printer-MIB & RFC 2790 Host Resources MIB Specification
 
 > **Tiêu chuẩn:** IETF RFC 3805 (Printer MIB v2) & RFC 2790 (Host Resources MIB v2)  
-> **Mục đích:** Đặc tả các OID chuẩn quốc tế cho việc giám sát trạng thái, vật tư và bộ đếm máy in  
-> **Phân hệ sử dụng:** `backend/src/services/zabbix/`, `TASK-BE-01`, `TASK-BE-04`
+> **Mục đích:** Đặc tả các OID chuẩn quốc tế cho việc cấu hình Zabbix Templates / Items giám sát trạng thái, vật tư và bộ đếm máy in  
+> **Cơ chế thu thập:** Zabbix Server 7.0 LTS thu thập qua giao thức SNMP v1/v2c/v3; Backend FleetMonitor tiếp nhận số liệu qua Zabbix JSON-RPC API 2.0  
+> **Tham chiếu nhiệm vụ:** `TASK-BE-04` (Zabbix API Integration), `TASK-BE-05` (Telemetry Normalization)
 
 ---
 

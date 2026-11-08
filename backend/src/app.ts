@@ -22,6 +22,13 @@ import { incidentRouter } from './routes/incidentRoutes';
 import { analyticsRouter } from './routes/analyticsRoutes';
 import { workLogRouter } from './routes/workLogRoutes';
 import { suppliesRouter } from './routes/suppliesRoutes';
+import { integrationRouter } from './routes/integrationRoutes';
+import { notificationRouter } from './routes/notificationRoutes';
+import { inventoryRouter } from './routes/inventoryRoutes';
+import { procurementRouter } from './routes/procurementRoutes';
+import { vendorRouter } from './routes/vendorRoutes';
+import { financeRouter } from './routes/financeRoutes';
+import { approvalRouter } from './routes/approvalRoutes';
 
 export const app = express();
 
@@ -49,6 +56,13 @@ app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/incidents', incidentRouter);
 app.use('/api/v1/analytics', analyticsRouter);
 app.use('/api/v1/supplies', suppliesRouter);
+app.use('/api/v1/integrations', integrationRouter);
+app.use('/api/v1/notifications', notificationRouter);
+app.use('/api/v1/inventory', inventoryRouter);
+app.use('/api/v1/procurement', procurementRouter);
+app.use('/api/v1/vendors', vendorRouter);
+app.use('/api/v1/finance', financeRouter);
+app.use('/api/v1/approvals', approvalRouter);
 app.use('/api/v1', workLogRouter);
 
 // 4. Định tuyến tương thích ngược (/api/...)
@@ -61,6 +75,13 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/incidents', incidentRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/supplies', suppliesRouter);
+app.use('/api/integrations', integrationRouter);
+app.use('/api/notifications', notificationRouter);
+app.use('/api/inventory', inventoryRouter);
+app.use('/api/procurement', procurementRouter);
+app.use('/api/vendors', vendorRouter);
+app.use('/api/finance', financeRouter);
+app.use('/api/approvals', approvalRouter);
 app.use('/api', workLogRouter);
 
 // 5. Health Check Endpoint

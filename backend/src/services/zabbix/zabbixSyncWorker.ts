@@ -97,6 +97,7 @@ export class ZabbixSyncWorker {
             h.hostid === printer.zabbixHostId ||
             h.name === printer.name ||
             h.host === printer.id ||
+            Boolean(printer.serialNumber && (h.host?.includes(printer.serialNumber) || h.name?.includes(printer.serialNumber))) ||
             (h.interfaces && h.interfaces.some((iface) => iface.ip === printer.ip))
         );
 

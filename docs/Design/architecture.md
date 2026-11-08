@@ -9,51 +9,56 @@
 
 ## 1. Kiến Trúc Tổng Thể Hệ Thống (System Overview)
 
-Hệ thống FleetMonitor được xây dựng theo mô hình kiến trúc phân lớp hướng dịch vụ (Layered Service-Oriented Architecture), tối ưu hóa chuyên biệt cho quy mô giám sát **hạm đội khoảng 100 máy in** đa thương hiệu (Chủ lực: **Canon, Ricoh**; Đồng hành: **Epson, HP, Brother, Toshiba, Olivetti**). Hạ tầng trải rộng trên **Toà nhà Trụ sở chính (quy mô 7 tầng, máy in đặt linh hoạt ở tùy tầng)** kết hợp với **các chi nhánh/văn phòng vệ tinh khác** kết nối an toàn qua mạng Site-to-Site VPN / SD-WAN. Hệ thống đảm bảo thời gian phản hồi giao diện $< 50\text{ms}$ thông qua bộ đệm In-Memory Cache và tổng hợp dữ liệu định kỳ (Rollup Aggregation).
+Hệ thống FleetMonitor được xây dựng theo mô hình kiến trúc phân lớp hướng dịch vụ (Layered Service-Oriented Architecture), tối ưu hóa chuyên biệt cho quy mô giám sát **hạm đội khoảng 100 máy in** đa thương hiệu (Chủ lực: **Canon, Ricoh**; Đồng hành: **Epson, HP, Brother, Toshiba, Olivetti**). Toàn bộ hệ thống triển khai theo mô hình **On-Premises (LAN-Only)** tại một địa điểm công ty trên máy chủ Ubuntu Server nội bộ (không Public IP, không Cloud, không phụ thuộc dịch vụ bên ngoài). Người dùng kết nối vào mạng LAN nội bộ để truy cập hệ thống qua IP riêng. Hệ thống đảm bảo thời gian phản hồi giao diện $< 50\text{ms}$ thông qua bộ đệm In-Memory Cache và tổng hợp dữ liệu định kỳ (Rollup Aggregation).
 
 ```mermaid
 flowchart TD
-    subgraph FleetLayer ["1. HẠ TẦNG THIẾT BỊ NGOẠI VI (~100 MÁY IN — ĐA CHI NHÁNH & TOÀ NHÀ 7 TẦNG)"]
-        HQ["Trụ sở chính: Toà nhà 7 tầng\n(Bố trí máy in linh hoạt tại các tầng có nhu cầu)"]
-        Branches["Các Chi Nhánh / Văn phòng vệ tinh ngoại tỉnh\n(Kết nối an toàn qua mạng Site-to-Site VPN / SD-WAN)"]
-        Brands["Thương hiệu: Chủ lực (Canon, Ricoh)\nĐồng hành: Epson, HP, Brother, Toshiba, Olivetti"]
+    subgraph FleetLayer ["1. HẠ TẦNG THIẾT BỊ NGOẠI VI (~100 MÁY IN — MẠNG LAN NỘI BỘ)"]
+        HQ["Hạ tầng công ty: Toà nhà văn phòng\n(Bố trí máy in linh hoạt tại các tầng/phòng ban)"]
+        Brands["Thương hiệu: Chủ lực (Canon, Ricoh)\nĐồng hành: Epson, HP, Brother, Xerox"]
         HQ --- Brands
-        Branches --- Brands
     end
 
-    subgraph MonitoringLayer ["2. TẦNG THU THẬP & CẢNH BÁO (MONITORING ENGINE)"]
-        Zabbix["Zabbix Server 7.0 LTS\n(SNMP Poller v1/v2c/v3 qua LAN nội bộ & Site-to-Site VPN)"]
-        MIBs["Từ điển OID MIBs: RFC 3805 (Printer-MIB),\nRicoh MIB, Canon MIB, HP/Brother/Epson/Toshiba"]
+    subgraph MonitoringLayer ["2. TẦNG THU THẬP KỸ THUẬT DUY NHẤT (ZABBIX 7.0 LTS)"]
+        Zabbix["Zabbix Server 7.0 LTS\n(Giao tiếp SNMP v1/v2c/v3 qua UDP 161 & ICMP Ping)"]
+        MIBs["Zabbix Templates & Item Mappings: RFC 3805 (Printer-MIB),\nRicoh MIB, Canon MIB, HP, Brother, Epson, Xerox"]
+        Zabbix --- MIBs
     end
 
-    subgraph BackendLayer ["3. MÁY CHỦ DỊCH VỤ BACKEND (NODE.JS / EXPRESS / TYPESCRIPT)"]
-        Poller["SNMP/Zabbix Poller & Telemetry Aggregator\n(Fast Polling 30s: Triggers/ICMP | Slow Polling 1h: Counters/Supplies)"]
-        Cache["In-Memory Cache Engine (TTL = 60s)\n(Phản hồi UI < 50ms theo AGENTS.md, RAM < 1MB)"]
-        AuthMiddleware["RBAC & Data Scope Middleware\n(3 Vai trò: ADMIN, FIELD_TECH, ASSET_HR\nPhân vùng dữ liệu: Branch -> Floor -> Department)"]
-        APIGateway["Express REST API Endpoints\n(/api/telemetry, /api/maintenance, /api/error-codes)"]
-        CSVEngine["CSV Parser & Validation Engine\n(Nạp danh mục mã lỗi từ giao diện Cài đặt)"]
+    subgraph BackendLayer ["3. MÁY CHỦ DỊCH VỤ NGHIỆP VỤ (EXPRESS / TYPESCRIPT)"]
+        ZabbixGateway["Zabbix Gateway & Ingestion Engine\n• Fast Polling 30s: Triggers/ICMP | Slow Polling 1h: Counters/Supplies\n• Webhook Event Receiver: Problem & Recovery tức thời"]
+        Normalizer["Telemetry Normalizer & Multi-Vendor Error Classifier\n(Bảo toàn raw_vendor_code, chuẩn hóa FM-..., xử lý Safe Window 10m)"]
+        Cache["In-Memory Cache Engine (TTL = 60s)\n(Phản hồi UI < 5ms theo AGENTS.md, RAM < 10MB)"]
+        AuthMiddleware["RBAC & Data Scope Middleware\n(3 Vai trò chuẩn hoá: ADMIN, FIELD_TECH, ASSET_HR\nPhân quyền thao tác Assignee & Rework)"]
+        APIGateway["Express REST API Endpoints\n(/api/v1/printers, /api/v1/tasks, /api/v1/analytics, /api/v1/inventory)"]
+        CSVEngine["CSV Error Dictionary Engine\n(Nạp & xuất danh mục mã lỗi với Dry-Run 2 bước)"]
+        BusinessModules["Phân Hệ Nghiệp Vụ Doanh Nghiệp\n(CMMS Vòng đời 3 tầng, Quản trị Kho vật tư, Mua sắm, Hợp đồng & Chi phí)"]
     end
 
     subgraph StorageLayer ["4. CƠ SỞ DỮ LIỆU & LƯU TRỮ VẬT THỂ (PERSISTENCE LAYER)"]
-        Postgres[(PostgreSQL 16 Database\nPrisma ORM: Rollups ~36.5k rows/năm,\nTickets, Tasks, Work Logs, RBAC, Mappings)]
-        MinIO[(MinIO S3 Object Storage\nTài liệu kỹ thuật, Ảnh hiện trường,\nBiên bản bàn giao nghiệm thu)]
+        Postgres[(PostgreSQL 16 Database\nPrisma ORM: Printers, Incidents, Tasks, WorkLogs,\nInventory, POs, Contracts, AuditLog)]
+        MinIO[(MinIO S3 Object Storage\nẢnh hiện trường KTV, Biên bản bàn giao nghiệm thu,\nTài liệu hợp đồng đính kèm)]
     end
 
     subgraph FrontendLayer ["5. GIAO DIỆN VẬN HÀNH NGƯỜI DÙNG (REACT 18 / TYPESCRIPT)"]
-        PureSVG["100% Pure React SVG Data Visualization\n(Spline 2.25px, Cột Ngang Stacked, Sandbox Đối Chiếu, Arc 180°, Dynamic Heatmap)"]
-        Dashboards["Role-Based Bento Dashboard (Admin IT/NOC, Field Tech, Asset HR)\nTùy biến bố cục Widget & Bộ lọc Chi nhánh/Tầng"]
-        SettingsUI["Settings & CSV Error Code Manager\nTra cứu, nhập/xuất CSV và điều chỉnh ánh xạ lỗi"]
+        PureSVG["100% Pure React SVG Data Visualization\n(Spline 2.25px, Cột Ngang Stacked, Khung Ghim Sandbox, Arc 180°, Heatmap)"]
+        Dashboards["Role-Based Bento Dashboard (Admin IT/NOC, Field Tech, Asset HR)\nTùy biến bố cục Widget & Bộ lọc Tầng/Phòng ban"]
+        CMMSUI["Quản Trị Vòng Đời Bảo Trì CMMS\n(Chi tiết Work Order, Rework Stepper, Upload ảnh MinIO, Phê duyệt)"]
     end
 
-    FleetLayer -->|SNMP Traps / Polling qua VPN & LAN| MonitoringLayer
-    MonitoringLayer -->|Zabbix JSON-RPC API| Poller
-    Poller --> Cache
-    Poller -->|Ghi Snapshot & Rollup| Postgres
+    FleetLayer -->|SNMP Traps / Polling qua LAN nội bộ| MonitoringLayer
+    MonitoringLayer -->|JSON-RPC 2.0 API Pull| ZabbixGateway
+    MonitoringLayer -->|Zabbix Action Webhook Push| ZabbixGateway
+    ZabbixGateway --> Normalizer
+    Normalizer --> Cache
+    Normalizer -->|Ghi Snapshot & Rollup| Postgres
     CSVEngine -->|Import/Export Mappings| Postgres
+    BusinessModules --> Postgres
+    BusinessModules --> MinIO
     APIGateway --> Cache
     APIGateway --> Postgres
     APIGateway --> MinIO
-    FrontendLayer -->|REST API Requests / JWT Claims| AuthMiddleware
+    FrontendLayer -->|REST API Requests / JWT Bearer| AuthMiddleware
     AuthMiddleware --> APIGateway
 ```
 

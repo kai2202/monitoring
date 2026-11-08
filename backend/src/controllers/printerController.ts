@@ -15,17 +15,17 @@ export class PrinterController {
   // GET /api/v1/printers
   async getPrinters(req: Request, res: Response) {
     try {
-      const { branch, floor, status, health, search } = req.query;
+      const { building, floor, department, status, health, search } = req.query;
       const whereClause: any = {};
 
-      if (branch && branch !== 'all') {
-        whereClause.OR = [
-          { branch: { contains: String(branch), mode: 'insensitive' } },
-          { location: { contains: String(branch), mode: 'insensitive' } },
-        ];
+      if (building && building !== 'all') {
+        whereClause.building = { contains: String(building), mode: 'insensitive' };
       }
       if (floor && floor !== 'all') {
         whereClause.floor = { contains: String(floor), mode: 'insensitive' };
+      }
+      if (department && department !== 'all') {
+        whereClause.department = { contains: String(department), mode: 'insensitive' };
       }
       if (status && status !== 'all') {
         whereClause.connectionStatus = { equals: String(status), mode: 'insensitive' };
@@ -58,7 +58,7 @@ export class PrinterController {
         mfr: p.mfr,
         deviceType: p.deviceType,
         serialNumber: p.serialNumber,
-        branch: p.branch,
+        building: p.building,
         location: p.location,
         floor: p.floor,
         department: p.department,
@@ -114,7 +114,7 @@ export class PrinterController {
         mfr: p.mfr,
         deviceType: p.deviceType,
         serialNumber: p.serialNumber,
-        branch: p.branch,
+        building: p.building,
         location: p.location,
         floor: p.floor,
         department: p.department,
@@ -165,7 +165,7 @@ export class PrinterController {
           mfr: data.mfr || 'Generic',
           deviceType: data.deviceType || 'A4 Laser',
           serialNumber: data.serialNumber || null,
-          branch: data.branch || 'Trụ sở chính',
+          building: data.building || 'Trụ sở chính',
           location: data.location || 'Chưa định vị',
           floor: data.floor || 'T1',
           department: data.department || 'Văn phòng',
@@ -232,7 +232,7 @@ export class PrinterController {
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Dữ liệu điều chuyển không hợp lệ' });
       }
-      const { branch, floor, department, location } = parsed.data;
+      const { building, floor, department, location } = parsed.data;
       const printer = await prisma.printer.findUnique({ where: { id: req.params.id } });
       if (!printer) {
         return res.status(404).json({ error: 'Không tìm thấy máy in' });
@@ -241,10 +241,10 @@ export class PrinterController {
       const updated = await prisma.printer.update({
         where: { id: req.params.id },
         data: {
-          branch: branch || undefined,
+          building: building || undefined,
           floor: floor || undefined,
           department: department || undefined,
-          location: location || (branch && floor ? `${branch} - ${floor}` : undefined),
+          location: location || (floor ? `${floor} - ${department || 'Phòng ban'}` : undefined),
         },
       });
 
@@ -256,8 +256,8 @@ export class PrinterController {
           targetId: printer.id,
           ipAddress: req.ip,
           diffJson: {
-            from: { branch: printer.branch, floor: printer.floor, department: printer.department },
-            to: { branch: updated.branch, floor: updated.floor, department: updated.department },
+            from: { building: printer.building, floor: printer.floor, department: printer.department },
+            to: { building: updated.building, floor: updated.floor, department: updated.department },
           },
         },
       });

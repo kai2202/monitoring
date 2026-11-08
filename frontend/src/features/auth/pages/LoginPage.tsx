@@ -2,8 +2,10 @@
  * Frontend/src/features/auth/pages/LoginPage.tsx
  *
  * Màn hình Đăng Nhập Doanh Nghiệp Split-View Chuẩn Mẫu (Enterprise Portal UI):
- * - Bố cục Split-View: Cột trái form Enterprise 2 trường, Cột phải banner phong cảnh lượn sóng hữu cơ.
- * - Tự động nhận diện chế độ MOCK (có nút chọn vai trò demo) hoặc REAL (chuẩn hóa doanh nghiệp thuần khiết).
+ * - Bố cục Full-Bleed Split-View (100vw x 100vh): Tràn viền toàn diện, loại bỏ hoàn toàn khoảng trống thừa.
+ * - Cột trái: Form Enterprise chuẩn bảo mật 2 trường, căn giữa cân đối, header & footer doanh nghiệp.
+ * - Cột phải: Banner phong cảnh lượn sóng hữu cơ (Organic S-Curve) trải dài toàn bộ chiều cao màn hình.
+ * - Tự động nhận diện chế độ MOCK (có nút chọn vai trò demo) hoặc REAL (doanh nghiệp thuần khiết).
  * - Đấu nối trực tiếp xác thực JWT (`POST /api/auth/login`) qua authService.
  * - Tuân thủ AGENTS.md Rule 4, Rule 5 & Rule 7.1 (< 300 LOC).
  */
@@ -76,53 +78,59 @@ export const LoginPage: React.FC = () => {
   return (
     <div
       style={{
-        minHeight: '100vh',
         width: '100vw',
+        height: '100vh',
+        minHeight: '100vh',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#eef2f6',
-        padding: '32px 20px',
+        backgroundColor: '#ffffff',
+        overflow: 'hidden',
+        position: 'relative',
         boxSizing: 'border-box',
-        overflowX: 'hidden',
+        margin: 0,
+        padding: 0,
       }}
     >
-      {/* Khung Card Master Split-View Viền Cong Lớn 32px */}
+      {/* Cột Trái (~48% - 50%): Biểu mẫu nhập liệu Enterprise Form chiếm toàn bộ chiều cao */}
       <div
         style={{
-          width: '100%',
-          maxWidth: '1040px',
-          minHeight: '580px',
+          flex: '1 1 48%',
+          maxWidth: '52%',
+          minWidth: '380px',
+          height: '100%',
           backgroundColor: '#ffffff',
-          borderRadius: '32px',
-          border: '1px solid rgba(226, 232, 240, 0.85)',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.05)',
-          overflow: 'hidden',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 10,
           boxSizing: 'border-box',
-          position: 'relative',
+          overflowY: 'auto',
         }}
       >
-        {/* Cột Trái (~52%): Biểu mẫu nhập liệu Enterprise Form */}
-        <div style={{ flex: '1 1 52%', minWidth: 0 }}>
-          <LoginFormSection
-            usernameOrEmail={usernameOrEmail}
-            onUsernameOrEmailChange={setUsernameOrEmail}
-            password={password}
-            onPasswordChange={setPassword}
-            isMockMode={isMockMode}
-            onOpenRolePicker={() => setIsRoleModalOpen(true)}
-            onSubmit={handleSubmit}
-            isSubmitting={isSubmitting}
-            errorMsg={errorMsg}
-          />
-        </div>
+        <LoginFormSection
+          usernameOrEmail={usernameOrEmail}
+          onUsernameOrEmailChange={setUsernameOrEmail}
+          password={password}
+          onPasswordChange={setPassword}
+          isMockMode={isMockMode}
+          onOpenRolePicker={() => setIsRoleModalOpen(true)}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+          errorMsg={errorMsg}
+        />
+      </div>
 
-        {/* Cột Phải (~48%): Banner Phong Cảnh Lượn Sóng Hữu Cơ */}
-        <div style={{ flex: '1 1 48%', minWidth: 0, display: 'block' }}>
-          <LoginLandscapeBanner />
-        </div>
+      {/* Cột Phải (~50% - 52%): Banner Phong Cảnh Lượn Sóng Hữu Cơ Tràn Viền Toàn Diện */}
+      <div
+        style={{
+          flex: '1 1 52%',
+          minWidth: 0,
+          height: '100%',
+          display: 'block',
+          position: 'relative',
+          overflow: 'hidden',
+          backgroundColor: '#ffffff',
+        }}
+      >
+        <LoginLandscapeBanner />
       </div>
 
       {/* Modal Chọn Nhanh Vai Trò Vận Hành (Chỉ mở khi click ở Mock) */}
