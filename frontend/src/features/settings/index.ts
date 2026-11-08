@@ -7,4 +7,4 @@ export * from './components';
 export * from './routes';
 export * from './utils/errorDictionaryCsvHelper';
 export * from '../../types/settings';
-
+export * from './pages/SettingsPage';

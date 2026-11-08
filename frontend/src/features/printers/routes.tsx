@@ -2,7 +2,7 @@ import React from 'react';
 import { RouteObject, Navigate } from 'react-router-dom';
 
 const PrintersPage = React.lazy(() =>
-  import('../../pages/PrintersPage').then((m) => ({ default: m.PrintersPage }))
+  import('./pages/PrintersPage').then((m) => ({ default: m.PrintersPage }))
 );
 
 export interface PrintersRoutesOptions {
@@ -56,4 +56,3 @@ export function getPrintersRoutes(options: PrintersRoutesOptions): RouteObject[]
     },
   ];
 }
-

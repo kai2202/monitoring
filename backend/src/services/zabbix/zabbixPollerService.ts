@@ -8,7 +8,6 @@
  */
 
 import { fastPollingWorker } from './fastPollingWorker';
-import { slowPollingWorker } from './slowPollingWorker';
 import { zabbixSyncWorker } from './zabbixSyncWorker';
 import { zabbixApiClient } from './zabbixApiClient';
 import { fleetMemoryCache } from '../cache/fleetMemoryCache';
@@ -21,7 +20,6 @@ export class ZabbixPollerService {
     this.isRunning = true;
     console.log('[ZabbixPollerService] Khởi động In-Process Poller & ZabbixSyncWorker (60s)...');
     fastPollingWorker.start();
-    slowPollingWorker.start();
     zabbixSyncWorker.start();
   }
 
@@ -29,7 +27,6 @@ export class ZabbixPollerService {
     if (!this.isRunning) return;
     console.log('[ZabbixPollerService] Đang dừng In-Process Poller an toàn...');
     fastPollingWorker.stop();
-    slowPollingWorker.stop();
     zabbixSyncWorker.stop();
     this.isRunning = false;
   }
@@ -45,7 +42,6 @@ export class ZabbixPollerService {
     }
 
     await fastPollingWorker.poll();
-    await slowPollingWorker.poll();
     return zabbixSyncWorker.syncNow();
   }
 

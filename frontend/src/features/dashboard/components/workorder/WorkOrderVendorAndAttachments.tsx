@@ -17,9 +17,12 @@ import {
   faFolder,
   faDownload,
   faPlus,
+  faEye,
+  faTrashCan,
 } from '../../../../shared/icons';
 import { VendorCommunicationLog, TaskAttachment } from '../../../../types/task';
 import { useWorkOrderAttachments } from './useWorkOrderAttachments';
+import { ImageLightboxModal } from './modals/ImageLightboxModal';
 
 interface WorkOrderVendorAndAttachmentsProps {
   taskId?: string;
@@ -29,6 +32,7 @@ interface WorkOrderVendorAndAttachmentsProps {
   isReadOnly?: boolean;
   onAddVendorLog?: (log: Partial<VendorCommunicationLog>) => void;
   onAddAttachment?: (att: TaskAttachment) => void;
+  onDeleteAttachment?: (attachmentId: string) => void;
 }
 
 export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmentsProps> = ({
@@ -39,10 +43,12 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
   isReadOnly = false,
   onAddVendorLog,
   onAddAttachment,
+  onDeleteAttachment,
 }) => {
   const [isVendorOpen, setIsVendorOpen] = useState(vendorLogs.length > 0);
   const [isAttachmentsOpen, setIsAttachmentsOpen] = useState(true);
   const [isAddingVendor, setIsAddingVendor] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<TaskAttachment | null>(null);
 
   const [vendorName, setVendorName] = useState('Hỗ trợ kỹ thuật chính hãng');
   const [contact, setContact] = useState('');
@@ -217,14 +223,18 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
                 {attachments.map((att) => (
                   <div
                     key={att.id}
-                    className="p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between gap-3 shadow-xs hover:border-slate-300 transition-all"
+                    className="group/att p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between gap-2.5 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all"
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm shrink-0 shadow-xs">
+                    <div
+                      className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1"
+                      onClick={() => setPreviewAttachment(att)}
+                      title={`Bấm để xem trước: ${att.fileName}`}
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm shrink-0 shadow-xs group-hover/att:scale-105 transition-transform">
                         <FontAwesomeIcon icon={faFolder} />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate group-hover/att:text-indigo-600 dark:group-hover/att:text-indigo-400 transition-colors">
                           {att.fileName}
                         </div>
                         <div className="text-[10.5px] text-slate-600 dark:text-slate-300 font-medium">
@@ -232,14 +242,40 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
                         </div>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      title={`Tải xuống ${att.fileName}`}
-                      onClick={() => handleDownloadAttachment(att)}
-                      className="w-7 h-7 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-indigo-600 flex items-center justify-center transition-colors shrink-0"
-                    >
-                      <FontAwesomeIcon icon={faDownload} className="text-xs" />
-                    </button>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        title={`Xem trước ${att.fileName}`}
+                        onClick={() => setPreviewAttachment(att)}
+                        className="w-7 h-7 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-indigo-600 flex items-center justify-center transition-colors"
+                      >
+                        <FontAwesomeIcon icon={faEye} className="text-xs" />
+                      </button>
+                      <button
+                        type="button"
+                        title={`Tải xuống ${att.fileName}`}
+                        onClick={() => handleDownloadAttachment(att)}
+                        className="w-7 h-7 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-indigo-600 flex items-center justify-center transition-colors"
+                      >
+                        <FontAwesomeIcon icon={faDownload} className="text-xs" />
+                      </button>
+                      {!isReadOnly && onDeleteAttachment && (
+                        <button
+                          type="button"
+                          title={`Xoá tệp ${att.fileName}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Bạn có chắc muốn xoá tệp "${att.fileName}" không?`)) {
+                              onDeleteAttachment(att.id);
+                            }
+                          }}
+                          className="w-7 h-7 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors"
+                        >
+                          <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -247,6 +283,13 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
           </div>
         )}
       </div>
+
+      <ImageLightboxModal
+        attachment={previewAttachment}
+        isOpen={Boolean(previewAttachment)}
+        onClose={() => setPreviewAttachment(null)}
+        onDownload={handleDownloadAttachment}
+      />
     </div>
   );
 };

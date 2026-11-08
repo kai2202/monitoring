@@ -46,8 +46,8 @@ export const DeviceHorizontalBarRow: React.FC<DeviceHorizontalBarRowProps> = ({
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        padding: '6px 8px',
-        borderRadius: '12px',
+        padding: '4px 8px',
+        borderRadius: '10px',
         backgroundColor: isPinned ? 'rgba(37, 99, 235, 0.04)' : 'transparent',
         border: isPinned ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid transparent',
         transition: 'all 0.15s ease',
@@ -69,7 +69,7 @@ export const DeviceHorizontalBarRow: React.FC<DeviceHorizontalBarRowProps> = ({
           </span>
           <span
             style={{
-              fontSize: '11.5px',
+              fontSize: '11px',
               fontWeight: 700,
               color: 'var(--text-primary, #0f172a)',
               overflow: 'hidden',
@@ -81,7 +81,7 @@ export const DeviceHorizontalBarRow: React.FC<DeviceHorizontalBarRowProps> = ({
             {p.name}
           </span>
         </div>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted, #64748b)', paddingLeft: '22px' }}>
+        <div style={{ fontSize: '9.5px', color: 'var(--text-muted, #64748b)', paddingLeft: '22px' }}>
           {p.floorName} • {p.department.split('&')[0]}
         </div>
       </div>
@@ -91,7 +91,7 @@ export const DeviceHorizontalBarRow: React.FC<DeviceHorizontalBarRowProps> = ({
         style={{
           flex: 1,
           position: 'relative',
-          height: '18px',
+          height: '14px',
           backgroundColor: 'var(--bg-subtle, #f1f5f9)',
           borderRadius: '9999px',
           overflow: 'hidden',

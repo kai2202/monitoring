@@ -14,10 +14,22 @@ import { store } from './app/store';
 import { AppRoutes } from './routes/AppRoutes';
 import { ErrorBoundary } from './shared/feedback/ErrorBoundary';
 
+export function getRouterBasename(): string {
+  const baseUrl = (import.meta as any).env?.BASE_URL || '/';
+  if (baseUrl && baseUrl !== '/' && baseUrl !== './' && baseUrl.startsWith('/')) {
+    return baseUrl.replace(/\/+$/, '') || '/';
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
+    const firstSegment = window.location.pathname.split('/').filter(Boolean)[0];
+    if (firstSegment) return `/${firstSegment}`;
+  }
+  return '/';
+}
+
 export const App: React.FC = () => {
   return (
     <Provider store={store}>
-      <BrowserRouter>
+      <BrowserRouter basename={getRouterBasename()}>
         <ErrorBoundary fallbackTitle="Lỗi Hệ Thống FleetMonitor">
           <AppRoutes />
         </ErrorBoundary>

@@ -3,8 +3,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
   root: path.resolve(__dirname),
+  base:
+    process.env.VITE_BASE_PATH ||
+    (command === 'build' && mode === 'mock' ? '/monitoring/' : '/'),
   plugins: [react()],
   resolve: {
     alias: {
@@ -42,5 +45,5 @@ export default defineConfig({
     setupFiles: ['./src/tests/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
   },
-});
+}));
 

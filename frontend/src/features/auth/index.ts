@@ -6,7 +6,6 @@
  */
 
 export * from './pages/LoginPage';
-export * from './components/QuickRolePicker';
 export * from './components/LoginLandscapeBanner';
 export * from './components/LoginFormSection';
 export * from './components/LoginFloatingInput';

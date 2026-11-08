@@ -95,6 +95,7 @@ export interface ITaskService {
     isTestPrintProof?: boolean
   ): Promise<TaskAttachment>;
   getAttachmentDownloadUrl(id: string, attachmentId: string): Promise<string | null>;
+  deleteTaskAttachment(id: string, attachmentId: string): Promise<Task>;
   updateProgress(id: string, percent: number, author: string, comment?: string): Promise<Task>;
   approveTask(taskId: string): Promise<Task>;
   reworkTask(taskId: string, reason: string): Promise<Task>;

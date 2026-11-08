@@ -16,3 +16,4 @@ export * from './utils/costCsvExport';
 export * from './utils/analyticsFloorHelper';
 export * from './hooks/useAnalyticsData';
 export * from './routes';
+export * from './pages/AnalyticsPage';

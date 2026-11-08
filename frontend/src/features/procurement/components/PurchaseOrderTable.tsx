@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { FontAwesomeIcon, faCheck, faClock, faBoxesStacked, faCircleCheck } from '../../../shared/icons';
+import { FontAwesomeIcon, faCheck, faClock, faBoxesStacked, faCircleCheck } from '@/shared/icons';
 import { PurchaseOrder } from '../types';
 
 interface PurchaseOrderTableProps {

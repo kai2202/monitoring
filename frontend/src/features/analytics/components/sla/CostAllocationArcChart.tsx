@@ -1,17 +1,18 @@
 /**
  * Frontend/src/features/analytics/components/sla/CostAllocationArcChart.tsx
  *
- * Biểu đồ Vòng Cung Bán Nguyệt 180° Bố Cục Side-by-Side (Bento Layout):
- * - Cột Trái (~42%): Vòng cung Donut nét mỏng 11px, tâm hiển thị tổng chi phí động theo hover/chọn.
- * - Cột Phải (~58%): 5 Thẻ Micro-Cards phòng ban kèm hiệu ứng Dimming khi chọn.
- * - Nút hủy chọn tại chỗ [↺ Đang xem: ...] giúp reset trạng thái nhanh chóng.
- * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC).
+ * Card Hạch Toán Chi Phí In Ấn Theo Phòng Ban (Department Cost Stacked Bar Card - Slim Edition):
+ * - Thiết kế thanh mảnh, tinh tế, tiết kiệm không gian (Slim & Sleek Layout).
+ * - Trục Y hiển thị tên đầy đủ phòng ban (không cụt, không xoay dọc).
+ * - Thanh ngang chồng dạng Capsule mỏng nét (h-3.5 / h-4): In Đơn sắc (Indigo) & In Màu (Cyan).
+ * - Triệt tiêu lỗi tràn/cụt chữ bên trong bar, tooltip chi tiết từng phân khúc.
+ * - Bảng đối soát hạch toán chi tiết (Reconciliation Table) đồng bộ tương tác ở chân card.
+ * - Tuân thủ AGENTS.md: FontAwesome, MetricValue = number | null, < 300 LOC.
  */
 
 import React, { useState, useMemo } from 'react';
 import { FontAwesomeIcon, faRotate } from '../../../../shared/icons';
 import { DepartmentCostAllocationItem } from '../../../../types/analyticsUI';
-import { DepartmentCostMicroCard, DrawnSegmentItem } from './DepartmentCostMicroCard';
 
 interface CostAllocationArcChartProps {
   departments?: DepartmentCostAllocationItem[];
@@ -24,270 +25,202 @@ export const CostAllocationArcChart: React.FC<CostAllocationArcChartProps> = ({
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
 
   const safeList = useMemo(() => departments || [], [departments]);
-
-  const totalCost = useMemo(() => safeList.reduce((sum, d) => sum + (d?.totalCost || 0), 0), [safeList]);
-
-  // Geometry cho Vòng cung bán nguyệt 180°
-  const cx = 140, cy = 125, radius = 86, strokeWidth = 11;
-  const arcLength = Math.PI * radius; // ~270.17px
-
-  const drawnSegments = useMemo<DrawnSegmentItem[]>(() => {
-    let acc = 0;
-    return safeList.map((dept) => {
-      const pct = dept?.percentageShare || 0;
-      const len = (pct / 100) * arcLength;
-      const gap = 3.5;
-      const dashLen = Math.max(1, len - gap);
-      const slice: DrawnSegmentItem = {
-        ...dept,
-        dashArray: `${dashLen} 1000`,
-        dashOffset: -acc,
-        totalPages: (dept?.monoPages || 0) + (dept?.colorPages || 0),
-      };
-      acc += len;
-      return slice;
-    });
-  }, [safeList, arcLength]);
+  const maxDeptCost = useMemo(() => Math.max(...safeList.map((d) => d?.totalCost || 0), 1), [safeList]);
 
   const activeDeptId = hoveredDeptId || selectedDeptId;
-  const activeDept = useMemo(() => {
-    return drawnSegments.find((d) => d.departmentId === activeDeptId) || null;
-  }, [drawnSegments, activeDeptId]);
-
-  const totalDeviceCount = useMemo(() => safeList.reduce((sum, d) => sum + (d?.deviceCount || 0), 0), [safeList]);
-  const totalColorCost = useMemo(() => safeList.reduce((sum, d) => sum + (d?.colorCost || 0), 0), [safeList]);
-  const colorShare = totalCost > 0 ? ((totalColorCost / totalCost) * 100).toFixed(0) : '0';
-  const avgCostPerDevice = totalDeviceCount > 0 ? (totalCost / totalDeviceCount / 1000000).toFixed(1) : '0';
 
   const handleToggleSelect = (deptId: string) => {
     setSelectedDeptId((prev) => (prev === deptId ? null : deptId));
   };
 
   return (
-    <div
-      style={{
-        padding: '22px 24px',
-        borderRadius: '24px',
-        backgroundColor: 'var(--bg-card, #ffffff)',
-        border: '1px solid var(--border-color, #e2e8f0)',
-        boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.04)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '14px',
-        height: '100%',
-        boxSizing: 'border-box',
-      }}
-    >
-      {/* 1. Header Khối */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span
-            style={{
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              backgroundColor: '#2563eb',
-              boxShadow: '0 0 8px rgba(37, 99, 235, 0.5)',
-            }}
-          />
-          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary, #0f172a)', margin: 0 }}>
-            Chi phí theo phòng ban
-          </h3>
+    <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col gap-4 sm:gap-5 w-full box-border">
+      {/* 1. Header Card & Chú Thích Nhận Diện */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]" />
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 m-0">
+              Phân Bổ Chi Phí In Ấn Theo Phòng Ban
+            </h3>
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 m-0">
+            Hạch toán phân rã chi phí Đơn sắc (Mono) &amp; Màu (Color) theo từng phòng ban
+          </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="flex items-center gap-2.5">
           {selectedDeptId && (
             <button
               type="button"
               onClick={() => setSelectedDeptId(null)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '2px 8px',
-                borderRadius: '6px',
-                border: '1px solid #2563eb',
-                backgroundColor: 'rgba(37, 99, 235, 0.08)',
-                color: '#2563eb',
-                fontSize: '11px',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-indigo-500/30 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[11px] font-semibold hover:bg-indigo-100 transition-colors cursor-pointer"
             >
-              <FontAwesomeIcon icon={faRotate} style={{ fontSize: '10px' }} />
+              <FontAwesomeIcon icon={faRotate} className="text-[9px]" />
               <span>Xem tất cả</span>
             </button>
           )}
-          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748b)' }}>
-            Kỳ 30 ngày • {safeList.length} phòng ban
-          </span>
+
+          <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-[11px] font-medium text-slate-600 dark:text-slate-300">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+              <span>Đơn sắc (150đ/tr)</span>
+            </span>
+            <span className="text-slate-300 dark:text-slate-600">•</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+              <span>Màu (650đ/tr)</span>
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* 2. Bố cục Side-by-Side hoặc Trạng Thái Rỗng (Clean Slate) */}
+      {/* 2. Thanh Ngang Chồng (Horizontal Stacked Bars) Bản Siêu Mỏng & Tinh Gọn */}
       {safeList.length === 0 ? (
-        <div
-          style={{
-            padding: '48px 24px',
-            textAlign: 'center',
-            color: 'var(--text-muted, #64748b)',
-            fontSize: '13px',
-            backgroundColor: 'var(--bg-subtle, #f8fafc)',
-            borderRadius: '16px',
-            border: '1px dashed var(--border-color, #e2e8f0)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            width: '100%',
-          }}
-        >
-          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>
-            Chưa có dữ liệu hạch toán chi phí phòng ban
-          </span>
-          <span style={{ fontSize: '12px' }}>
-            Dữ liệu phân bổ ngân sách sẽ tự động tổng hợp khi hạm đội phát sinh bản in tại các phòng ban.
-          </span>
+        <div className="p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-xs">
+          Chưa có dữ liệu hạch toán chi phí phòng ban.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', alignItems: 'start', flex: 1 }}>
-          {/* CỘT TRÁI: SVG Semi-Donut Arc 180° Nét Mảnh & Micro KPIs */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '12px', width: '100%' }}>
-            <div style={{ position: 'relative', width: '280px', height: '155px', marginTop: '6px' }}>
-              {/* Top Pill động */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '2px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  backgroundColor: activeDept ? activeDept.color : '#0f172a',
-                  color: '#ffffff',
-                  padding: '2.5px 11px',
-                  borderRadius: '9999px',
-                  fontSize: '10.5px',
-                  fontWeight: 800,
-                  fontFamily: "'JetBrains Mono', monospace",
-                  boxShadow: '0 4px 10px rgba(15, 23, 42, 0.2)',
-                  zIndex: 3,
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {activeDept
-                  ? `${activeDept.departmentName}: ${activeDept.percentageShare}%`
-                  : `Top 1: ${safeList[0]?.departmentName || 'Chưa có'} (${safeList[0]?.percentageShare || 0}%)`}
-              </div>
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          {safeList.map((dept) => {
+            const isCurrentActive = activeDeptId === dept.departmentId;
+            const isDimmed = activeDeptId !== null && !isCurrentActive;
+            const widthRatio = Math.max(14, (dept.totalCost / maxDeptCost) * 100);
+            const monoPct = dept.totalCost > 0 ? (dept.monoCost / dept.totalCost) * 100 : 0;
+            const colorPct = dept.totalCost > 0 ? (dept.colorCost / dept.totalCost) * 100 : 0;
 
-              <svg width="280" height="150" viewBox="0 0 280 150" style={{ overflow: 'visible' }}>
-                <path
-                  d={`M ${cx - radius},${cy} A ${radius},${radius} 0 0,1 ${cx + radius},${cy}`}
-                  fill="none"
-                  stroke="var(--border-color, #f1f5f9)"
-                  strokeWidth={strokeWidth}
-                  strokeLinecap="round"
-                />
-                {drawnSegments.map((seg) => {
-                  const isCurrentActive = activeDeptId === seg.departmentId;
-                  const isDimmed = activeDeptId !== null && !isCurrentActive;
-                  return (
-                    <path
-                      key={seg.departmentId}
-                      d={`M ${cx - radius},${cy} A ${radius},${radius} 0 0,1 ${cx + radius},${cy}`}
-                      fill="none"
-                      stroke={seg.color}
-                      strokeWidth={isCurrentActive ? strokeWidth + 4 : strokeWidth}
-                      strokeDasharray={seg.dashArray}
-                      strokeDashoffset={seg.dashOffset}
-                      strokeLinecap="round"
-                      onMouseEnter={() => setHoveredDeptId(seg.departmentId)}
-                      onMouseLeave={() => setHoveredDeptId(null)}
-                      onClick={() => handleToggleSelect(seg.departmentId)}
-                      style={{
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        filter: isCurrentActive ? `drop-shadow(0 0 6px ${seg.color}88)` : 'none',
-                        opacity: isDimmed ? 0.22 : 1,
-                      }}
+            return (
+              <div
+                key={dept.departmentId}
+                onClick={() => handleToggleSelect(dept.departmentId)}
+                onMouseEnter={() => setHoveredDeptId(dept.departmentId)}
+                onMouseLeave={() => setHoveredDeptId(null)}
+                className={`group flex items-center gap-2.5 sm:gap-3 py-1.5 sm:py-2 px-3 rounded-xl border transition-all duration-150 cursor-pointer ${
+                  isCurrentActive
+                    ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-500 shadow-xs'
+                    : 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200/50 dark:border-slate-800 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700'
+                } ${isDimmed ? 'opacity-30' : 'opacity-100'}`}
+              >
+                {/* Trục Y: Tên Phòng Ban & Số Máy (Gọn gàng, không bị cụt hay xoay dọc) */}
+                <div className="w-44 sm:w-52 shrink-0 flex items-center justify-between pr-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: dept.color || '#6366f1' }}
                     />
-                  );
-                })}
-              </svg>
+                    <span
+                      className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate"
+                      title={dept.departmentName}
+                    >
+                      {dept.departmentName}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-medium shrink-0 ml-1">
+                    {dept.deviceCount} máy
+                  </span>
+                </div>
 
-              {/* Tâm Vòng Cung */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '12px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  pointerEvents: 'none',
-                  maxWidth: '170px',
-                }}
-              >
-                <span style={{ fontSize: '10.5px', color: activeDept ? activeDept.color : 'var(--text-muted, #64748b)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
-                  {activeDept ? activeDept.departmentName : 'Tổng chi phí in kỳ'}
-                </span>
-                <span style={{ fontSize: activeDept ? '18px' : '20px', fontWeight: 900, fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-primary, #0f172a)', letterSpacing: '-0.5px', marginTop: '1px' }}>
-                  {activeDept ? `${(activeDept.totalCost || 0).toLocaleString('vi-VN')} đ` : `${totalCost.toLocaleString('vi-VN')} đ`}
-                </span>
-              </div>
-            </div>
+                {/* Thanh Ngang Chồng (Capsule Bar Mỏng Nét h-3.5 / h-4) */}
+                <div className="flex-1 h-3.5 sm:h-4 rounded-full bg-slate-200/70 dark:bg-slate-800 p-0.5 flex items-center overflow-hidden">
+                  <div
+                    style={{ width: `${widthRatio}%` }}
+                    className="h-full flex items-center gap-0.5 transition-all duration-300"
+                  >
+                    {/* Phân khúc Mono (Indigo) */}
+                    {monoPct > 0 && (
+                      <div
+                        style={{ width: `${monoPct}%` }}
+                        className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-xs transition-all duration-300 hover:brightness-110"
+                        title={`In Đơn sắc: ${dept.monoCost.toLocaleString('vi-VN')} ₫ (${monoPct.toFixed(0)}% • ${dept.monoPages.toLocaleString('vi-VN')} trang)`}
+                      />
+                    )}
 
-            {/* Phân rã Mono / Color */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: 'var(--text-muted, #64748b)' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#2563eb' }} />
-                Đơn sắc: {((totalCost - totalColorCost) / 1000000).toFixed(1)} tr ({100 - Number(colorShare)}%)
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#ec4899' }} />
-                Màu: {(totalColorCost / 1000000).toFixed(1)} tr ({colorShare}%)
-              </span>
-            </div>
+                    {/* Phân khúc Color (Cyan) */}
+                    {colorPct > 0 && (
+                      <div
+                        style={{ width: `${colorPct}%` }}
+                        className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-cyan-500 shadow-xs transition-all duration-300 hover:brightness-110"
+                        title={`In Màu: ${dept.colorCost.toLocaleString('vi-VN')} ₫ (${colorPct.toFixed(0)}% • ${dept.colorPages.toLocaleString('vi-VN')} trang)`}
+                      />
+                    )}
+                  </div>
+                </div>
 
-            {/* 2 Micro-Cards Bổ Trợ Dưới Vòng Cung để Cân Bằng Chiều Cao */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', maxWidth: '300px' }}>
-              <div style={{ padding: '8px 10px', borderRadius: '12px', backgroundColor: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-color, #e2e8f0)', textAlign: 'center' }}>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Chi Phí TB / Máy</div>
-                <div style={{ fontSize: '13px', fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: '#2563eb', marginTop: '2px' }}>
-                  {avgCostPerDevice} tr đ
+                {/* Tổng chi phí & Tỷ trọng (%) bên phải */}
+                <div className="w-28 sm:w-32 shrink-0 flex items-center justify-end gap-1.5 text-right">
+                  <span className="font-mono font-bold text-xs text-slate-800 dark:text-slate-100">
+                    {dept.totalCost.toLocaleString('vi-VN')} ₫
+                  </span>
+                  <span className="text-[9.5px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
+                    {dept.percentageShare.toFixed(1)}%
+                  </span>
                 </div>
               </div>
-              <div style={{ padding: '8px 10px', borderRadius: '12px', backgroundColor: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-color, #e2e8f0)', textAlign: 'center' }}>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>Tỷ Trọng In Màu</div>
-                <div style={{ fontSize: '13px', fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: '#ec4899', marginTop: '2px' }}>
-                  {colorShare}%
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* CỘT PHẢI: 5 Micro-Cards Phòng Ban Kèm Hiệu Ứng Dimming */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {drawnSegments.map((seg) => {
-              const isCurrentActive = activeDeptId === seg.departmentId;
-              const isDimmed = activeDeptId !== null && !isCurrentActive;
-
-              return (
-                <DepartmentCostMicroCard
-                  key={seg.departmentId}
-                  segment={seg}
-                  isActive={isCurrentActive}
-                  isDimmed={isDimmed}
-                  onHover={setHoveredDeptId}
-                  onSelect={handleToggleSelect}
-                />
-              );
-            })}
-          </div>
+            );
+          })}
         </div>
       )}
+
+      {/* 3. Bảng Đối Soát Hạch Toán Chi Tiết (Chân Widget theo Ảnh tham chiếu 2) */}
+      <div className="mt-1 pt-3.5 border-t border-slate-200/70 dark:border-slate-800">
+        <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+          <span>BẢNG ĐỐI SOÁT HẠCH TOÁN CHI PHÍ THEO PHÒNG BAN</span>
+          <span className="text-[10px] font-normal text-slate-400">Đơn vị: VNĐ</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 text-[11px] text-slate-400 dark:text-slate-500">
+                <th className="py-1.5 pr-2 font-medium">Phòng Ban</th>
+                <th className="py-1.5 px-2 font-medium">In Đơn Sắc (Trang &bull; Chi phí)</th>
+                <th className="py-1.5 px-2 font-medium">In Màu (Trang &bull; Chi phí)</th>
+                <th className="py-1.5 pl-2 font-medium text-right">Tổng Chi Phí</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50 font-mono">
+              {safeList.map((dept) => {
+                const isCurrentActive = activeDeptId === dept.departmentId;
+                const isDimmed = activeDeptId !== null && !isCurrentActive;
+
+                return (
+                  <tr
+                    key={dept.departmentId}
+                    onClick={() => handleToggleSelect(dept.departmentId)}
+                    onMouseEnter={() => setHoveredDeptId(dept.departmentId)}
+                    onMouseLeave={() => setHoveredDeptId(null)}
+                    className={`transition-colors cursor-pointer text-xs ${
+                      isCurrentActive
+                        ? 'bg-indigo-50/70 dark:bg-indigo-950/40 font-bold'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    } ${isDimmed ? 'opacity-30' : 'opacity-100'}`}
+                  >
+                    <td className="py-2 pr-2 font-sans font-medium text-slate-800 dark:text-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dept.color }} />
+                        <span>{dept.departmentName}</span>
+                        <span className="font-normal text-[10px] text-slate-400">({dept.deviceCount} máy)</span>
+                      </div>
+                    </td>
+                    <td className="py-2 px-2 text-indigo-700 dark:text-indigo-400">
+                      {dept.monoPages.toLocaleString('vi-VN')} tr &bull; {dept.monoCost.toLocaleString('vi-VN')} ₫
+                    </td>
+                    <td className="py-2 px-2 text-cyan-700 dark:text-cyan-400">
+                      {dept.colorPages.toLocaleString('vi-VN')} tr &bull; {dept.colorCost.toLocaleString('vi-VN')} ₫
+                    </td>
+                    <td className="py-2 pl-2 text-right font-bold text-slate-800 dark:text-slate-100">
+                      {dept.totalCost.toLocaleString('vi-VN')} ₫
+                      <span className="ml-1 text-[9.5px] font-sans font-bold px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        {dept.percentageShare}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

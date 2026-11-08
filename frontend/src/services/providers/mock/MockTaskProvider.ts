@@ -258,14 +258,26 @@ export class MockTaskProvider implements ITaskService {
     };
     const task = this.tasks.find((t) => t.id === id);
     if (task) {
-      task.attachments = [...(task.attachments || []), created];
-      this.persist();
+      const current = task.attachments || [];
+      if (!current.some((a) => a.id === created.id || (a.fileName === created.fileName && a.fileSize === created.fileSize))) {
+        task.attachments = [...current, created];
+        this.persist();
+      }
     }
     return created;
   }
 
   async getAttachmentDownloadUrl(id: string, attachmentId: string): Promise<string | null> {
     return this.tasks.find((t) => t.id === id)?.attachments?.find((a) => a.id === attachmentId)?.fileUrl || null;
+  }
+
+  async deleteTaskAttachment(id: string, attachmentId: string): Promise<Task> {
+    const task = this.tasks.find((t) => t.id === id);
+    if (!task) throw new Error(`Không tìm thấy công việc ${id}`);
+    task.attachments = (task.attachments || []).filter((a) => a.id !== attachmentId);
+    task.updatedAt = new Date().toISOString();
+    this.persist();
+    return { ...task };
   }
 
   async updateProgress(id: string, percent: number, author: string, comment?: string): Promise<Task> {

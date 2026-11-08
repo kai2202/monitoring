@@ -11,12 +11,18 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { UnmappedHardwareErrorItem } from '../../services/interfaces/ISettingsService';
 
+export type TaskNotificationType =
+  | 'PENDING_APPROVAL'
+  | 'REWORK_REQUIRED'
+  | 'REWORK_REQUESTED'
+  | 'APPROVED';
+
 export interface TaskNotificationItem {
   id: string;
   taskId: string;
   taskTitle: string;
   printerId: string;
-  type: 'PENDING_APPROVAL' | 'REWORK_REQUIRED';
+  type: TaskNotificationType;
   message: string;
   assigneeName: string;
   requestedByName?: string;
@@ -119,6 +125,18 @@ export const notificationSlice = createSlice({
     removeTaskNotificationByTaskId: (state, action: PayloadAction<string>) => {
       state.taskNotifications = state.taskNotifications.filter((n) => n.taskId !== action.payload);
     },
+    transitionTaskNotification: (
+      state,
+      action: PayloadAction<{ taskId: string; toType: TaskNotificationType; message?: string; reworkReason?: string }>
+    ) => {
+      const item = state.taskNotifications.find((n) => n.taskId === action.payload.taskId);
+      if (item) {
+        item.type = action.payload.toType;
+        if (action.payload.message) item.message = action.payload.message;
+        if (action.payload.reworkReason) item.reworkReason = action.payload.reworkReason;
+        item.timestamp = 'Vừa xong';
+      }
+    },
   },
 });
 
@@ -129,6 +147,7 @@ export const {
   markTaskNotificationAsRead,
   markAllTaskNotificationsAsRead,
   removeTaskNotificationByTaskId,
+  transitionTaskNotification,
 } = notificationSlice.actions;
 
 export default notificationSlice.reducer;

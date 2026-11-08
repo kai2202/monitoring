@@ -1,10 +1,6 @@
 /**
  * Frontend/src/components/layout/notifications/TaskApprovalNotificationPopover.tsx
- *
- * Popover Bảng Yêu Cầu Xét Duyệt Nghiệm Thu theo thiết kế hiện đại (Image 1):
- * - Header với Segmented Pill Tabs [Tất cả | Chờ duyệt], không có nút đọc hết.
- * - Danh sách item với Avatar tròn + Mini Badge góc dưới + Tên/Thời gian + Nội dung + Nút [Làm lại / Phê duyệt] pill.
- * - Tuân thủ nghiêm ngặt AGENTS.md Rule 7.1 (< 300 LOC, FontAwesome duy nhất).
+ * Popover Bảng Yêu Cầu Xét Duyệt Nghiệm Thu (AGENTS.md < 300 LOC, FontAwesome duy nhất).
  */
 
 import React, { useState } from 'react';
@@ -13,9 +9,9 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { RootState } from '@/app/store';
 import { FontAwesomeIcon, faClipboardCheck, faRotate, faChevronRight, faCircleCheck } from '@/shared/icons';
-import { markTaskNotificationAsRead, removeTaskNotificationByTaskId, addTaskNotification } from '@/app/slices/notificationSlice';
+import { markTaskNotificationAsRead, removeTaskNotificationByTaskId, addTaskNotification, transitionTaskNotification } from '@/app/slices/notificationSlice';
 import { taskService } from '@/services';
-import { ReworkReasonModal } from '@/features/dashboard/components/workorder/ReworkReasonModal';
+import { ReworkReasonModal } from '@/features/dashboard/components/workorder';
 
 interface TaskApprovalNotificationPopoverProps {
   isOpen: boolean;
@@ -39,19 +35,23 @@ export const TaskApprovalNotificationPopover: React.FC<TaskApprovalNotificationP
   if (!isOpen) return null;
 
   const roleNotifications = taskNotifications.filter((n) =>
-    isAdmin ? n.type === 'PENDING_APPROVAL' : n.type === 'REWORK_REQUIRED'
+    isAdmin
+      ? n.type === 'PENDING_APPROVAL' || n.type === 'REWORK_REQUESTED' || n.type === 'APPROVED'
+      : n.type === 'REWORK_REQUIRED'
   );
 
   const filteredItems = roleNotifications.filter((n) => {
-    if (filterTab === 'pending') return !n.isRead || n.type === 'PENDING_APPROVAL';
+    if (filterTab === 'pending') {
+      return isAdmin ? n.type === 'PENDING_APPROVAL' : !n.isRead;
+    }
     return true;
   });
 
   const handleApprove = async (e: React.MouseEvent, taskId: string, taskTitle: string) => {
     e.stopPropagation();
     try {
-      await taskService.updateTask(taskId, { status: 'Completed', progressPercent: 100, completedDate: new Date().toISOString() });
-      dispatch(removeTaskNotificationByTaskId(taskId));
+      await taskService.approveTask(taskId);
+      dispatch(transitionTaskNotification({ taskId, toType: 'APPROVED', message: 'Đã nghiệm thu và hoàn tất đóng lệnh' }));
       toast.success(`Đã nghiệm thu và đóng hoàn thành nhiệm vụ ${taskId} (${taskTitle})!`);
     } catch {
       toast.error('Có lỗi xảy ra khi phê duyệt nhiệm vụ.');
@@ -61,9 +61,15 @@ export const TaskApprovalNotificationPopover: React.FC<TaskApprovalNotificationP
   const handleConfirmRework = async (reason: string) => {
     if (!reworkTaskId) return;
     try {
-      await taskService.updateTask(reworkTaskId, { status: 'In_Progress', progressPercent: 80 });
+      await taskService.reworkTask(reworkTaskId, reason);
       const notifItem = taskNotifications.find((n) => n.taskId === reworkTaskId);
-      dispatch(removeTaskNotificationByTaskId(reworkTaskId));
+
+      dispatch(transitionTaskNotification({
+        taskId: reworkTaskId,
+        toType: 'REWORK_REQUESTED',
+        reworkReason: reason,
+        message: `Đã yêu cầu làm lại: ${reason}`,
+      }));
 
       dispatch(addTaskNotification({
         id: `rework-${Date.now()}`,
@@ -107,8 +113,7 @@ export const TaskApprovalNotificationPopover: React.FC<TaskApprovalNotificationP
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: '999px', padding: '3px', gap: '2px' }}>
             <button
-              type="button"
-              onClick={() => setFilterTab('all')}
+              type="button" onClick={() => setFilterTab('all')}
               style={{
                 padding: '4px 12px', fontSize: '11px', fontWeight: filterTab === 'all' ? 700 : 500, borderRadius: '999px',
                 border: 'none', backgroundColor: filterTab === 'all' ? '#ffffff' : 'transparent', color: filterTab === 'all' ? '#0f172a' : '#64748b',
@@ -118,8 +123,7 @@ export const TaskApprovalNotificationPopover: React.FC<TaskApprovalNotificationP
               Tất cả
             </button>
             <button
-              type="button"
-              onClick={() => setFilterTab('pending')}
+              type="button" onClick={() => setFilterTab('pending')}
               style={{
                 padding: '4px 12px', fontSize: '11px', fontWeight: filterTab === 'pending' ? 700 : 500, borderRadius: '999px',
                 border: 'none', backgroundColor: filterTab === 'pending' ? '#ffffff' : 'transparent', color: filterTab === 'pending' ? '#0f172a' : '#64748b',
@@ -155,7 +159,11 @@ export const TaskApprovalNotificationPopover: React.FC<TaskApprovalNotificationP
                   <div
                     style={{
                       width: '42px', height: '42px', borderRadius: '50%',
-                      background: notif.type === 'REWORK_REQUIRED' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                      background: notif.type === 'REWORK_REQUIRED' || notif.type === 'REWORK_REQUESTED'
+                        ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                        : notif.type === 'APPROVED'
+                        ? 'linear-gradient(135deg, #10b981, #059669)'
+                        : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                       color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800,
                     }}
                   >
@@ -164,11 +172,16 @@ export const TaskApprovalNotificationPopover: React.FC<TaskApprovalNotificationP
                   <div
                     style={{
                       position: 'absolute', bottom: '-2px', right: '-2px', width: '18px', height: '18px', borderRadius: '50%',
-                      backgroundColor: notif.type === 'REWORK_REQUIRED' ? '#d97706' : '#2563eb', border: '2px solid #ffffff',
+                      backgroundColor: notif.type === 'REWORK_REQUIRED' || notif.type === 'REWORK_REQUESTED'
+                        ? '#d97706'
+                        : notif.type === 'APPROVED'
+                        ? '#059669'
+                        : '#2563eb',
+                      border: '2px solid #ffffff',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontSize: '9px',
                     }}
                   >
-                    <FontAwesomeIcon icon={notif.type === 'REWORK_REQUIRED' ? faRotate : faClipboardCheck} />
+                    <FontAwesomeIcon icon={notif.type === 'REWORK_REQUIRED' || notif.type === 'REWORK_REQUESTED' ? faRotate : faCircleCheck} />
                   </div>
                 </div>
 
@@ -180,18 +193,26 @@ export const TaskApprovalNotificationPopover: React.FC<TaskApprovalNotificationP
                   </div>
 
                   <div style={{ fontSize: '12px', color: '#334155', marginTop: '2px', lineHeight: 1.35 }}>
-                    {notif.type === 'REWORK_REQUIRED' ? <>Yêu cầu làm lại: <strong>{notif.taskTitle}</strong></> : <>Gửi nghiệm thu: <strong>{notif.taskTitle}</strong></>}
+                    {notif.type === 'REWORK_REQUIRED' ? (
+                      <>Yêu cầu làm lại: <strong>{notif.taskTitle}</strong></>
+                    ) : notif.type === 'REWORK_REQUESTED' ? (
+                      <>Đã yêu cầu làm lại: <strong>{notif.taskTitle}</strong></>
+                    ) : notif.type === 'APPROVED' ? (
+                      <>Đã nghiệm thu &amp; đóng lệnh: <strong>{notif.taskTitle}</strong></>
+                    ) : (
+                      <>Gửi nghiệm thu: <strong>{notif.taskTitle}</strong></>
+                    )}
                   </div>
 
                   <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', lineHeight: 1.3 }}>
-                    {notif.type === 'REWORK_REQUIRED' ? (
+                    {notif.type === 'REWORK_REQUIRED' || notif.type === 'REWORK_REQUESTED' ? (
                       <span style={{ color: '#b45309', fontWeight: 600 }}>⚠️ {notif.reworkReason || notif.message}</span>
                     ) : (
                       <span>{notif.printerId} • {notif.message}</span>
                     )}
                   </div>
 
-                  {/* Nút hành động kiểu pill [Từ chối / Phê duyệt] (Chuẩn Item 3 trong Ảnh 1) */}
+                  {/* Nút hành động kiểu pill [Từ chối / Phê duyệt] */}
                   {isAdmin && notif.type === 'PENDING_APPROVAL' && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
                       <button
@@ -214,6 +235,22 @@ export const TaskApprovalNotificationPopover: React.FC<TaskApprovalNotificationP
                       >
                         Phê duyệt
                       </button>
+                    </div>
+                  )}
+
+                  {isAdmin && notif.type === 'REWORK_REQUESTED' && (
+                    <div style={{ marginTop: '6px' }}>
+                      <span style={{ fontSize: '10.5px', padding: '2px 8px', borderRadius: '999px', backgroundColor: '#fef3c7', color: '#92400e', fontWeight: 600 }}>
+                        Đang chờ KTV làm lại
+                      </span>
+                    </div>
+                  )}
+
+                  {isAdmin && notif.type === 'APPROVED' && (
+                    <div style={{ marginTop: '6px' }}>
+                      <span style={{ fontSize: '10.5px', padding: '2px 8px', borderRadius: '999px', backgroundColor: '#dcfce7', color: '#166534', fontWeight: 600 }}>
+                        ✓ Đã hoàn tất đóng lệnh
+                      </span>
                     </div>
                   )}
 
@@ -249,12 +286,9 @@ export const TaskApprovalNotificationPopover: React.FC<TaskApprovalNotificationP
       </div>
 
       <ReworkReasonModal
-        isOpen={Boolean(reworkTaskId)}
-        onClose={() => setReworkTaskId(null)}
-        taskId={reworkTaskId || ''}
+        isOpen={Boolean(reworkTaskId)} onClose={() => setReworkTaskId(null)}
+        taskId={reworkTaskId || ''} onSubmit={handleConfirmRework}
         taskTitle={taskNotifications.find((n) => n.taskId === reworkTaskId)?.taskTitle || ''}
-        assigneeName={taskNotifications.find((n) => n.taskId === reworkTaskId)?.assigneeName || ''}
-        onConfirm={handleConfirmRework}
       />
     </>
   );

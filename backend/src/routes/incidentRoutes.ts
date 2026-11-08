@@ -1,15 +1,22 @@
 /**
  * Backend/src/routes/incidentRoutes.ts
  *
- * Định tuyến REST API cho Phân hệ Sự Cố & Chẩn Đoán (Incidents API):
- * - Yêu cầu xác thực JWT (`authenticateToken`) và kiểm soát vai trò khi xử lý sự cố.
- * - Tuân thủ AGENTS.md Rule 6 & Rule 7.1 (< 300 LOC).
+ * Định tuyến REST API cho Miền Sự Cố Kỹ Thuật, Cổng Tích Hợp & Thông Báo (Incidents Domain):
+ * - `incidentRouter`: Danh sách sự cố, triaging, đóng sự cố, tri thức tái sử dụng (/incidents).
+ * - `integrationRouter`: Tiếp nhận Zabbix Action Webhook Push (/integrations).
+ * - `notificationRouter`: Chuông thông báo tập trung theo phân quyền người dùng (/notifications).
+ * Tuân thủ AGENTS.md Rule 4 & Rule 7.1 (< 300 LOC).
  */
 
 import { Router } from 'express';
-import { incidentController } from '../controllers/incidentController';
+import { incidentController } from '../controllers/incidents/incidentController';
+import { zabbixWebhookController } from '../controllers/incidents/zabbixWebhookController';
+import { notificationController } from '../controllers/incidents/notificationController';
 import { authenticateToken, requireRoles } from '../middlewares/authMiddleware';
 
+// ==========================================
+// 1. Incidents Router (/incidents)
+// ==========================================
 export const incidentRouter = Router();
 
 incidentRouter.use(authenticateToken);
@@ -29,4 +36,20 @@ incidentRouter.patch('/:id/status', requireRoles(['ADMIN', 'FIELD_TECH']), (req,
   incidentController.resolveIncident(req, res)
 );
 
-export default incidentRouter;
+// ==========================================
+// 2. Integration Router (/integrations)
+// ==========================================
+export const integrationRouter = Router();
+
+// Endpoint tiếp nhận sự kiện Zabbix Action Webhook Push (Problem & Recovery)
+integrationRouter.post('/zabbix-webhook', (req, res) => zabbixWebhookController.handleWebhook(req, res));
+
+// ==========================================
+// 3. Notifications Router (/notifications)
+// ==========================================
+export const notificationRouter = Router();
+
+notificationRouter.use(authenticateToken);
+
+notificationRouter.get('/', (req, res) => notificationController.getNotifications(req, res));
+notificationRouter.patch('/:id/read', (req, res) => notificationController.markAsRead(req, res));

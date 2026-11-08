@@ -3,6 +3,7 @@
  * Actively rendered UI sub-components for Dashboard feature
  */
 
+export * from './overview';
 export * from './attention';
 export * from './diagnostics';
 export * from './timeline';

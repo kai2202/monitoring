@@ -17,7 +17,7 @@ export const DATA_SOURCE: DataSourceType = isVitest
   ? envSource === 'api' && metaEnv.VITE_FORCE_API_IN_TEST === 'true'
     ? 'api'
     : 'mock'
-  : envUseMock === 'true' || envSource === 'mock'
+  : envUseMock === 'true' || envSource === 'mock' || metaEnv.MODE === 'mock'
   ? 'mock'
   : 'api';
 

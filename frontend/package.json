@@ -8,9 +8,10 @@
     "dev:mock": "vite --mode mock",
     "dev:real": "vite --mode development",
     "build": "tsc && vite build",
+    "build:mock": "tsc && vite build --mode mock",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

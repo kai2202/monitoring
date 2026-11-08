@@ -3,7 +3,7 @@ import { RouteObject, Navigate } from 'react-router-dom';
 import { AnalyticsSubTab } from '../../types/analyticsUI';
 
 const AnalyticsPage = React.lazy(() =>
-  import('../../pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage }))
+  import('./pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage }))
 );
 
 export interface AnalyticsRoutesOptions {
@@ -57,4 +57,3 @@ export function getAnalyticsRoutes(options: AnalyticsRoutesOptions): RouteObject
     },
   ];
 }
-

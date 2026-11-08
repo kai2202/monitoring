@@ -2,12 +2,7 @@
  * Frontend/src/features/dashboard/components/workorder/WorkOrderDetailView.tsx
  *
  * Giao diện Chi Tiết Lệnh Bảo Trì (Work Order Detail View):
- * - Áp dụng thiết kế Slide-over Task Inspector.
- * - Quy tắc phê duyệt đóng lệnh & yêu cầu làm lại:
- *   + Khi task Planned: KTV bấm [Nhận việc & Bắt đầu] -> chuyển sang In_Progress.
- *   + Khi task In_Progress: KTV bấm [Gửi duyệt nghiệm thu] -> chuyển sang Pending_Verification.
- *   + Khi task Pending_Verification / hoàn thành các bước: Admin duyệt [Phê duyệt đóng lệnh] hoặc [Yêu cầu làm lại].
- *   + Đấu nối trực tiếp taskService (approveTask, reworkTask, updateTaskStatus).
+ * - Thiết kế Slide-over Task Inspector, đấu nối taskService (approveTask, reworkTask, updateTaskStatus).
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC, 100% FontAwesome).
  */
 
@@ -20,14 +15,15 @@ import { DATA_SOURCE } from '../../../../config/dataSource';
 import { taskService } from '../../../../services';
 import { FontAwesomeIcon, faTriangleExclamation } from '../../../../shared/icons';
 import { Task, TimeAndCostSummary, WorkLogEntry, TaskAttachment, VendorCommunicationLog } from '../../../../types/task';
-import { WorkOrderHeaderCard } from './WorkOrderHeaderCard';
-import { WorkOrderTimeCostCard } from './WorkOrderTimeCostCard';
-import { WorkOrderSubTasksProgress } from './WorkOrderSubTasksProgress';
-import { WorkOrderWorkLogsList } from './WorkOrderWorkLogsList';
-import { WorkOrderVendorAndAttachments } from './WorkOrderVendorAndAttachments';
-import { WorkOrderActivityStream } from './WorkOrderActivityStream';
-import { TestPrintReviewModal } from './TestPrintReviewModal';
-import { ReworkReasonModal } from './ReworkReasonModal';
+import {
+  WorkOrderHeaderCard,
+  WorkOrderTimeCostCard,
+  WorkOrderSubTasksProgress,
+  WorkOrderWorkLogsList,
+  WorkOrderVendorAndAttachments,
+  WorkOrderActivityStream,
+} from './';
+import { TestPrintReviewModal, ReworkReasonModal } from './modals';
 
 export interface WorkOrderDetailViewProps {
   task: Task;
@@ -56,12 +52,9 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
   const [isTestPrintModalOpen, setIsTestPrintModalOpen] = useState(false);
   const [isReworkModalOpen, setIsReworkModalOpen] = useState(false);
 
-  // Phân quyền: Người phụ trách hoặc Admin
   const isAssignee = Boolean(
     (user?.id && task.assigneeId === user.id) ||
     (user?.fullName && task.assignee && user.fullName.toLowerCase().includes(task.assignee.toLowerCase())) ||
-    (task.assignee && user?.fullName && task.assignee.toLowerCase().includes(user.fullName.toLowerCase())) ||
-    (task.assignee && user?.username && task.assignee.toLowerCase().includes(user.username.toLowerCase())) ||
     (user?.role === 'FIELD_TECH' && (!task.assignee || task.assignee === 'Chưa phân công'))
   );
   const canEditTask = isAdmin || isAssignee;
@@ -73,9 +66,8 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
   const allStepsCompleted = steps.length > 0 && completedStepsCount === steps.length;
   const isReworking = Boolean(task.reworkReason && task.status === 'In_Progress');
   const isReadyForApproval =
-    task.status === 'Pending_Verification' || (!isReworking && allStepsCompleted && (task.progressPercent ?? 0) >= 100);
+    !isCompleted && !isReworking && (task.status === 'Pending_Verification' || (allStepsCompleted && (task.progressPercent ?? 0) >= 100));
 
-  // 1. KTV Nhận việc (Planned -> In_Progress)
   const handleStartTask = async () => {
     try {
       const updated = await taskService.updateTaskStatus(task.id, {
@@ -90,7 +82,6 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
     }
   };
 
-  // 2. KTV Gửi duyệt nghiệm thu (In_Progress -> Pending_Verification)
   const handleSubmitApproval = async () => {
     try {
       const updated = await taskService.updateTaskStatus(task.id, {
@@ -100,9 +91,7 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
         comment: 'Kỹ thuật viên đã hoàn tất các bước và gửi yêu cầu phê duyệt nghiệm thu',
       });
       onUpdateTask?.(updated);
-      if (onAddActivityNote) {
-        onAddActivityNote(task.id, `[KỸ THUẬT VIÊN]: Đã hoàn tất các bước và gửi yêu cầu phê duyệt nghiệm thu.`);
-      }
+      onAddActivityNote?.(task.id, `[KỸ THUẬT VIÊN]: Đã hoàn tất các bước và gửi yêu cầu phê duyệt nghiệm thu.`);
       dispatch(
         addTaskNotification({
           id: `notif-${Date.now()}`,
@@ -122,7 +111,6 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
     }
   };
 
-  // 3. Admin Phê duyệt nghiệm thu & Đóng lệnh (Pending_Verification -> Completed)
   const handleApproveTask = async () => {
     try {
       const updated = await taskService.approveTask(task.id);
@@ -135,13 +123,12 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
     }
   };
 
-  // 4. Admin Yêu cầu làm lại (Pending_Verification -> In_Progress kèm lý do)
   const handleRequestRework = async (reason: string) => {
     try {
       const updated = await taskService.reworkTask(task.id, reason);
       dispatch(removeTaskNotificationByTaskId(task.id));
       onUpdateTask?.(updated);
-      if (onAddActivityNote) onAddActivityNote(task.id, `[YÊU CẦU LÀM LẠI TỪ ADMIN]: ${reason}`);
+      onAddActivityNote?.(task.id, `[YÊU CẦU LÀM LẠI TỪ ADMIN]: ${reason}`);
       dispatch(
         addTaskNotification({
           id: `notif-${Date.now()}`,
@@ -164,7 +151,22 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
   };
 
   const handleSaveTimeCost = (tc: TimeAndCostSummary) => onUpdateTask?.({ ...task, timeAndCost: tc });
-  const handleAddAttachment = (att: TaskAttachment) => onUpdateTask?.({ ...task, attachments: [...(task.attachments || []), att] });
+  const handleAddAttachment = (att: TaskAttachment) => {
+    const list = task.attachments || [];
+    if (!list.some((a) => a.id === att.id || (a.fileName === att.fileName && a.uploadedAt === att.uploadedAt))) {
+      onUpdateTask?.({ ...task, attachments: [...list, att] });
+    }
+  };
+  const handleDeleteAttachment = async (attId: string) => {
+    try {
+      const updated = await taskService.deleteTaskAttachment(task.id, attId);
+      onUpdateTask?.(updated);
+      toast.success('Đã xoá tệp đính kèm');
+    } catch {
+      onUpdateTask?.({ ...task, attachments: (task.attachments || []).filter((a) => a.id !== attId) });
+      toast.success('Đã xoá tệp đính kèm');
+    }
+  };
 
   const handleAddWorkLog = async (log: Partial<WorkLogEntry>) => {
     if (DATA_SOURCE === 'api') {
@@ -204,7 +206,6 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* 1. Header Card with Task Inspector Badges & Contextual Action Buttons */}
       <WorkOrderHeaderCard
         task={task}
         isAdmin={Boolean(isAdmin)}
@@ -224,22 +225,15 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
         onReopenTask={onReopenTask}
       />
 
-      {/* 1.1 Alert Banner khi Admin yêu cầu làm lại */}
       {isReworking && (
         <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-start gap-3 shadow-xs">
           <FontAwesomeIcon icon={faTriangleExclamation} className="text-amber-600 dark:text-amber-400 text-sm mt-0.5 shrink-0" />
           <div className="flex-1 flex flex-col gap-0.5">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
-                Yêu cầu làm lại từ Quản trị viên
-              </span>
-              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
-                Tiến độ: {task.progressPercent ?? 80}%
-              </span>
+              <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Yêu cầu làm lại từ Quản trị viên</span>
+              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">Tiến độ: {task.progressPercent ?? 80}%</span>
             </div>
-            <p className="text-xs text-amber-800 dark:text-amber-300 font-medium m-0">
-              {task.reworkReason}
-            </p>
+            <p className="text-xs text-amber-800 dark:text-amber-300 font-medium m-0">{task.reworkReason}</p>
             <span className="text-[11px] text-amber-700/80 dark:text-amber-400/80 mt-0.5">
               💡 Hãy khắc phục theo yêu cầu và chụp ảnh bản in nghiệm thu mới để gửi duyệt lại.
             </span>
@@ -247,50 +241,35 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
         </div>
       )}
 
-      {/* 2. Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <div className="flex flex-col gap-4">
           <WorkOrderWorkLogsList
-            workLogs={task.workLogs || []}
-            steps={steps}
-            selectedStepIdFilter={selectedStepFilter}
-            assigneeName={task.assignee}
-            isReadOnly={isGeneralReadOnly}
-            onClearStepFilter={() => setSelectedStepFilter(null)}
-            onAddWorkLog={handleAddWorkLog}
+            workLogs={task.workLogs || []} steps={steps} selectedStepIdFilter={selectedStepFilter}
+            assigneeName={task.assignee} isReadOnly={isGeneralReadOnly}
+            onClearStepFilter={() => setSelectedStepFilter(null)} onAddWorkLog={handleAddWorkLog}
           />
           <WorkOrderVendorAndAttachments
-            taskId={task.id}
-            uploaderName={user?.fullName || 'Kỹ thuật viên'}
-            vendorLogs={task.vendorCommunications || []}
-            attachments={task.attachments || []}
-            isReadOnly={isGeneralReadOnly}
-            onAddVendorLog={handleAddVendorLog}
-            onAddAttachment={handleAddAttachment}
+            taskId={task.id} uploaderName={user?.fullName || 'Kỹ thuật viên'}
+            vendorLogs={task.vendorCommunications || []} attachments={task.attachments || []}
+            isReadOnly={isGeneralReadOnly} onAddVendorLog={handleAddVendorLog}
+            onAddAttachment={handleAddAttachment} onDeleteAttachment={handleDeleteAttachment}
           />
           <WorkOrderActivityStream
-            activityFeed={task.activityFeed || []}
-            isReadOnly={isCompleted}
+            activityFeed={task.activityFeed || []} isReadOnly={isCompleted}
             onAddNote={(note) => onAddActivityNote?.(task.id, note)}
           />
         </div>
 
         <div className="flex flex-col gap-4">
           <WorkOrderSubTasksProgress
-            steps={steps}
-            workLogs={task.workLogs || []}
-            progressPercent={task.progressPercent || 0}
-            isReadOnly={isGeneralReadOnly}
-            onToggleStep={(sId) => onToggleStepStatus?.(task.id, sId)}
-            onAddStep={(title) => onAddNewStep?.(task.id, title)}
-            selectedStepIdFilter={selectedStepFilter}
+            steps={steps} workLogs={task.workLogs || []} progressPercent={task.progressPercent || 0}
+            isReadOnly={isGeneralReadOnly} onToggleStep={(sId) => onToggleStepStatus?.(task.id, sId)}
+            onAddStep={(title) => onAddNewStep?.(task.id, title)} selectedStepIdFilter={selectedStepFilter}
             onSelectStepFilter={setSelectedStepFilter}
           />
           <WorkOrderTimeCostCard
             timeAndCost={task.timeAndCost || { repairTimeHours: null, waitingTimeHours: null, downtimeHours: null, laborCostVnd: null, partsCostVnd: null, totalCostVnd: null }}
-            estimatedTimeAndCost={task.estimatedTimeAndCost}
-            isReadOnly={isGeneralReadOnly}
-            onSaveTimeCost={handleSaveTimeCost}
+            estimatedTimeAndCost={task.estimatedTimeAndCost} isReadOnly={isGeneralReadOnly} onSaveTimeCost={handleSaveTimeCost}
           />
         </div>
       </div>

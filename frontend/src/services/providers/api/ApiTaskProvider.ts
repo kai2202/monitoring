@@ -123,6 +123,14 @@ export class ApiTaskProvider implements ITaskService {
     return res?.downloadUrl || null;
   }
 
+  async deleteTaskAttachment(id: string, attachmentId: string): Promise<Task> {
+    const res = await requestApi<any>(
+      `/tasks/${encodeURIComponent(id)}/attachments/${encodeURIComponent(attachmentId)}`,
+      { method: 'DELETE' }
+    );
+    return (res?.task ?? res?.data ?? res) as Task;
+  }
+
   async updateProgress(id: string, percent: number, author: string, comment?: string): Promise<Task> {
     const res = await requestApi<any>(`/tasks/${id}/progress`, {
       method: 'PATCH',

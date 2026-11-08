@@ -2,7 +2,7 @@ import React from 'react';
 import { RouteObject } from 'react-router-dom';
 
 const DashboardPage = React.lazy(() =>
-  import('../../pages/DashboardPage').then((m) => ({ default: m.DashboardPage }))
+  import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage }))
 );
 
 export interface DashboardRoutesOptions {
@@ -23,4 +23,3 @@ export function getDashboardRoutes(options: DashboardRoutesOptions): RouteObject
     },
   ];
 }
-

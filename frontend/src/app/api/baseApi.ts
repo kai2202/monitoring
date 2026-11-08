@@ -16,7 +16,9 @@ import {
   FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react';
 import { getStoredAccessToken } from '../../services/providers/api/apiClient';
+import { isMockSource } from '../../config/dataSource';
 import { updateAccessToken, logout } from '../slices/authSlice';
+import { mockBaseQuery } from './mockBaseQuery';
 import type { RootState } from '../store';
 
 const rawBaseQuery = fetchBaseQuery({
@@ -79,7 +81,7 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
 
 export const baseApi = createApi({
   reducerPath: 'api',
-  baseQuery: baseQueryWithReauth,
+  baseQuery: isMockSource() ? mockBaseQuery : baseQueryWithReauth,
   tagTypes: [
     'Printers',
     'Tasks',
