@@ -1,0 +1,46 @@
+/**
+ * FontAwesome 6 Solid - Action Icons
+ * Re-export trực tiếp từ @fortawesome/free-solid-svg-icons (không tự viết SVG path thủ công).
+ * AGENTS.md Rule 7.1 & Rule 7.4 (< 300 LOC)
+ */
+
+export {
+  faRotate,
+  faClockRotateLeft,
+  faMagnifyingGlass,
+  faPlus,
+  faMinus,
+  faXmark,
+  faCheck,
+  faCircleCheck,
+  faCircleXmark,
+  faCircleDot,
+  faCopy,
+  faTrashCan,
+  faDownload,
+  faFloppyDisk,
+  faPaperPlane,
+  faCommentDots,
+  faPaperclip,
+  faPhone,
+  faWandMagicSparkles,
+  faRightFromBracket,
+  faRightToBracket,
+  faLock,
+  faUser,
+  faUserShield,
+  faUpload,
+  faKey,
+  faLocationDot,
+  faBuilding,
+  faFileCsv,
+  faEye,
+  faUserPlus,
+  faPenToSquare,
+  faBan,
+  faUserGear,
+  faEnvelope,
+  faEyeSlash,
+  faAddressCard,
+  faEllipsisVertical,
+} from '@fortawesome/free-solid-svg-icons';

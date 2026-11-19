@@ -1,0 +1,255 @@
+/**
+ * Frontend/src/styles/theme.css
+ *
+ * Hệ thống CSS Variables hỗ trợ hoàn chỉnh cả 2 chế độ:
+ * 1. Mặc định (:root): Soft Modern Pastel Light Mode (Dribbble/Figma SaaS style: Nền #f0f2f8, Card trắng #ffffff bo góc 18px).
+ * 2. [data-theme='dark']: Deep Midnight Dark Navy Mode (#0b0f19 nền tổng thể, #111827 bề mặt card/sidebar, viền #1e293b, badge transparent mờ kèm glowing dot).
+ */
+
+:root {
+  /* =========================================================================
+   * 1. SOFT MODERN PASTEL LIGHT THEME (MẶC ĐỊNH)
+   * ========================================================================= */
+  --bg-app: #f0f2f8;
+  --bg-app-gradient: none;
+
+  /* Bề mặt Sidebar, Header, Cards, Panels (Trắng tinh khiết & Phẳng) */
+  --bg-sidebar: #ffffff;
+  --bg-header: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-subtle: #f8fafc;
+  --bg-card-highlight: #f1f5f9;
+  --bg-subtle: #f4f6fa;
+  --bg-hover: #f1f3f9;
+  --bg-active: #181b2a;
+
+  /* Active Navigation Pill trong Light Mode */
+  --bg-nav-active: #181b2a;
+  --text-nav-active: #ffffff;
+  --border-nav-active: 1px solid #181b2a;
+  --icon-nav-active: #ffffff;
+  --shadow-nav-active: 0 4px 12px rgba(24, 27, 42, 0.12);
+
+  /* Nút thao tác chính */
+  --bg-btn-primary: #181b2a;
+  --text-btn-primary: #ffffff;
+  --border-btn-primary: none;
+
+  /* Đường viền siêu mỏng & Nhẹ nhàng */
+  --border-color: #eaedf5;
+  --border-subtle: #f0f2f7;
+  --border-active: #d9dfea;
+  --border-accent: rgba(56, 189, 248, 0.35);
+
+  /* Kiểu chữ & Độ tương phản dịu mắt */
+  --text-primary: #181b2a;
+  --text-secondary: #5e667e;
+  --text-muted: #8c95a8;
+  --text-light: #b0b7c6;
+
+  /* Dải màu Pastel Gradients cho KPI Cards */
+  --kpi-pink-gradient: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%);
+  --kpi-purple-gradient: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  --kpi-blue-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  --kpi-mint-gradient: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+
+  /* Icon Container cho KPI Cards */
+  --kpi-icon-bg: #ffffff;
+  --kpi-icon-border: rgba(0, 0, 0, 0.04);
+  --kpi-icon-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+
+  /* Màu thương hiệu & Điểm nhấn */
+  --brand-50: #f0f9ff;
+  --brand-100: #e0f2fe;
+  --brand-500: #0284c7;
+  --brand-600: #0369a1;
+  --brand-700: #075985;
+  --brand-text: #ffffff;
+
+  /* Màu trạng thái vận hành dạng Pill gọn nhẹ (Light Pastel) */
+  --status-online: #16a34a;
+  --status-online-bg: #ecfdf5;
+  --status-online-border: #bbf7d0;
+  --status-online-glow: none;
+
+  --status-offline: #dc2626;
+  --status-offline-bg: #fef2f2;
+  --status-offline-border: #fecaca;
+  --status-offline-glow: none;
+
+  --status-warning: #d97706;
+  --status-warning-bg: #fffbeb;
+  --status-warning-border: #fde68a;
+  --status-warning-glow: none;
+
+  --status-info: #0284c7;
+  --status-info-bg: #f0f9ff;
+  --status-info-border: #bae6fd;
+  --status-info-glow: none;
+
+  --status-neutral: #64748b;
+  --status-neutral-bg: #f8fafc;
+  --status-neutral-border: #e2e8f0;
+
+  /* Màu mực in CMYK tiêu chuẩn */
+  --toner-black: #1e293b;
+  --toner-cyan: #0284c7;
+  --toner-magenta: #db2777;
+  --toner-yellow: #ca8a04;
+  --toner-waste: #ea580c;
+
+  /* Bo góc mềm mại hiện đại */
+  --radius-badge: 9999px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-card: 18px;
+
+  /* Bóng đổ mờ êm dịu */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 16px -2px rgba(24, 27, 42, 0.04);
+  --shadow-lg: 0 10px 30px -4px rgba(24, 27, 42, 0.06);
+
+  /* Biểu đồ */
+  --chart-grid: rgba(0, 0, 0, 0.04);
+  --chart-tick: #8c95a8;
+  --chart-tooltip-bg: #181b2a;
+  --chart-tooltip-text: #ffffff;
+  --chart-tooltip-border: #2e354b;
+
+  /* Vertical Stepper Timeline Tokens */
+  --stepper-completed-bg: #181b2a;
+  --stepper-completed-color: #ffffff;
+  --stepper-completed-line: #181b2a;
+  --stepper-active-bg: #2563eb;
+  --stepper-active-color: #ffffff;
+  --stepper-active-glow: 0 0 10px rgba(37, 99, 235, 0.45);
+  --stepper-pending-bg: var(--bg-card);
+  --stepper-pending-border: var(--border-color);
+  --stepper-pending-color: var(--text-muted);
+  --stepper-pending-line: var(--border-color);
+}
+
+[data-theme='dark'] {
+  /* =========================================================================
+   * 2. DEEP MIDNIGHT DARK NAVY THEME (CHUẨN DATADOG / VERCEL DARK)
+   * ========================================================================= */
+  --bg-app: #0b0f19;
+  --bg-app-gradient: none;
+
+  /* Bề mặt Dark Navy (#111827) */
+  --bg-sidebar: #111827;
+  --bg-header: #111827;
+  --bg-card: #111827;
+  --bg-card-subtle: #162032;
+  --bg-card-highlight: #1e293b;
+  --bg-subtle: #162032;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(56, 189, 248, 0.14);
+
+  /* Active Navigation Pill trong Dark Navy (Luminous Accent) */
+  --bg-nav-active: rgba(56, 189, 248, 0.14);
+  --text-nav-active: #38bdf8;
+  --border-nav-active: 1px solid rgba(56, 189, 248, 0.28);
+  --icon-nav-active: #38bdf8;
+  --shadow-nav-active: 0 0 16px rgba(56, 189, 248, 0.14);
+
+  /* Nút thao tác chính */
+  --bg-btn-primary: #0284c7;
+  --text-btn-primary: #ffffff;
+  --border-btn-primary: none;
+
+  /* Đường viền Xanh Tím Sẫm #1e293b */
+  --border-color: #1e293b;
+  --border-subtle: #162032;
+  --border-active: #334155;
+  --border-accent: rgba(56, 189, 248, 0.35);
+
+  /* Kiểu chữ sáng dịu */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-light: #475569;
+
+  /* Dải màu Deep Navy Tinted Gradients cho KPI Cards */
+  --kpi-pink-gradient: linear-gradient(135deg, #111827 0%, rgba(225, 29, 72, 0.14) 100%);
+  --kpi-purple-gradient: linear-gradient(135deg, #111827 0%, rgba(124, 58, 237, 0.14) 100%);
+  --kpi-blue-gradient: linear-gradient(135deg, #111827 0%, rgba(2, 132, 199, 0.14) 100%);
+  --kpi-mint-gradient: linear-gradient(135deg, #111827 0%, rgba(22, 163, 74, 0.14) 100%);
+
+  /* Icon Container cho KPI Cards (Phát sáng nhẹ) */
+  --kpi-icon-bg: rgba(255, 255, 255, 0.06);
+  --kpi-icon-border: rgba(255, 255, 255, 0.10);
+  --kpi-icon-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+
+  /* Màu thương hiệu & Điểm nhấn */
+  --brand-50: rgba(56, 189, 248, 0.08);
+  --brand-100: rgba(56, 189, 248, 0.15);
+  --brand-500: #38bdf8;
+  --brand-600: #0284c7;
+  --brand-700: #0369a1;
+  --brand-text: #ffffff;
+
+  /* =========================================================================
+   * HUY HIỆU TRẠNG THÁI DẠNG BÁN TRONG SUỐT (FROSTED GLASS TRANSLUCENT)
+   * ========================================================================= */
+  --status-online: #4ade80;
+  --status-online-bg: rgba(34, 197, 94, 0.14);
+  --status-online-border: rgba(34, 197, 94, 0.28);
+  --status-online-glow: 0 0 8px rgba(74, 222, 128, 0.55);
+
+  --status-offline: #f87171;
+  --status-offline-bg: rgba(239, 68, 68, 0.14);
+  --status-offline-border: rgba(239, 68, 68, 0.28);
+  --status-offline-glow: 0 0 8px rgba(248, 113, 113, 0.55);
+
+  --status-warning: #fbbf24;
+  --status-warning-bg: rgba(245, 158, 11, 0.14);
+  --status-warning-border: rgba(245, 158, 11, 0.28);
+  --status-warning-glow: 0 0 8px rgba(251, 191, 36, 0.55);
+
+  --status-info: #38bdf8;
+  --status-info-bg: rgba(56, 189, 248, 0.14);
+  --status-info-border: rgba(56, 189, 248, 0.28);
+  --status-info-glow: 0 0 8px rgba(56, 189, 248, 0.55);
+
+  --status-neutral: #94a3b8;
+  --status-neutral-bg: rgba(148, 163, 184, 0.12);
+  --status-neutral-border: rgba(148, 163, 184, 0.22);
+
+  /* Màu mực in CMYK tiêu chuẩn trong Dark Navy */
+  --toner-black: #334155;
+  --toner-cyan: #38bdf8;
+  --toner-magenta: #f472b6;
+  --toner-yellow: #facc15;
+  --toner-waste: #fb923c;
+
+  /* Bo góc */
+  --radius-badge: 9999px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-card: 18px;
+
+  /* Bóng đổ Dark Navy */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 10px 30px -4px rgba(0, 0, 0, 0.60);
+
+  /* Biểu đồ */
+  --chart-grid: rgba(255, 255, 255, 0.04);
+  --chart-tick: #64748b;
+  --chart-tooltip-bg: #0f172a;
+  --chart-tooltip-text: #f8fafc;
+  --chart-tooltip-border: #1e293b;
+
+  /* Vertical Stepper Timeline Tokens */
+  --stepper-completed-bg: #334155;
+  --stepper-completed-color: #f8fafc;
+  --stepper-completed-line: #334155;
+  --stepper-active-bg: #2563eb;
+  --stepper-active-color: #ffffff;
+  --stepper-active-glow: 0 0 14px rgba(37, 99, 235, 0.65);
+  --stepper-pending-bg: var(--bg-card);
+  --stepper-pending-border: #334155;
+  --stepper-pending-color: var(--text-muted);
+  --stepper-pending-line: #1e293b;
+}

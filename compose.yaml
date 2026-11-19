@@ -1,0 +1,150 @@
+# ==============================================================================
+# Printer Monitoring Architecture - Zabbix 7.0 LTS & PostgreSQL 16
+# ==============================================================================
+# Complete migration from Prometheus / Grafana / SNMP-Exporter to Zabbix.
+# - High-performance SNMP Polling & LLD (Low-Level Discovery) for 20+ Printers
+# - PostgreSQL 16 Alpine backend with persistent volume
+# - Zabbix Server 7.0 LTS (Alpine) with mounted MIBs & tuned SNMP pollers
+# - Zabbix Web UI (Nginx + PHP 8.x) on port 8080
+# - SNMP Trap Receiver daemon for real-time alert traps on UDP 162
+# ==============================================================================
+
+name: printer-monitoring-zabbix
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Database: PostgreSQL 16 (Alpine) - Tuned for High-Throughput Time-Series
+  # ----------------------------------------------------------------------------
+  zabbix-db:
+    image: postgres:16-alpine
+    container_name: zabbix-postgres-db
+    restart: unless-stopped
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c effective_cache_size=1536MB
+      -c work_mem=16MB
+      -c maintenance_work_mem=128MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c autovacuum=on
+      -c autovacuum_vacuum_scale_factor=0.05
+      -c autovacuum_analyze_scale_factor=0.02
+      -c autovacuum_max_workers=3
+      -c autovacuum_naptime=15s
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-zabbix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zabbix_secure_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-zabbix}
+    volumes:
+      - zabbix_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zabbix} -d ${POSTGRES_DB:-zabbix}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      zabbix-net:
+        ipv4_address: 172.28.0.2
+
+  # ----------------------------------------------------------------------------
+  # 2. Zabbix Server 7.0 LTS (PostgreSQL / Alpine)
+  # ----------------------------------------------------------------------------
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-7.0-latest
+    container_name: zabbix-server
+    restart: unless-stopped
+    depends_on:
+      zabbix-db:
+        condition: service_healthy
+    ports:
+      - "10051:10051"
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: ${POSTGRES_USER:-zabbix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zabbix_secure_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-zabbix}
+      ZBX_SERVER_NAME: ${ZBX_SERVER_NAME:-"Printer-Monitoring-Zabbix"}
+      ZBX_STARTPOLLERS: ${ZBX_STARTPOLLERS:-10}
+      ZBX_STARTPOLLERSSNMP: ${ZBX_STARTPOLLERSSNMP:-15}
+      ZBX_STARTPINGERS: ${ZBX_STARTPINGERS:-10}
+      ZBX_STARTTRAPPERS: ${ZBX_STARTTRAPPERS:-5}
+      ZBX_STARTDISCOVERERS: ${ZBX_STARTDISCOVERERS:-3}
+      ZBX_HOUSEKEEPINGFREQUENCY: ${ZBX_HOUSEKEEPINGFREQUENCY:-1}
+      ZBX_MAXHOUSEKEEPERDELETE: ${ZBX_MAXHOUSEKEEPERDELETE:-5000}
+      ZBX_TIMEOUT: 4
+      ZBX_UNREACHABLEPERIOD: 45
+      ZBX_UNREACHABLEDELAY: 15
+      ZBX_UNAVAILABLEDELAY: 60
+      ZBX_ENABLE_SNMP_TRAPS: "true"
+      ZBX_SNMPTRAPPERDIR: "/var/lib/zabbix/snmptraps"
+    volumes:
+      # Mount custom MIB files here if vendor textual MIBs are provided (Zabbix uses numeric OIDs natively)
+      # - ./mibs:/var/lib/zabbix/mibs:ro
+      # - ./mibs:/usr/share/snmp/mibs:ro
+      - zabbix_snmptraps_data:/var/lib/zabbix/snmptraps
+    networks:
+      zabbix-net:
+        ipv4_address: 172.28.0.3
+
+  # ----------------------------------------------------------------------------
+  # 3. Zabbix Web UI (Nginx + PostgreSQL / Alpine)
+  # ----------------------------------------------------------------------------
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0-latest
+    container_name: zabbix-web-frontend
+    restart: unless-stopped
+    depends_on:
+      zabbix-db:
+        condition: service_healthy
+      zabbix-server:
+        condition: service_started
+    ports:
+      - "${ZBX_WEB_PORT:-8080}:8080"
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      ZBX_SERVER_PORT: 10051
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: ${POSTGRES_USER:-zabbix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zabbix_secure_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-zabbix}
+      PHP_TZ: ${PHP_TZ:-Asia/Ho_Chi_Minh}
+    networks:
+      zabbix-net:
+        ipv4_address: 172.28.0.4
+
+  # ----------------------------------------------------------------------------
+  # 4. SNMP Trap Receiver (Handles hardware push events on UDP 162)
+  # ----------------------------------------------------------------------------
+  zabbix-snmptraps:
+    image: zabbix/zabbix-snmptraps:alpine-7.0-latest
+    container_name: zabbix-snmptraps
+    restart: unless-stopped
+    ports:
+      - "162:1162/udp"
+    volumes:
+      - zabbix_snmptraps_data:/var/lib/zabbix/snmptraps
+    networks:
+      zabbix-net:
+        ipv4_address: 172.28.0.5
+
+networks:
+  zabbix-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+          gateway: 172.28.0.1
+
+volumes:
+  zabbix_db_data:
+    name: zabbix_db_data
+  zabbix_snmptraps_data:
+    name: zabbix_snmptraps_data

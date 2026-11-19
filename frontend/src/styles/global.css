@@ -1,0 +1,395 @@
+@import './theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset & Box Sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-app);
+  background-image: var(--bg-app-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+aside, header, main, .theme-transition {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+/* Custom Scrollbar - WebKit & Firefox Standard */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Custom Scrollbar Utilities for dense tables & modals */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Button, Link & Interactive Micro-Interactions */
+button,
+[role="button"],
+a {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  outline: none;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+/* Tactile Active Push for tactile response */
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
+  transform: scale(0.975);
+}
+
+/* Accessible & Crisp Keyboard Focus Rings for Buttons & Links */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18) !important;
+}
+
+/* Form Input & Select & Textarea: Triệt tiêu viền chữ nhật mặc định khi focus */
+input,
+select,
+textarea {
+  outline: none !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+}
+
+/* Disabled State Visual Guard */
+button:disabled,
+[aria-disabled="true"],
+input:disabled,
+select:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transform: none !important;
+}
+
+/* Interactive Card & Table Row Polish */
+.interactive-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.interactive-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-active, #cbd5e1);
+  box-shadow: var(--shadow-md, 0 4px 16px -2px rgba(24, 27, 42, 0.08));
+}
+
+.interactive-row {
+  transition: background-color 0.15s ease;
+}
+
+.interactive-row:hover {
+  background-color: var(--bg-hover, rgba(0, 0, 0, 0.025)) !important;
+}
+
+/* Sub-tab Pill Smooth Indicator */
+.subtab-pill-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.subtab-pill-btn:hover:not(.active) {
+  background-color: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  color: var(--text-primary);
+}
+
+.subtab-pill-btn.active {
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+}
+
+/* Shimmer Skeleton Animation (Zero Layout Shift) */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-card) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+  border-radius: 6px;
+}
+
+/* Waste Toner Striped Bar Animation */
+@keyframes stripe-move {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 30px 0;
+  }
+}
+
+.waste-toner-striped {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(234, 88, 12, 0.8),
+    rgba(234, 88, 12, 0.8) 10px,
+    rgba(249, 115, 22, 1) 10px,
+    rgba(249, 115, 22, 1) 20px
+  );
+  animation: stripe-move 1.5s linear infinite;
+}
+
+/* Animations for Slide-over, Floating Dock and Tooltip */
+@keyframes slideLeft {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, 100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+/* Page Navigation Transition: GPU-composited Fade + Subtle Rise (160ms) */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: pageEnter 0.16s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom2 {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-card-in {
+  animation: cardIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.animate-card-delay-1 {
+  opacity: 0;
+  animation-delay: 40ms;
+}
+
+.animate-card-delay-2 {
+  opacity: 0;
+  animation-delay: 80ms;
+}
+
+.card-interactive {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.card-interactive:hover {
+  transform: translateY(-1px);
+}
+
+.card-interactive:active {
+  transform: translateY(0) scale(0.995);
+}
+
+.animate-in {
+  animation-duration: 0.16s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.slide-in-from-bottom-2 {
+  animation-name: slideInFromBottom2;
+}
+
+.slide-in-from-right {
+  animation-name: slideInFromRight;
+  animation-duration: 0.22s;
+}
+
+.animate-slideLeft {
+  animation: slideLeft 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.16s ease-out forwards;
+}
+
+/* Accessibility: Hỗ trợ giảm chuyển động cho người dùng nhạy cảm thị giác */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .page-transition,
+  .animate-card-in,
+  .animate-card-delay-1,
+  .animate-card-delay-2,
+  .animate-in,
+  .animate-slideLeft,
+  .animate-slideUp,
+  .animate-fadeIn {
+    animation: none !important;
+    animation-delay: 0ms !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+

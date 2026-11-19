@@ -1,0 +1,710 @@
+// ==============================================================================
+// FleetMonitor — Prisma ORM Schema Specification
+// Quy mô: ~100 máy in, 5 tầng, Quản trị Bảo trì CMMS, RBAC 3 vai trò & Lưu trữ MinIO S3
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------------------------
+// 1. Phân Hệ Người Dùng & Phân Quyền (Auth & RBAC)
+// ------------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN       // Quản trị viên IT & NOC (Nguyễn Văn An) — Toàn quyền, điều chuyển vị trí & tạo lệnh
+  FIELD_TECH  // Kỹ thuật viên hiện trường (Lê Hoàng Nam) — Thực thi SOP, ẩn chi phí VNĐ
+  ASSET_HR    // HR / Kiểm kê tài sản (Phạm Thu Hà) — Kiểm kê, đối soát chi phí & đánh giá KPI
+}
+
+model User {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  fullName     String    @map("full_name")
+  role         UserRole  @default(FIELD_TECH)
+  permissions  String[]  @default([])
+  dataScope    Json      @default("{}") @map("data_scope") // { departmentIds: [...], floorIds: [...] }
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  preferences   UserDashboardPreference?
+  refreshTokens RefreshToken[]
+  workLogs      WorkLog[]
+  attachments   TaskAttachment[]
+  csvImportJobs CsvImportJob[]
+  auditLogs     AuditLog[]
+  inventoryTransactions InventoryTransaction[]
+  procurementRequests   ProcurementRequest[]
+  createdPOs            PurchaseOrder[]        @relation("POCreator")
+  approvedPOs           PurchaseOrder[]        @relation("POApprover")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model UserDashboardPreference {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  dashboardLayout  Json     @default("{\"widgets\": [\"hero_trend\", \"radar\", \"heatmap\", \"top_contributors\"]}") @map("dashboard_layout")
+  themeMode        String   @default("light") @map("theme_mode") // light, dark
+  defaultPeriod    String   @default("30days") @map("default_period")
+  pinnedPrinterIds Json     @default("[]") @map("pinned_printer_ids")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_dashboard_preferences")
+}
+
+// ------------------------------------------------------------------------------
+// 1.5. Phân Hệ Quản Lý Vị Trí Doanh Nghiệp (Floors & Departments - LAN-Only)
+// ------------------------------------------------------------------------------
+
+model Floor {
+  id         String   @id @default(uuid())
+  building   String   @default("Trụ sở chính") // Tên Site / Chi nhánh hoặc Tòa nhà
+  subnetCidr String?  @map("subnet_cidr") // Dải mạng CIDR của site (VD: "10.10.1.0/24")
+  name       String   // "Tầng 1", "Tầng 2", ...
+  code       String   @unique // "T1", "T2", ...
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  printers  Printer[]
+
+  @@unique([building, name])
+  @@map("floors")
+}
+
+// ------------------------------------------------------------------------------
+// 2. Phân Hệ Danh Mục Thiết Bị & Sản Lượng (Printers & Counters)
+// ------------------------------------------------------------------------------
+
+model Printer {
+  id               String    @id // Ví dụ: "RICOH-T1-01"
+  name             String
+  ip               String
+  model            String
+  mfr              String    // CANON, RICOH, EPSON, HP, BROTHER, TOSHIBA, OLIVETTI
+  deviceType       String    @default("Laser Đa Năng (MFP)") @map("device_type")
+  serialNumber     String?   @map("serial_number")
+  building         String    @default("Trụ sở chính") @map("building")
+  location         String    // Ví dụ: "Tầng 1 - Sảnh chính"
+  department       String    // Phòng Hành chính, Marketing, Kế toán...
+  floor            String    @default("T1") // Tầng hiển thị (T1 đến T5)
+  room             String?   @map("room") // Phòng cụ thể (VD: "P.201", "Phòng Kế toán")
+  floorId          String?   @map("floor_id")
+  isColor          Boolean   @default(true) @map("is_color")
+  connectionStatus String    @default("Online") @map("connection_status") // Online, Offline
+  icmpStatus       String?   @map("icmp_status") // UP, DOWN, UNKNOWN
+  snmpStatus       String?   @map("snmp_status") // UP, DOWN, UNKNOWN
+  health           String    @default("Healthy") // Healthy, Warning, Critical
+  alertSeverity    String    @default("info") @map("alert_severity") // info, warning, critical
+  currentFaultType String?   @map("current_fault_type") // NONE, PAPER_JAM, HARDWARE_ERROR
+  currentFaultText String?   @map("current_fault_text") // Mô tả lỗi hiện tại ngắn gọn
+  lastSeenAt       DateTime? @map("last_seen_at")
+
+  // --- Cấu hình kết nối Zabbix & SNMP ---
+  zabbixHostId     String?   @map("zabbix_host_id")
+  snmpCommunity    String?   @default("public") @map("snmp_community")
+  snmpPort         Int       @default(161) @map("snmp_port")
+  lastSyncTime     DateTime? @map("last_sync_time")
+  syncStatus       String    @default("PENDING") @map("sync_status") // PENDING, SUCCESS, FAILED
+
+  // --- Tọa độ trên lưới ô vuông sơ đồ tầng Indie Grid Canvas ---
+  gridX            Int?      @map("grid_x") // Tọa độ cột X trên lưới
+  gridY            Int?      @map("grid_y") // Tọa độ hàng Y trên lưới
+
+  // --- Trách nhiệm quản lý tài sản theo Team & Người đại diện ---
+  managingTeam      String?   @map("managing_team")      // Team chịu trách nhiệm (IT Vận Hành, Hành Chính, etc.)
+  custodianName     String?   @map("custodian_name")     // Họ tên người đại diện đứng tên chịu trách nhiệm
+  custodianContact  String?   @map("custodian_contact")  // Email hoặc SĐT người đại diện
+  lastInventoriedAt DateTime? @map("last_inventoried_at") // Mốc kiểm kê khớp hiện trường gần nhất
+
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  floorRef            Floor?               @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  counterRollups      CounterRollup[]
+  incidents           Incident[]
+  tasks               Task[]
+  historyLogs         PrinterHistoryLog[]
+  consumable          PrinterConsumable?
+  contracts           PrinterContract[]
+  procurementRequests ProcurementRequest[]
+
+  @@index([building])
+  @@index([floor])
+  @@index([floorId])
+  @@index([department])
+  @@index([connectionStatus])
+  @@index([zabbixHostId])
+  @@index([syncStatus])
+  @@map("printers")
+}
+
+model PrinterHistoryLog {
+  id               String   @id @default(uuid())
+  printerId        String   @map("printer_id")
+  actionType       String   @map("action_type") // RELOCATE, STORAGE_STANDBY, RESUME_MONITOR, CUSTODIAN_TRANSFER, CONFIG_CHANGE
+  previousData     Json     @map("previous_data") // Thông tin vị trí/trạng thái cũ
+  newData          Json     @map("new_data")      // Thông tin vị trí/trạng thái mới
+  reason           String?  // Lý do điều chuyển / lưu kho
+  storageKey       String?  @map("storage_key")   // Đường dẫn UUID trên MinIO Private Bucket
+  attachedFileName String?  @map("attached_file_name") // Tên file hiển thị gốc
+  fileSize         Int?     @map("file_size")     // Kích thước tệp (bytes)
+  mimeType         String?  @map("mime_type")     // application/pdf, image/png, image/jpeg
+  sha256Hash       String?  @map("sha256_hash")   // Mã băm SHA-256 kiểm tra toàn vẹn
+  performedBy      String   @map("performed_by")  // Người thực hiện (Username/ID)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  printer          Printer  @relation(fields: [printerId], references: [id], onDelete: Cascade)
+
+  @@index([printerId])
+  @@index([actionType])
+  @@map("printer_history_logs")
+}
+
+model CounterRollup {
+  id           String   @id @default(uuid())
+  printerId    String   @map("printer_id")
+  recordedDate DateTime @map("recorded_date") @db.Date // YYYY-MM-DD
+  monoPages    Int      @default(0) @map("mono_pages")
+  colorPages   Int      @default(0) @map("color_pages")
+  scanPages    Int      @default(0) @map("scan_pages")
+  totalPages   Int      @default(0) @map("total_pages")
+  deltaMono    Int      @default(0) @map("delta_mono")
+  deltaColor   Int      @default(0) @map("delta_color")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  printer Printer @relation(fields: [printerId], references: [id], onDelete: Cascade)
+
+  @@unique([printerId, recordedDate])
+  @@index([recordedDate])
+  @@map("counter_rollups")
+}
+
+// ------------------------------------------------------------------------------
+// 3. Phân Hệ Quản Lý Bảo Trì & Sự Cố (Incidents & Tasks CMMS)
+// ------------------------------------------------------------------------------
+
+model Incident {
+  id            String    @id @default(uuid())
+  printerId     String    @map("printer_id")
+  errorCode     String?   @map("error_code") // Mã nguyên gốc nhà sản xuất (ví dụ: SC542)
+  canonicalCode String?   @map("canonical_code") // Chuẩn hóa FM-xxx (ví dụ: FM-FUS-001)
+  subsystem     String?   // FUSER, DRUM, TONER, NETWORK, PAPER_FEED
+  severity      String    @default("warning") // warning, critical
+  status        String    @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED
+  title         String
+  description   String?
+  detectedAt    DateTime  @default(now()) @map("detected_at")
+  resolvedAt    DateTime? @map("resolved_at")
+
+  printer Printer @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@index([printerId])
+  @@index([status])
+  @@map("incidents")
+}
+
+enum TaskPriority {
+  P1_Urgent // Khẩn cấp (< 2 giờ)
+  P2_High   // Cao (< 4 giờ)
+  P3_Medium // Trung bình (< 24 giờ)
+  P4_Low    // Thấp (< 48 giờ)
+}
+
+enum TaskStatus {
+  Planned              // Đã lên lịch
+  In_Progress          // Đang xử lý
+  Waiting              // Chờ linh kiện / Chờ hỗ trợ
+  Pending_Verification // Chờ phê duyệt nghiệm thu
+  Completed            // Hoàn thành & Nghiệm thu
+  Cancelled            // Đã hủy
+}
+
+enum TaskDossierStatus {
+  PENDING_CONTRIBUTIONS // Đang trong quá trình các bên trao đổi, đính kèm file
+  PENDING_HR_REVIEW     // Đã gửi lên HR để kiểm tra, tổng hợp hồ sơ
+  CHANGES_REQUESTED     // HR yêu cầu bổ sung chứng từ/tài liệu
+  DOSSIER_ARCHIVED      // HR đã chốt và lưu hồ sơ tài sản thành công
+}
+
+model Task {
+  id              String            @id @default(uuid())
+  printerId       String            @map("printer_id")
+  incidentId      String?           @map("incident_id")
+  title           String
+  taskType        String            @default("Bảo trì sửa chữa") @map("task_type")
+  priority        TaskPriority      @default(P3_Medium)
+  status          TaskStatus        @default(Planned)
+  dossierStatus   TaskDossierStatus @default(PENDING_CONTRIBUTIONS) @map("dossier_status")
+  assigneeId      String?           @map("assignee_id")
+  assigneeName    String?           @map("assignee_name") // Tên KTV hiển thị nhanh
+  dueDate         DateTime?         @map("due_date")
+  completedDate   DateTime?         @map("completed_date")
+  archivedAt      DateTime?         @map("archived_at")
+  progressPercent Int               @default(0) @map("progress_percent")
+  reworkReason    String?           @map("rework_reason")
+  hrReviewNotes   String?           @map("hr_review_notes")
+  totalCostVnd    Float             @default(0) @map("total_cost_vnd") // Tổng chi phí sửa chữa lũy kế
+  dynamicSteps    Json              @default("[]") @map("dynamic_steps") // [{id, title, status}]
+  timeAndCost     Json              @default("{}") @map("time_and_cost") // {repairHours, laborCost, partsCost}
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  printer               Printer                  @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  incident              Incident?                @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  workLogs              WorkLog[]
+  attachments           TaskAttachment[]
+  contributions         TaskContribution[]
+  inventoryTransactions InventoryTransaction[]
+  vendorLogs            VendorCommunicationLog[]
+
+  @@index([printerId])
+  @@index([status])
+  @@index([dossierStatus])
+  @@index([assigneeId])
+  @@map("tasks")
+}
+
+model TaskContribution {
+  id               String   @id @default(uuid())
+  taskId           String   @map("task_id")
+  authorId         String   @map("author_id")
+  authorName       String   @map("author_name")
+  authorRole       String   @map("author_role") // FIELD_TECH, VENDOR, ADMIN, DEPARTMENT_USER, ASSET_HR
+  message          String
+  attachedFileUrl  String?  @map("attached_file_url")
+  attachedFileName String?  @map("attached_file_name")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  task             Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_contributions")
+}
+
+model WorkLog {
+  id         String   @id @default(uuid())
+  taskId     String   @map("task_id")
+  authorId   String   @map("author_id")
+  authorName String   @map("author_name")
+  hoursSpent Float    @default(0) @map("hours_spent")
+  note       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("work_logs")
+}
+
+model TaskAttachment {
+  id               String   @id @default(uuid())
+  taskId           String   @map("task_id")
+  fileName         String   @map("file_name")
+  fileUrl          String   @map("file_url")
+  fileType         String   @map("file_type") // image/jpeg, application/pdf
+  fileSize         Int      @map("file_size") // bytes
+  minioBucket      String   @default("fleetmonitor-proofs") @map("minio_bucket")
+  minioObjectKey   String   @map("minio_object_key")
+  isTestPrintProof Boolean  @default(true) @map("is_test_print_proof") // Bằng chứng nghiệm thu PASSED
+  uploadedById     String   @map("uploaded_by_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_attachments")
+}
+
+// ------------------------------------------------------------------------------
+// 4. Phân Hệ Từ Điển Mã Lỗi Đa Hãng (Error Code Dictionary)
+// ------------------------------------------------------------------------------
+
+model ErrorDictionary {
+  id            String   @id @default(uuid())
+  vendor        String   // CANON, RICOH, EPSON, HP, BROTHER, TOSHIBA, OLIVETTI
+  rawCode       String   @map("raw_code") // SC542, 13.00.00, E000-0001
+  canonicalCode String   @map("canonical_code") // FM-FUS-001
+  subsystem     String   // FUSER, DRUM, TONER, NETWORK, PAPER_FEED
+  descriptionVi String   @map("description_vi") // Tiếng Việt chuẩn
+  severity      String   @default("warning") // warning, critical
+  isPaperJam    Boolean  @default(false) @map("is_paper_jam")
+  isCoverOpen   Boolean  @default(false) @map("is_cover_open")
+  isConsumable  Boolean  @default(false) @map("is_consumable")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([vendor, rawCode])
+  @@index([canonicalCode])
+  @@index([subsystem])
+  @@map("error_dictionary")
+}
+
+// ------------------------------------------------------------------------------
+// 5. Phân Hệ Vật Tư Tiêu Hao (Consumables & Supplies Tracking)
+// ------------------------------------------------------------------------------
+
+model PrinterConsumable {
+  id                     String    @id @default(uuid())
+  printerId              String    @unique @map("printer_id")
+  tonerBlack             Float?    @map("toner_black") // Phần trăm mực đen (0 - 100)
+  tonerCyan              Float?    @map("toner_cyan")  // Phần trăm mực xanh (0 - 100)
+  tonerMagenta           Float?    @map("toner_magenta") // Phần trăm mực đỏ (0 - 100)
+  tonerYellow            Float?    @map("toner_yellow") // Phần trăm mực vàng (0 - 100)
+  drumLifePercent        Int?      @map("drum_life_percent") // Tuổi thọ trống quang học (%)
+  fuserLifePercent       Int?      @map("fuser_life_percent") // Tuổi thọ cụm sấy (%)
+  wasteTonerStatus       String    @default("OK") @map("waste_toner_status") // OK, WARNING, FULL, EMPTY
+  forecastExhaustionDate DateTime? @map("forecast_exhaustion_date") // Dự kiến cạn kiệt sớm nhất
+  lastUpdated            DateTime  @default(now()) @map("last_updated")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  printer Printer @relation(fields: [printerId], references: [id], onDelete: Cascade)
+
+  @@index([printerId])
+  @@index([wasteTonerStatus])
+  @@map("printer_consumables")
+}
+
+// ------------------------------------------------------------------------------
+// 6. Phân Hệ Quản Lý Nhập/Xuất Dữ Liệu CSV (CSV Import Jobs)
+// ------------------------------------------------------------------------------
+
+enum CsvEntityType {
+  PRINTER
+  ERROR_DICT
+  TELEMETRY
+}
+
+enum CsvImportStatus {
+  PENDING
+  VALIDATING
+  COMPLETED
+  FAILED
+}
+
+model CsvImportJob {
+  id           String          @id @default(uuid())
+  fileName     String          @map("file_name")
+  uploadedById String?         @map("uploaded_by_id")
+  entityType   CsvEntityType   @map("entity_type")
+  totalRows    Int             @default(0) @map("total_rows")
+  validRows    Int             @default(0) @map("valid_rows")
+  errorRows    Int             @default(0) @map("error_rows")
+  errorLog     Json            @default("[]") @map("error_log")
+  status       CsvImportStatus @default(PENDING)
+  createdAt    DateTime        @default(now()) @map("created_at")
+  completedAt  DateTime?       @map("completed_at")
+
+  uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([uploadedById])
+  @@index([status])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("csv_import_jobs")
+}
+
+// ------------------------------------------------------------------------------
+// 7. Phân Hệ Nhật Ký An Ninh & Vận Hành (Security & Operational Audit Logs)
+// ------------------------------------------------------------------------------
+
+enum AuditAction {
+  IMPORT_CSV
+  EXPORT_CSV
+  PRINTER_RELOCATE
+  PRINTER_CUSTODIAN_TRANSFER
+  TASK_UPDATE
+  TASK_APPROVE
+  TASK_REWORK
+  TASK_DOSSIER_ARCHIVE
+  STOCK_TRANSACTION
+  PO_STATUS_CHANGE
+}
+
+model AuditLog {
+  id        String      @id @default(uuid())
+  userId    String?     @map("user_id")
+  action    AuditAction
+  targetId  String?     @map("target_id")
+  ipAddress String?     @map("ip_address")
+  diffJson  Json?       @map("diff_json")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ------------------------------------------------------------------------------
+// 8. Phân Hệ Cấu Hình Đơn Giá Chi Phí & SLA (Cost Rate Configuration)
+// ------------------------------------------------------------------------------
+
+model CostRateConfig {
+  id                  String   @id @default(uuid())
+  monoRatePerPage     Float    @default(150.0) @map("mono_rate_per_page") // Đơn giá trang đen trắng (VNĐ/trang)
+  colorRatePerPage    Float    @default(1000.0) @map("color_rate_per_page") // Đơn giá trang in màu (VNĐ/trang)
+  techHourlyRate      Float    @default(150000.0) @map("tech_hourly_rate") // Chi phí nhân công KTV (VNĐ/giờ)
+  targetUptimePercent Float    @default(99.0) @map("target_uptime_percent") // Mục tiêu Uptime SLA (%)
+  effectiveDate       DateTime @default(now()) @map("effective_date")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([effectiveDate])
+  @@map("cost_rate_configs")
+}
+
+// ------------------------------------------------------------------------------
+// 9. Phân Hệ Quản Lý Kho Vật Tư Tiêu Hao (TASK-BE-09 Inventory & Warehouse)
+// ------------------------------------------------------------------------------
+
+model InventoryItem {
+  id               String   @id @default(uuid())
+  sku              String   @unique // Ví dụ: "TN-3448", "MP-2501-TONER"
+  name             String   // "Hộp mực Ricoh MP 2501 Black"
+  category         String   // TONER, DRUM, FUSER, WASTE_BOX, ROLLER
+  compatibleModels String[] @default([]) @map("compatible_models")
+  currentStock     Int      @default(0) @map("current_stock")
+  safetyStock      Int      @default(5) @map("safety_stock")
+  unit             String   @default("Hộp")
+  unitCost         Float    @default(0) @map("unit_cost") // VNĐ
+  location         String   @default("Kho T1 - Kệ A1")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  transactions InventoryTransaction[]
+
+  @@index([category])
+  @@index([sku])
+  @@map("inventory_items")
+}
+
+model InventoryTransaction {
+  id            String   @id @default(uuid())
+  itemId        String   @map("item_id")
+  type          String   // IMPORT, EXPORT, RETURN, ADJUSTMENT
+  quantity      Int      // Dương (+) hoặc Âm (-)
+  balanceAfter  Int      @map("balance_after")
+  taskId        String?  @map("task_id")
+  performedById String?  @map("performed_by_id")
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  item        InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  task        Task?         @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  performedBy User?         @relation(fields: [performedById], references: [id], onDelete: SetNull)
+
+  @@index([itemId])
+  @@index([taskId])
+  @@index([performedById])
+  @@index([createdAt])
+  @@map("inventory_transactions")
+}
+
+// ------------------------------------------------------------------------------
+// 10. Phân Hệ Mua Sắm & Đề Xuất Vật Tư (TASK-BE-10 Supplies Procurement)
+// ------------------------------------------------------------------------------
+
+model ProcurementRequest {
+  id            String   @id @default(uuid())
+  requestedById String   @map("requested_by_id")
+  printerId     String?  @map("printer_id")
+  sku           String?
+  itemName      String   @map("item_name")
+  quantity      Int      @default(1)
+  reason        String
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED, ORDERED
+  urgency       String   @default("NORMAL")  // NORMAL, URGENT, CRITICAL
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  requestedBy User     @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  printer     Printer? @relation(fields: [printerId], references: [id], onDelete: SetNull)
+
+  @@index([requestedById])
+  @@index([printerId])
+  @@index([status])
+  @@map("procurement_requests")
+}
+
+model PurchaseOrder {
+  id           String    @id @default(uuid())
+  poNumber     String    @unique @map("po_number")
+  vendorId     String?   @map("vendor_id")
+  status       String    @default("DRAFT") // DRAFT, PENDING_APPROVAL, ORDERED, RECEIVED, CANCELLED
+  totalAmount  Float     @default(0) @map("total_amount")
+  itemsJson    Json      @default("[]") @map("items_json") // [{sku, name, quantity, unitPrice}]
+  createdById  String    @map("created_by_id")
+  approvedById String?   @map("approved_by_id")
+  orderedAt    DateTime? @map("ordered_at")
+  receivedAt   DateTime? @map("received_at")
+  note         String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  vendor     Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  createdBy  User    @relation("POCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  approvedBy User?   @relation("POApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([createdById])
+  @@map("purchase_orders")
+}
+
+// ------------------------------------------------------------------------------
+// 11. Phân Hệ Quản Lý Nhà Cung Cấp & Hỗ Trợ Hãng (TASK-BE-11 Vendor Management)
+// ------------------------------------------------------------------------------
+
+model Vendor {
+  id               String   @id @default(uuid())
+  name             String
+  code             String   @unique // RICOH-VN, CANON-AK, HP-ENT...
+  contactPerson    String?  @map("contact_person")
+  phone            String?
+  email            String?
+  address          String?
+  slaResponseHours Int      @default(4) @map("sla_response_hours")
+  rating           Float    @default(5.0)
+  notes            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  communications VendorCommunicationLog[]
+  purchaseOrders PurchaseOrder[]
+  contracts      PrinterContract[]
+
+  @@map("vendors")
+}
+
+model VendorCommunicationLog {
+  id                   String   @id @default(uuid())
+  vendorId             String   @map("vendor_id")
+  taskId               String?  @map("task_id")
+  callerName           String   @map("caller_name")
+  vendorAgent          String?  @map("vendor_agent")
+  channel              String   @default("PHONE") // PHONE, EMAIL, ONSITE, PORTAL
+  externalTicketNumber String?  @map("external_ticket_number")
+  content              String
+  result               String?
+  loggedAt             DateTime @default(now()) @map("logged_at")
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  task   Task?  @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([taskId])
+  @@map("vendor_communication_logs")
+}
+
+// ------------------------------------------------------------------------------
+// 12. Phân Hệ Chi Phí, Ngân Sách & Hợp Đồng (TASK-BE-12 Financial & Contract)
+// ------------------------------------------------------------------------------
+
+model DepartmentBudget {
+  id               String   @id @default(uuid())
+  department       String
+  monthlyQuotaVnd  Float    @default(10000000) @map("monthly_quota_vnd")
+  monthlyPageQuota Int      @default(50000) @map("monthly_page_quota")
+  fiscalYear       Int      @default(2026) @map("fiscal_year")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@unique([department, fiscalYear])
+  @@map("department_budgets")
+}
+
+model PrinterContract {
+  id                String   @id @default(uuid())
+  contractNumber    String   @unique @map("contract_number")
+  vendorId          String?  @map("vendor_id")
+  printerId         String?  @map("printer_id")
+  contractType      String   @default("LEASE") // LEASE, PURCHASE, MAINTENANCE
+  monthlyRentalCost Float    @default(0) @map("monthly_rental_cost")
+  freePagesPerMonth Int      @default(3000) @map("free_pages_per_month")
+  overageMonoRate   Float    @default(120) @map("overage_mono_rate")
+  overageColorRate  Float    @default(900) @map("overage_color_rate")
+  startDate         DateTime @map("start_date")
+  endDate           DateTime @map("end_date")
+  status            String   @default("ACTIVE") // ACTIVE, EXPIRING_SOON, TERMINATED
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  vendor  Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  printer Printer? @relation(fields: [printerId], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([printerId])
+  @@map("printer_contracts")
+}
+
+model MonthlyExpenseSummary {
+  id              String   @id @default(uuid())
+  yearMonth       String   @map("year_month") // "2026-03"
+  department      String
+  monoPages       Int      @default(0) @map("mono_pages")
+  colorPages      Int      @default(0) @map("color_pages")
+  printingCost    Float    @default(0) @map("printing_cost")
+  maintenanceCost Float    @default(0) @map("maintenance_cost")
+  rentalCost      Float    @default(0) @map("rental_cost")
+  totalCost       Float    @default(0) @map("total_cost")
+  budgetQuota     Float    @default(0) @map("budget_quota")
+  isOverBudget    Boolean  @default(false) @map("is_over_budget")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([yearMonth, department])
+  @@map("monthly_expense_summaries")
+}
+
+// ------------------------------------------------------------------------------
+// 13. Phân Hệ Phê Duyệt Nghiệp Vụ Đa Tầng (TASK-BE-13 Enterprise Approval Engine)
+// ------------------------------------------------------------------------------
+
+model ApprovalAction {
+  id             String   @id @default(uuid())
+  targetType     String   @map("target_type") // TASK_ACCEPTANCE, PO_APPROVAL, STOCK_EXPORT
+  targetId       String   @map("target_id")
+  action         String   // APPROVED, REJECTED_REWORK, CANCELLED
+  actorId        String   @map("actor_id")
+  actorName      String   @map("actor_name")
+  actorRole      String   @map("actor_role")
+  decisionReason String?  @map("decision_reason")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([targetType, targetId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("approval_actions")
+}
+
+
