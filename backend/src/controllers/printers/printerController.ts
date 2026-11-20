@@ -39,11 +39,22 @@ export class PrinterController {
 
       const dbPrinters = await prisma.printer.findMany({
         where: whereClause,
-        include: { consumable: true },
+        include: {
+          consumable: true,
+          counterRollups: { take: 30, orderBy: { recordedDate: 'desc' } },
+        },
         orderBy: { name: 'asc' },
       });
 
-      const formatted = dbPrinters.map((p) => ({
+      const formatted = dbPrinters.map((p) => {
+        const latestRollup = p.counterRollups[0];
+        const totalPages = latestRollup ? latestRollup.totalPages : null;
+        const thirtyDayVolume =
+          p.counterRollups.length > 0
+            ? p.counterRollups.reduce((sum, r) => sum + r.deltaMono + r.deltaColor, 0)
+            : null;
+
+        return {
         id: p.id,
         name: p.name,
         ip: p.ip,
@@ -85,7 +96,15 @@ export class PrinterController {
         isStale: !p.lastSyncTime || Date.now() - p.lastSyncTime.getTime() > 5 * 60 * 1000,
         lastSeenAt: p.lastSeenAt,
         lastSyncTime: p.lastSyncTime,
-      }));
+        counters: {
+          total: totalPages,
+          copier: null,
+          fax: null,
+          scanner: null,
+        },
+        thirtyDayVolume,
+      };
+      });
 
       return res.status(200).json(formatted);
     } catch (err: any) {

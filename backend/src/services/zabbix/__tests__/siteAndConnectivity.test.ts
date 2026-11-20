@@ -95,9 +95,11 @@ describe('computeSupplyHealth & classifyCurrentPrinterFault', () => {
       { itemid: '4', hostid: '101', name: 'Model', key_: 'hrDeviceDescr', lastvalue: 'Ricoh MP C6004', status: '0' },
       { itemid: '5', hostid: '101', name: 'Mức Vật Tư: Cyan Toner', key_: 'printer.supply.level[2]', lastvalue: '3000', status: '0' },
       { itemid: '6', hostid: '101', name: 'Dung Lượng Tối Đa Vật Tư: Cyan Toner', key_: 'printer.supply.max[2]', lastvalue: '10000', status: '0' },
+      { itemid: '7', hostid: '101', name: 'Mức Vật Tư: Toner', key_: 'printer.supply.level[1]', lastvalue: '60', status: '0' },
     ];
     expect(resolveSupplyPercentFromItems(items, ['toner_black'])).toBe(45);
     expect(resolveSupplyPercentFromItems(items, ['toner_cyan'], ['cyan'])).toBe(30);
+    expect(resolveSupplyPercentFromItems(items.filter((it) => !it.name.includes('Cyan')), [], ['toner'])).toBe(60);
     expect(extractHostSerialAndModel(items)).toEqual({
       serialNumber: 'SN-998877',
       model: 'Ricoh MP C6004',

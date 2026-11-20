@@ -8,6 +8,7 @@
  */
 
 import { FloorObstacle, FloorObstacleType } from '@/types/printer';
+import { DATA_SOURCE } from '@/config/dataSource';
 
 const STORAGE_PREFIX = 'fleetmonitor_floor_obstacles_v6_';
 
@@ -196,6 +197,7 @@ export function getFloorObstacles(floor: string, branch?: string): FloorObstacle
       if (Array.isArray(parsed)) return parsed;
     }
   } catch { /* fallback */ }
+  if (DATA_SOURCE !== 'mock') return [];
   const seed = DEFAULT_SEEDS[floor] || DEFAULT_SEEDS['Tầng trệt'] || [];
   return seed.map((item) => ({ ...item, floor }));
 }
@@ -208,6 +210,10 @@ export function saveFloorObstacles(floor: string, obstacles: FloorObstacle[], br
 
 export function resetFloorObstacles(floor: string, branch?: string): FloorObstacle[] {
   saveFloorDimensions(floor, DEFAULT_DIMS, branch);
+  if (DATA_SOURCE !== 'mock') {
+    saveFloorObstacles(floor, [], branch);
+    return [];
+  }
   const seed = DEFAULT_SEEDS[floor] || DEFAULT_SEEDS['Tầng trệt'] || [];
   const next = seed.map((item) => ({ ...item, floor }));
   saveFloorObstacles(floor, next, branch);

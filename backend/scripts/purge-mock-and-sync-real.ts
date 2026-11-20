@@ -48,12 +48,18 @@ async function main() {
   await prisma.task.deleteMany({});
   console.log(' -> Đã xóa các tác vụ, nhật ký kỹ thuật & file đính kèm mẫu');
 
-  // Xóa sản lượng bộ đếm, sự cố, vật tư và máy in
+  // Xóa lịch sử, kho vật tư, mua sắm, sản lượng bộ đếm, sự cố, vật tư, sơ đồ tầng và máy in
+  await prisma.printerHistoryLog.deleteMany({});
+  await prisma.inventoryTransaction.deleteMany({});
+  await prisma.procurementRequest.deleteMany({});
+  await prisma.purchaseOrder.deleteMany({});
+  await prisma.inventoryItem.deleteMany({});
   await prisma.counterRollup.deleteMany({});
   await prisma.incident.deleteMany({});
   await prisma.printerConsumable.deleteMany({});
   const deletedPrinters = await prisma.printer.deleteMany({});
-  console.log(` -> ĐÃ XÓA THÀNH CÔNG ${deletedPrinters.count} MÁY IN MOCK KHỎI CƠ SỞ DỮ LIỆU!`);
+  await prisma.floor.deleteMany({});
+  console.log(` -> ĐÃ XÓA SẠCH ${deletedPrinters.count} MÁY IN MOCK, KHO VẬT TƯ, SƠ ĐỒ TẦNG & DỮ LIỆU MẪU!`);
 
   // 3. Kiểm tra kết nối Zabbix API
   console.log('\n[3/4] Kiểm tra kết nối Zabbix 7.0 LTS Server...');

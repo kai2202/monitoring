@@ -1,0 +1,20 @@
+zabbix_export:
+  version: '7.0'
+  host_groups:
+    - uuid: e05e97f847244e6291a77afb5a8dad0b
+      name: 'Site-10-48-3'
+  hosts:
+    - host: PRN-10-48-3-253
+      name: 'Printer 10.48.3.253'
+      templates:
+        - name: 'Template FleetMonitor SNMP Printer'
+      groups:
+        - name: 'Site-10-48-3'
+      interfaces:
+        - interface_ref: if1
+          type: SNMP
+          ip: 10.48.3.253
+          port: '161'
+          details:
+            version: SNMPV2
+            community: '{$SNMP_COMMUNITY}'

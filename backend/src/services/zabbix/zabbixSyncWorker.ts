@@ -193,7 +193,18 @@ export class ZabbixSyncWorker {
         }
 
         // Chặn các giá trị SNMP đặc biệt (-1, -2, -3) hoặc vượt [0..100]% theo Rule 5.1; hỗ trợ level/maxCapacity & Zabbix LLD
-        const tonerBlack = resolveSupplyPercentFromItems(hostItems, ['toner_black', 'toner_k', 'toner.black'], ['black', 'đen']) ?? printer.consumable?.tonerBlack ?? null;
+        const tonerBlack =
+          resolveSupplyPercentFromItems(hostItems, ['toner_black', 'toner_k', 'toner.black'], ['black', 'đen']) ??
+          resolveSupplyPercentFromItems(
+            hostItems.filter((it) => {
+              const n = (it.name || '').toLowerCase();
+              return !n.includes('waste') && !n.includes('thải') && !n.includes('cyan') && !n.includes('magenta') && !n.includes('yellow');
+            }),
+            [],
+            ['toner']
+          ) ??
+          printer.consumable?.tonerBlack ??
+          null;
         const tonerCyan = printer.isColor ? resolveSupplyPercentFromItems(hostItems, ['toner_cyan', 'toner_c', 'toner.cyan'], ['cyan', 'xanh']) ?? printer.consumable?.tonerCyan ?? null : null;
         const tonerMagenta = printer.isColor ? resolveSupplyPercentFromItems(hostItems, ['toner_magenta', 'toner_m', 'toner.magenta'], ['magenta', 'đỏ', 'hồng']) ?? printer.consumable?.tonerMagenta ?? null : null;
         const tonerYellow = printer.isColor ? resolveSupplyPercentFromItems(hostItems, ['toner_yellow', 'toner_y', 'toner.yellow'], ['yellow', 'vàng']) ?? printer.consumable?.tonerYellow ?? null : null;

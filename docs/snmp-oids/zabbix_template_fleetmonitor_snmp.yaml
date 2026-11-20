@@ -1,10 +1,10 @@
 zabbix_export:
   version: '7.0'
   template_groups:
-    - uuid: 7df963eb02fb4570b584a63b0a997d22
+    - uuid: ae2add8fd07a49a1bc4970bf6b570a33
       name: 'Templates/FleetMonitor Network Printers'
   templates:
-    - uuid: 8a4b6c2d1e0f4a3b8c5d7e9f0a1b2c3d
+    - uuid: 833834708b78406faac53c702977050e
       template: 'Template FleetMonitor SNMP Printer'
       name: 'Template FleetMonitor SNMP Printer'
       description: |
@@ -14,8 +14,15 @@ zabbix_export:
         - LOẠI TRỪ HOÀN TOÀN các cảnh báo khay giấy/hết giấy và nắp cửa máy in (vận hành thủ công tại chỗ).
       groups:
         - name: 'Templates/FleetMonitor Network Printers'
+      macros:
+        - macro: '{$SNMP_COMMUNITY}'
+          value: 'public'
+          description: 'SNMP v2c community string (có thể ghi đè theo từng Site/Host).'
+        - macro: '{$TONER_WARN_PCT}'
+          value: '15'
+          description: 'Ngưỡng cảnh báo mực thấp (%).'
       items:
-        - uuid: 100a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: 7dbfae739f1f45fe9ab3d67cf7541571
           name: 'Kiểm Tra Mạng ICMP Ping'
           type: SIMPLE
           key: 'icmpping'
@@ -25,12 +32,12 @@ zabbix_export:
           value_type: UNSIGNED
           description: '0: Mất kết nối mạng (ICMP Down), 1: Thông mạng (ICMP Up).'
           triggers:
-            - uuid: 200a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+            - uuid: e7eec88146ad4ca7b0516b414c916b7b
               expression: 'max(/Template FleetMonitor SNMP Printer/icmpping,#3)=0'
               name: 'Mất kết nối mạng ICMP (3 lần liên tiếp)'
               priority: HIGH
 
-        - uuid: 100b1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: 1d11a57a1da54fb89210573dcba2cf0d
           name: 'Số Serial Thiết Bị (prtGeneralSerialNumber)'
           type: SNMP_AGENT
           snmp_oid: '1.3.6.1.2.1.43.5.1.1.17.1'
@@ -40,8 +47,12 @@ zabbix_export:
           trends: '0'
           value_type: CHAR
           description: 'Serial Number gốc đọc từ Printer-MIB.'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
 
-        - uuid: 100c1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: 8bbe99a7692d4a6aac64f790201eb9a7
           name: 'Tên Dòng Máy (hrDeviceDescr)'
           type: SNMP_AGENT
           snmp_oid: '1.3.6.1.2.1.25.3.2.1.3.1'
@@ -51,8 +62,12 @@ zabbix_export:
           trends: '0'
           value_type: CHAR
           description: 'Model thiết bị đọc từ Host-Resources MIB.'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
 
-        - uuid: 100d1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: 1e9e6993ce3441aba1495aca06db7845
           name: 'SNMP Trap Fallback (Hứng OID Lạ)'
           type: SNMP_TRAP
           key: 'snmptrap.fallback'
@@ -61,13 +76,13 @@ zabbix_export:
           value_type: LOG
           description: 'Hứng các mã lỗi / OID riêng của hãng chưa khai báo trước.'
           triggers:
-            - uuid: 200d1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+            - uuid: 3e5532f8be644fca8cc39df46b1d73b7
               expression: 'length(last(/Template FleetMonitor SNMP Printer/snmptrap.fallback))>0'
               name: 'Phát hiện SNMP Trap lỗi mới: {ITEM.VALUE}'
               priority: AVERAGE
               manual_close: 'YES'
 
-        - uuid: 101a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: f19b0333416a4dfd960339964f6f538c
           name: 'Trạng Thái Thiết Bị (hrDeviceStatus)'
           type: SNMP_AGENT
           snmp_oid: '1.3.6.1.2.1.25.3.2.1.5.1'
@@ -78,13 +93,13 @@ zabbix_export:
           value_type: UNSIGNED
           description: '1: unknown, 2: running (khỏe mạnh), 3: warning, 4: testing, 5: down'
           triggers:
-            - uuid: 201a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+            - uuid: b0898d73e7144bf5a24b7e5aa74c16f0
               expression: 'last(/Template FleetMonitor SNMP Printer/printer.device_status)=5'
               name: 'Máy in gặp sự cố phần cứng nghiêm trọng (Device Down)'
               priority: HIGH
               manual_close: 'YES'
 
-        - uuid: 102a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: 6fa1750dfad74cb78e6c99b95dc2b29a
           name: 'Tổng Sản Lượng Trang In Trọn Đời (prtMarkerLifeCount)'
           type: SNMP_AGENT
           snmp_oid: '1.3.6.1.2.1.43.10.2.1.4.1.1'
@@ -95,7 +110,7 @@ zabbix_export:
           value_type: UNSIGNED
           description: 'Marker Life Count - Tổng số trang in cả đời máy từ khi xuất xưởng.'
 
-        - uuid: 103a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: 7498f798d74044db8d523ae3088c97b0
           name: 'Thông Điệp Màn Hình LCD (prtConsoleDisplayText)'
           type: SNMP_AGENT
           snmp_oid: '1.3.6.1.2.1.43.16.5.1.2.1.1'
@@ -106,7 +121,7 @@ zabbix_export:
           value_type: CHAR
           description: 'Dòng thông báo hiển thị trên bảng điều khiển máy in.'
 
-        - uuid: 104a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: fc70f1fddc6d469ca553db4df56b0893
           name: 'Ricoh: Mã Lỗi SC Đang Kích Hoạt'
           type: SNMP_AGENT
           snmp_oid: '1.3.6.1.4.1.367.3.2.1.6.1.1.7.1'
@@ -117,13 +132,13 @@ zabbix_export:
           value_type: CHAR
           description: 'Mã lỗi phần cứng máy photo Ricoh (SC541, SC542, SC320...).'
           triggers:
-            - uuid: 202a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+            - uuid: fdce17a1558e4209ab1cbdb9cff41856
               expression: 'length(last(/Template FleetMonitor SNMP Printer/ricoh.sc_code))>0'
               name: 'Ricoh: Phát hiện mã lỗi Service Call {ITEM.VALUE}'
               priority: DISASTER
               manual_close: 'YES'
 
-        - uuid: 105a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: d563ef5896da4f53bdb2bec301ec3928
           name: 'Ricoh: Tổng Trang In Đen Trắng (Mono Life Count)'
           type: SNMP_AGENT
           snmp_oid: '1.3.6.1.4.1.367.3.2.1.2.19.1.0'
@@ -133,7 +148,7 @@ zabbix_export:
           trends: 730d
           value_type: UNSIGNED
 
-        - uuid: 106a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: 0d2c934da6e04b8ab8e4c42096c595ac
           name: 'Ricoh: Tổng Trang In Màu (Color Life Count)'
           type: SNMP_AGENT
           snmp_oid: '1.3.6.1.4.1.367.3.2.1.2.19.2.0'
@@ -144,14 +159,14 @@ zabbix_export:
           value_type: UNSIGNED
 
       discovery_rules:
-        - uuid: 301a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: c28a5c10841e45d1b7079538f8e8bcf5
           name: 'Tự Động Phát Hiện Mực & Hộp Mực Thải (Marker Supplies Discovery)'
           type: SNMP_AGENT
           snmp_oid: 'discovery[{#SUPPLY_NAME},1.3.6.1.2.1.43.11.1.1.6.1]'
           key: 'printer.supplies.discovery'
           delay: 1h
           item_prototypes:
-            - uuid: 401a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+            - uuid: 544f248f387e4e7ca6dc5ebc949a5b2d
               name: 'Mức Vật Tư: {#SUPPLY_NAME}'
               type: SNMP_AGENT
               snmp_oid: '1.3.6.1.2.1.43.11.1.1.9.1.{#SNMPINDEX}'
@@ -159,9 +174,9 @@ zabbix_export:
               delay: 5m
               history: 14d
               trends: 365d
-              value_type: INTEGER
+              value_type: FLOAT
               description: 'Mức còn lại của vật tư {#SUPPLY_NAME}. -3: someRemaining (còn mực nhưng không rõ %), -2: unknown, -1: other.'
-            - uuid: 402a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+            - uuid: a8bee5a8003d4b08bef5064e65e542c3
               name: 'Dung Lượng Tối Đa Vật Tư: {#SUPPLY_NAME}'
               type: SNMP_AGENT
               snmp_oid: '1.3.6.1.2.1.43.11.1.1.8.1.{#SNMPINDEX}'
@@ -169,9 +184,18 @@ zabbix_export:
               delay: 1d
               history: 7d
               trends: 365d
-              value_type: INTEGER
+              value_type: FLOAT
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1d
+          trigger_prototypes:
+            - uuid: 9bf8c7e6f56449c0a4622d8094f9c39f
+              expression: 'last(/Template FleetMonitor SNMP Printer/printer.supply.level[{#SNMPINDEX}])>=0 and last(/Template FleetMonitor SNMP Printer/printer.supply.max[{#SNMPINDEX}])>0 and (last(/Template FleetMonitor SNMP Printer/printer.supply.level[{#SNMPINDEX}])*100/last(/Template FleetMonitor SNMP Printer/printer.supply.max[{#SNMPINDEX}]))<{$TONER_WARN_PCT}'
+              name: 'Cảnh báo mực/vật tư thấp (<{$TONER_WARN_PCT}%): {#SUPPLY_NAME}'
+              priority: WARNING
 
-        - uuid: 302a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+        - uuid: cb3e65ec0b5b4a57a0578d3c20f75697
           name: 'Tự Động Phát Hiện Lỗi Phần Cứng & Kẹt Giấy (prtAlertTable LLD)'
           type: SNMP_AGENT
           snmp_oid: 'discovery[{#ALERT_DESC},1.3.6.1.2.1.43.18.1.1.8,{#ALERT_CODE},1.3.6.1.2.1.43.18.1.1.7,{#ALERT_SEV},1.3.6.1.2.1.43.18.1.1.2]'
@@ -184,7 +208,7 @@ zabbix_export:
                 operator: NOT_MATCHES_REGEX
                 formulaid: A
           item_prototypes:
-            - uuid: 403a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+            - uuid: 7f3bf5cb39254963bb5f0229c95ea92d
               name: 'Cảnh báo thiết bị [{#ALERT_CODE}]: {#ALERT_DESC}'
               type: SNMP_AGENT
               snmp_oid: '1.3.6.1.2.1.43.18.1.1.8.{#SNMPINDEX}'
@@ -194,7 +218,7 @@ zabbix_export:
               trends: '0'
               value_type: CHAR
               trigger_prototypes:
-                - uuid: 503a1b2c3d4e5f6a7b8c9d0e1f2a3b4c
+                - uuid: 50b7ac744fe246cb94e8d3ef7e2c15f9
                   expression: 'length(last(/Template FleetMonitor SNMP Printer/printer.alert.desc[{#SNMPINDEX}]))>0'
                   name: 'Lỗi máy in [{#ALERT_CODE}]: {#ALERT_DESC}'
                   priority: HIGH
