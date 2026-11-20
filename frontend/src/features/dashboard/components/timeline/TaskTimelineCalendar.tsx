@@ -18,7 +18,7 @@ import { taskService } from '../../../../services';
 import { useAvailableTechnicians } from '../../../../shared/hooks/useAvailableTechnicians';
 import { TimelineCalendarHeader, AvailableTechnician } from './TimelineCalendarHeader';
 import { TimelineCalendarGrid } from './TimelineCalendarGrid';
-import { TimelineCreateTaskModal } from './TimelineCreateTaskModal';
+import { DiagnosticsCreateTaskForm } from '../diagnostics/DiagnosticsCreateTaskForm';
 import { formatLocalDate } from './timelineLanesHelper';
 
 export interface TaskTimelineCalendarProps {
@@ -248,7 +248,7 @@ export const TaskTimelineCalendar: React.FC<TaskTimelineCalendarProps> = ({
       />
 
       {/* 3. Modal Create Task */}
-      <TimelineCreateTaskModal
+      <DiagnosticsCreateTaskForm
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         printers={printers}

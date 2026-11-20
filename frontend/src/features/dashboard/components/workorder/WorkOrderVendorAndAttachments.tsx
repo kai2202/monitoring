@@ -83,7 +83,7 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
     <div className={embedded ? 'flex flex-col divide-y divide-slate-200/70 dark:divide-slate-800' : 'flex flex-col gap-3'}>
       {/* 1. Vendor Communications */}
       {showVendor && (
-      <div className={embedded ? 'overflow-hidden' : 'rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden'}>
+      <div className="rounded-xl bg-white dark:bg-slate-900 shadow-xs ring-1 ring-slate-900/[0.04] dark:ring-white/[0.06] overflow-hidden">
         <button
           type="button"
           onClick={() => setIsVendorOpen(!isVendorOpen)}
@@ -161,7 +161,7 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
 
       {/* 2. Attachments - Yellow Folder Cards + MinIO S3 Integration */}
       {showAttachments && (
-      <div className={embedded ? 'overflow-hidden' : 'rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden'}>
+      <div className="rounded-xl bg-white dark:bg-slate-900 shadow-xs ring-1 ring-slate-900/[0.04] dark:ring-white/[0.06] overflow-hidden">
         <button
           type="button"
           onClick={() => setIsAttachmentsOpen(!isAttachmentsOpen)}
@@ -179,7 +179,7 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
         </button>
 
         {isAttachmentsOpen && (
-          <div className="p-4 pt-1 flex flex-col gap-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="p-4 pt-2 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-slate-600 dark:text-slate-300">
                 {attachments.length} tệp tin xác thực
@@ -210,7 +210,7 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
             {attachments.length === 0 ? (
               <div
                 onClick={() => !isUploading && fileInputRef.current?.click()}
-                className="p-5 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-50 transition-colors"
+                className="p-5 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-100 transition-colors"
               >
                 <FontAwesomeIcon icon={faPaperclip} className="text-indigo-600 text-base" />
                 <span className="text-xs font-semibold text-indigo-600">

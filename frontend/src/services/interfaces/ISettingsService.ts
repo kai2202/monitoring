@@ -47,14 +47,14 @@ export interface CreateManagedUserDto {
   name: string;
   email: string;
   password: string;
-  role: 'ADMIN' | 'FIELD_TECH' | 'ASSET_HR';
+  role: 'ADMIN' | 'FIELD_TECH';
   branchScope?: string[];
   floorsScope?: string[];
 }
 
 export interface UpdateManagedUserDto {
   name?: string;
-  role?: 'ADMIN' | 'FIELD_TECH' | 'ASSET_HR';
+  role?: 'ADMIN' | 'FIELD_TECH';
   status?: 'ACTIVE' | 'INACTIVE';
   branchScope?: string[];
   floorsScope?: string[];

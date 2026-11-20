@@ -37,7 +37,7 @@ const loadInitialUser = (): AuthUser | null => {
     return null;
   }
 
-  return MOCK_USERS.FLEET_MANAGER;
+  return MOCK_USERS.ADMIN;
 };
 
 const initialUser = loadInitialUser();

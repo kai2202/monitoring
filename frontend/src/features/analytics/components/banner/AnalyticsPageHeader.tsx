@@ -46,12 +46,11 @@ export const AnalyticsPageHeader: React.FC<AnalyticsPageHeaderProps> = ({
   onExportCostCsv,
 }) => {
   const { user } = useSelector((state: RootState) => state.auth);
-  const isFieldTech = user?.role === 'FIELD_TECH' || user?.role === 'FIELD_TECHNICIAN';
-  const isAssetHr = user?.role === 'ASSET_HR' || user?.role === 'DEPARTMENT_HEAD';
+  const isFieldTech = user?.role === 'FIELD_TECH';
 
   const allSubTabs = [
     { id: 'overview' as const, label: 'Sản lượng in', icon: faChartLine, badge: null },
-    { id: 'sla-cost' as const, label: isAssetHr ? 'Chi phí phòng ban' : 'SLA & Chi phí', icon: faDollarSign, badge: null },
+    { id: 'sla-cost' as const, label: 'SLA & Chi phí', icon: faDollarSign, badge: null },
   ];
   const subTabs = isFieldTech ? allSubTabs.filter((t) => t.id !== 'sla-cost') : allSubTabs;
 
@@ -73,7 +72,7 @@ export const AnalyticsPageHeader: React.FC<AnalyticsPageHeaderProps> = ({
   const getTitle = () => {
     switch (currentTab) {
       case 'sla-cost':
-        return isAssetHr ? 'Hạch Toán Chi Phí Thuê Máy Phòng Ban' : 'Hiệu Suất Vận Hành & SLA';
+        return 'Hiệu Suất Vận Hành & SLA';
       default:
         return 'Phân Tích Sản Lượng Máy In';
     }
@@ -82,13 +81,9 @@ export const AnalyticsPageHeader: React.FC<AnalyticsPageHeaderProps> = ({
   const getSubtitle = () => {
     switch (currentTab) {
       case 'sla-cost':
-        return isAssetHr
-          ? 'Đối soát chi phí thuê máy theo phòng ban và xuất báo cáo đối soát hóa đơn.'
-          : 'Chỉ số Uptime, MTBF, MTTR, ma trận điểm nóng sự cố và phân tích thiết bị cần chú ý.';
+        return 'Chỉ số Uptime, MTBF, MTTR, ma trận điểm nóng sự cố và phân tích thiết bị cần chú ý.';
       default:
-        return isAssetHr
-          ? 'Kiểm soát định mức sản lượng in ấn Mono/Color theo từng phòng ban và chi nhánh.'
-          : 'Báo cáo xu hướng in ấn Soft Spline, phân bổ tỷ trọng Mono/Color và sàn đối chiếu máy in.';
+        return 'Báo cáo xu hướng in ấn Soft Spline, phân bổ tỷ trọng Mono/Color và sàn đối chiếu máy in.';
     }
   };
 

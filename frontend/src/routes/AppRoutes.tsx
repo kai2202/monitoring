@@ -25,7 +25,6 @@ import { getAnalyticsRoutes } from '../features/analytics';
 import { getSettingsRoutes } from '../features/settings';
 
 const InventoryPage = React.lazy(() => import('../features/inventory').then((m) => ({ default: m.InventoryPage })));
-const ProcurementPage = React.lazy(() => import('../features/procurement').then((m) => ({ default: m.ProcurementPage })));
 
 const RouteLoadingFallback: React.FC = () => (
   <div className="flex flex-col gap-6 p-6 w-full animate-pulse">
@@ -98,7 +97,6 @@ export const AppRoutes: React.FC = () => {
     if (path.startsWith('/analytics/sla-cost')) return 'analytics-sla-cost';
     if (path.startsWith('/analytics')) return 'analytics';
     if (path.startsWith('/inventory')) return 'inventory';
-    if (path.startsWith('/procurement')) return 'procurement';
     if (path.startsWith('/settings')) return 'settings';
     return 'dashboard';
   };
@@ -129,9 +127,6 @@ export const AppRoutes: React.FC = () => {
       case 'inventory':
         navigate('/inventory');
         break;
-      case 'procurement':
-        navigate('/procurement');
-        break;
       case 'settings':
         navigate('/settings');
         break;
@@ -141,7 +136,7 @@ export const AppRoutes: React.FC = () => {
   };
 
   // Trang đích mặc định tùy vai trò người dùng (KTV vào thẳng Lịch trình Gantt)
-  const isFieldTech = role === 'FIELD_TECH' || role === 'FIELD_TECHNICIAN';
+  const isFieldTech = role === 'FIELD_TECH';
   const defaultHomePath = isFieldTech ? '/printers/timeline' : '/dashboard';
 
   const routes = useMemo(
@@ -207,7 +202,7 @@ export const AppRoutes: React.FC = () => {
       }).map((r) => ({
         ...r,
         element: (
-          <ProtectedRoute allowedRoles={['ADMIN', 'FLEET_MANAGER']}>
+          <ProtectedRoute allowedRoles={['ADMIN']}>
             {r.element as React.ReactElement}
           </ProtectedRoute>
         ),
@@ -217,14 +212,6 @@ export const AppRoutes: React.FC = () => {
         element: (
           <ProtectedRoute>
             <InventoryPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: '/procurement',
-        element: (
-          <ProtectedRoute allowedRoles={['ADMIN', 'ASSET_HR', 'FLEET_MANAGER', 'DEPARTMENT_HEAD']}>
-            <ProcurementPage />
           </ProtectedRoute>
         ),
       },

@@ -32,7 +32,7 @@ export const InventoryPage: React.FC = () => {
   const selectedBranch = globalBranch || (branches.length > 0 ? branches[0] : '');
 
   const role = user?.role || 'ADMIN';
-  const isFieldTech = role === 'FIELD_TECH' || role === 'FIELD_TECHNICIAN';
+  const isFieldTech = role === 'FIELD_TECH';
   const canViewCost = !isFieldTech;
 
   const { data: response, isLoading, refetch } = useGetInventoryItemsQuery();

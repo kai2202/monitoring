@@ -43,12 +43,13 @@ export const PrinterTableRow: React.FC<PrinterTableRowProps> = ({
       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
     >
       <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
-        <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--text-primary)', fontFamily: "'JetBrains Mono', monospace" }}>{p.id}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace" }}>{p.ip || '—'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--text-primary)', fontFamily: "'JetBrains Mono', monospace" }}>
+            {p.ip || '—'}
+          </span>
           {p.ip && (
             <button onClick={(e) => onCopyIp(e, p.ip)} style={{ color: copiedIp === p.ip ? 'var(--status-online)' : 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-              <FontAwesomeIcon icon={copiedIp === p.ip ? faCheck : faCopy} style={{ fontSize: '10px' }} />
+              <FontAwesomeIcon icon={copiedIp === p.ip ? faCheck : faCopy} style={{ fontSize: '11px' }} />
             </button>
           )}
         </div>

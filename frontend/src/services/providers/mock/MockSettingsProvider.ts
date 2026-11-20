@@ -228,9 +228,7 @@ export class MockSettingsProvider implements ISettingsService {
     const roleNameVi =
       dto.role === 'ADMIN'
         ? 'Quản trị viên Hệ thống (Admin)'
-        : dto.role === 'FIELD_TECH'
-        ? 'Kỹ thuật viên NOC & Hiện trường'
-        : 'Chuyên viên Tài sản & Kế toán HR';
+        : 'Kỹ thuật viên NOC & Hiện trường';
 
     const created: ManagedUser = {
       id: `u-${Date.now()}`,
@@ -253,8 +251,6 @@ export class MockSettingsProvider implements ISettingsService {
         ? 'Quản trị viên Hệ thống (Admin)'
         : dto.role === 'FIELD_TECH'
         ? 'Kỹ thuật viên NOC & Hiện trường'
-        : dto.role === 'ASSET_HR'
-        ? 'Chuyên viên Tài sản & Kế toán HR'
         : undefined;
 
     this.users = this.users.map((u) => {

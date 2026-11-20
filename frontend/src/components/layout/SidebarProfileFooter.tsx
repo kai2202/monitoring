@@ -38,12 +38,9 @@ export const SidebarProfileFooter: React.FC<SidebarProfileFooterProps> = ({
 
   if (!user) return null;
 
-  const isTech = user.role === 'FIELD_TECH' || user.role === 'FIELD_TECHNICIAN';
-  const isHr = user.role === 'ASSET_HR' || user.role === 'DEPARTMENT_HEAD';
+  const isTech = user.role === 'FIELD_TECH';
   const avatarCls = isTech
     ? 'bg-amber-100 text-amber-800'
-    : isHr
-    ? 'bg-pink-100 text-pink-700'
     : 'bg-blue-100 text-blue-700';
 
   return (

@@ -13,11 +13,10 @@ import { RootState } from '../../../../app/store';
 import { addTaskNotification, removeTaskNotificationByTaskId } from '../../../../app/slices/notificationSlice';
 import { DATA_SOURCE } from '../../../../config/dataSource';
 import { taskService } from '../../../../services';
-import { Task, TimeAndCostSummary, WorkLogEntry, TaskAttachment, VendorCommunicationLog } from '../../../../types/task';
+import { Task, WorkLogEntry, TaskAttachment, VendorCommunicationLog } from '../../../../types/task';
 import { FontAwesomeIcon, faTriangleExclamation } from '../../../../shared/icons';
 import {
   WorkOrderHeaderCard,
-  WorkOrderTimeCostCard,
   WorkOrderMaterialsCard,
   WorkOrderSubTasksProgress,
   WorkOrderWorkLogsList,
@@ -48,10 +47,10 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdmin = user?.role === 'ADMIN';
-  const isHr = user?.role === 'ASSET_HR' || user?.role === 'DEPARTMENT_HEAD';
+  const isHr = false;
   const [selectedStepFilter, setSelectedStepFilter] = useState<string | null>(null);
   const [isReworkModalOpen, setIsReworkModalOpen] = useState(false);
-  const [detailTab, setDetailTab] = useState<'execution' | 'discussion' | 'attachments'>('execution');
+  const [detailTab, setDetailTab] = useState<'execution' | 'discussion'>('execution');
 
   const discussionCount = (task.contributions?.length || 0) + (task.vendorCommunications?.length || 0);
   const attachmentCount = task.attachments?.length || 0;
@@ -136,7 +135,6 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
     }
   };
 
-  const handleSaveTimeCost = (tc: TimeAndCostSummary) => onUpdateTask?.({ ...task, timeAndCost: tc });
   const handleAddAttachment = (att: TaskAttachment) => {
     const list = task.attachments || [];
     if (!list.some((a) => a.id === att.id || (a.fileName === att.fileName && a.uploadedAt === att.uploadedAt))) {
@@ -210,7 +208,7 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
       />
 
       {isReworking && (
-        <div className="px-3.5 py-2.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 border-l-4 border-l-amber-500 flex items-start gap-2.5">
+        <div className="px-3.5 py-2.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/30 flex items-start gap-2.5">
           <FontAwesomeIcon icon={faTriangleExclamation} className="text-amber-600 dark:text-amber-400 text-xs mt-0.5 shrink-0" />
           <div className="flex-1 flex flex-col gap-0.5">
             <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Yêu cầu làm lại từ Quản trị viên</span>
@@ -219,14 +217,13 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
         </div>
       )}
 
-      {/* Sub-tabs điều hướng gọn theo ngữ cảnh thao tác */}
-      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800">
+      {/* Sub-tabs điều hướng gọn: 2 tab chính */}
+      <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 self-start">
         {[
           { id: 'execution' as const, label: 'Thực thi & Vật tư' },
           ...(task.taskType !== 'SUPPLY_REPLENISHMENT' || (task.vendorCommunications?.length || 0) > 0
             ? [{ id: 'discussion' as const, label: `Trao đổi & Hãng (${discussionCount})` }]
             : []),
-          { id: 'attachments' as const, label: `Tài liệu & Ảnh (${attachmentCount})` },
         ].map((tab) => {
           const isActive = detailTab === tab.id;
           return (
@@ -234,10 +231,10 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
               key={tab.id}
               type="button"
               onClick={() => setDetailTab(tab.id)}
-              className={`px-3.5 py-2 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 isActive
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
               }`}
             >
               {tab.label}
@@ -246,8 +243,8 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
         })}
       </div>
 
-      {/* Nội dung Sub-tab: 1 khung phẳng duy nhất, biến đổi thứ tự theo TaskType */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
+      {/* Nội dung Sub-tab: nền xám nhẹ tách biệt các card trắng bên trong */}
+      <div className="rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 p-2.5 flex flex-col gap-2.5 overflow-hidden">
         {detailTab === 'execution' && (
           <>
             {task.taskType === 'SUPPLY_REPLENISHMENT' && (
@@ -292,26 +289,27 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
             )}
 
             {task.taskType !== 'SUPPLY_REPLENISHMENT' && (
-              <WorkOrderTimeCostCard
-                embedded
-                timeAndCost={task.timeAndCost || { repairTimeHours: null, waitingTimeHours: null, downtimeHours: null, laborCostVnd: null, partsCostVnd: null, totalCostVnd: null }}
-                estimatedTimeAndCost={task.estimatedTimeAndCost} isReadOnly={isGeneralReadOnly} onSaveTimeCost={handleSaveTimeCost}
-              />
-            )}
-
-            {task.taskType !== 'SUPPLY_REPLENISHMENT' && (
               <WorkOrderMaterialsCard
                 task={task}
                 readOnly={isGeneralReadOnly}
                 onUpdateMaterials={(plannedMaterials) => onUpdateTask?.({ ...task, plannedMaterials })}
               />
             )}
+
+            <WorkOrderVendorAndAttachments
+              embedded
+              section="attachments"
+              taskId={task.id} uploaderName={user?.fullName || 'Kỹ thuật viên'}
+              vendorLogs={task.vendorCommunications || []} attachments={task.attachments || []}
+              isReadOnly={isGeneralReadOnly} onAddVendorLog={handleAddVendorLog}
+              onAddAttachment={handleAddAttachment} onDeleteAttachment={handleDeleteAttachment}
+            />
           </>
         )}
 
         {detailTab === 'discussion' && (
           <>
-            <div className="p-4">
+            <div className="p-4 rounded-xl bg-white dark:bg-slate-900">
               <TaskCollaborationThread task={task} onTaskUpdated={onUpdateTask} />
             </div>
             <WorkOrderVendorAndAttachments
@@ -323,17 +321,6 @@ export const WorkOrderDetailView: React.FC<WorkOrderDetailViewProps> = ({
               onAddAttachment={handleAddAttachment} onDeleteAttachment={handleDeleteAttachment}
             />
           </>
-        )}
-
-        {detailTab === 'attachments' && (
-          <WorkOrderVendorAndAttachments
-            embedded
-            section="attachments"
-            taskId={task.id} uploaderName={user?.fullName || 'Kỹ thuật viên'}
-            vendorLogs={task.vendorCommunications || []} attachments={task.attachments || []}
-            isReadOnly={isGeneralReadOnly} onAddVendorLog={handleAddVendorLog}
-            onAddAttachment={handleAddAttachment} onDeleteAttachment={handleDeleteAttachment}
-          />
         )}
       </div>
 

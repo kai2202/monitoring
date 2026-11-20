@@ -3,7 +3,7 @@
  *
  * Dịch vụ Xác thực Người dùng & Quản lý Phiên (AuthService):
  * - Hỗ trợ song song 2 chế độ theo `DATA_SOURCE` (`mock` vs `api`):
- *   + `mock`: Xác thực tức thì với 3 vai trò mô phỏng (ADMIN, FIELD_TECH, ASSET_HR).
+ *   + `mock`: Xác thực tức thì với 2 vai trò mô phỏng (ADMIN, FIELD_TECH).
  *   + `api`: Gọi trực tiếp REST API Backend (`/auth/login`, `/auth/logout`, `/auth/me`)
  *     với JWT Access Token + HTTP-Only Refresh Cookie Rotation.
  * - Tuân thủ AGENTS.md Rule 4 & Rule 7.1 (< 300 LOC).
@@ -21,11 +21,8 @@ import { MOCK_AUTH_USERS } from '../../../mocks/auth/mockAuthUsers';
 export const MOCK_USERS = MOCK_AUTH_USERS;
 
 function getRoleNameVi(role: UserRole): string {
-  if (role === 'FIELD_TECH' || role === 'FIELD_TECHNICIAN') {
+  if (role === 'FIELD_TECH') {
     return 'Kỹ thuật viên Hiện trường';
-  }
-  if (role === 'ASSET_HR' || role === 'DEPARTMENT_HEAD') {
-    return 'HR / Kiểm kê Tài sản & Hành chính';
   }
   return 'Quản trị viên Hệ thống (IT & NOC)';
 }
@@ -78,9 +75,6 @@ export class AuthService {
 
     if (normalizedUser.includes('tech') || normalizedUser.includes('nam')) {
       return MOCK_USERS.FIELD_TECH;
-    }
-    if (normalizedUser.includes('hr') || normalizedUser.includes('ketoan') || normalizedUser.includes('ha')) {
-      return MOCK_USERS.ASSET_HR;
     }
     return MOCK_USERS.ADMIN;
   }

@@ -4,7 +4,6 @@
 
 export * from './TimeDurationPicker';
 export * from './WorkOrderHeaderCard';
-export * from './WorkOrderTimeCostCard';
 export * from './WorkOrderMaterialsCard';
 export * from './WorkOrderSubTasksProgress';
 export * from './WorkOrderWorkLogsList';

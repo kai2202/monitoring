@@ -61,7 +61,7 @@ export const LoginPage: React.FC = () => {
         await locationService.fetchBranches();
       }
 
-      if (loggedUser.role === 'FIELD_TECHNICIAN' || loggedUser.role === 'FIELD_TECH') {
+      if (loggedUser.role === 'FIELD_TECH') {
         navigate('/printers/timeline', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });

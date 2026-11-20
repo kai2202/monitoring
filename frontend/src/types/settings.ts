@@ -28,7 +28,7 @@ export interface ManagedUser {
   id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'FIELD_TECH' | 'ASSET_HR';
+  role: 'ADMIN' | 'FIELD_TECH';
   roleNameVi: string;
   branchScope: string[];
   floorsScope: string[];

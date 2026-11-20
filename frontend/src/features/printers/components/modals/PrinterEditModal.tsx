@@ -276,7 +276,7 @@ export const PrinterEditModal: React.FC<PrinterEditModalProps> = ({
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 800, margin: 0, color: '#0f172a' }}>Hồ Sơ &amp; Điều Chuyển Thiết Bị</h2>
-                <span style={{ fontSize: '11px', fontFamily: "'JetBrains Mono', monospace", backgroundColor: '#eff6ff', padding: '2px 7px', borderRadius: '6px', color: '#2563eb', fontWeight: 700 }}>{printer.id}</span>
+                <span style={{ fontSize: '11px', fontFamily: "'JetBrains Mono', monospace", backgroundColor: '#eff6ff', padding: '2px 7px', borderRadius: '6px', color: '#2563eb', fontWeight: 700 }}>{printer.ip}</span>
               </div>
               <p style={{ fontSize: '11.5px', color: '#64748b', margin: '2px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {printer.name} • {printer.model} • {printer.ip}

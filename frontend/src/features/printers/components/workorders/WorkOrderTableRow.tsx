@@ -49,7 +49,7 @@ export const WorkOrderTableRow: React.FC<WorkOrderTableRowProps> = ({
   onOpenCancel,
 }) => {
   const { user } = useSelector((state: RootState) => state.auth);
-  const isAssetHr = user?.role === 'ASSET_HR' || user?.role === 'DEPARTMENT_HEAD';
+  const isAssetHr = false;
 
   const steps = task.dynamicSteps || [];
   const completedSteps = steps.filter((s) => s.status === 'Completed').length;

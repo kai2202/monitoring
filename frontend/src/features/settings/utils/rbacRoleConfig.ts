@@ -1,10 +1,10 @@
 /**
  * Frontend/src/features/settings/utils/rbacRoleConfig.ts
  *
- * Cấu hình chuẩn 3 Vai trò RBAC đồng bộ với Backend UserAdminController.
+ * Cấu hình chuẩn 2 Vai trò RBAC (Admin và Kỹ thuật viên).
  */
 
-export type RbacRoleCode = 'ADMIN' | 'FIELD_TECH' | 'ASSET_HR';
+export type RbacRoleCode = 'ADMIN' | 'FIELD_TECH';
 
 export interface RbacRoleMeta {
   code: RbacRoleCode;
@@ -31,14 +31,6 @@ export const RBAC_ROLES: RbacRoleMeta[] = [
     description: 'Tiếp nhận sự cố, thực thi phiếu bảo trì, ghi nhật ký công việc & đính kèm hiện trường.',
     badgeClass: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/70 dark:border-indigo-900/50',
     accentRingClass: 'border-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/30 dark:border-indigo-700',
-  },
-  {
-    code: 'ASSET_HR',
-    shortLabel: 'Tài sản & HR',
-    titleVi: 'Chuyên viên Tài sản & Kế toán HR',
-    description: 'Theo dõi danh sách máy in, chi phí vận hành, báo cáo SLA & xuất dữ liệu đối soát CSV.',
-    badgeClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200/70 dark:border-emerald-900/50',
-    accentRingClass: 'border-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/30 dark:border-emerald-700',
   },
 ];
 

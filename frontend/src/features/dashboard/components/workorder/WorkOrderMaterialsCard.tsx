@@ -67,7 +67,7 @@ export const WorkOrderMaterialsCard: React.FC<WorkOrderMaterialsCardProps> = ({
   };
 
   return (
-    <div className="p-4 flex flex-col gap-3">
+    <div className="p-4 rounded-xl bg-white dark:bg-slate-900 shadow-xs ring-1 ring-slate-900/[0.04] dark:ring-white/[0.06] flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <FontAwesomeIcon icon={faBox} className="text-xs text-blue-600" />
@@ -98,7 +98,7 @@ export const WorkOrderMaterialsCard: React.FC<WorkOrderMaterialsCardProps> = ({
 
       {/* Bộ chọn nhanh chỉ hiện khi bấm "+ Lấy thêm vật tư" */}
       {!readOnly && showAddPicker && (
-        <div className="p-2 rounded-xl border border-blue-200 bg-blue-50/40 dark:bg-blue-950/20 flex flex-col gap-1 max-h-[160px] overflow-y-auto">
+        <div className="p-2 rounded-xl bg-blue-50/60 dark:bg-blue-950/25 flex flex-col gap-1 max-h-[160px] overflow-y-auto">
           {inventoryItems.length === 0 ? (
             <div className="py-2 text-center text-xs text-slate-400">Đang tải kho...</div>
           ) : (
@@ -109,7 +109,7 @@ export const WorkOrderMaterialsCard: React.FC<WorkOrderMaterialsCardProps> = ({
                   key={it.id}
                   type="button"
                   onClick={() => handleAddExtraItem(it)}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 hover:bg-blue-50 border border-slate-200/80 flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 hover:bg-blue-50 flex items-center justify-between gap-2 cursor-pointer transition-colors"
                 >
                   <span className="flex items-center gap-2 min-w-0">
                     {meta.dotColor && (
@@ -130,7 +130,7 @@ export const WorkOrderMaterialsCard: React.FC<WorkOrderMaterialsCardProps> = ({
       )}
 
       {materials.length === 0 ? (
-        <div className="py-4 text-center text-xs text-slate-400 bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
+        <div className="py-4 text-center text-xs text-slate-400 bg-slate-100/70 dark:bg-slate-800/40 rounded-xl">
           Chưa có vật tư nào gắn với lệnh này. {!readOnly && 'Bấm "+ Lấy thêm vật tư" nếu cần xuất kho.'}
         </div>
       ) : (
@@ -142,7 +142,7 @@ export const WorkOrderMaterialsCard: React.FC<WorkOrderMaterialsCardProps> = ({
             return (
               <div
                 key={m.id}
-                className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col gap-2"
+                className="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-800/40 flex flex-col gap-2"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">

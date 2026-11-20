@@ -2,8 +2,8 @@
  * Frontend/src/components/layout/Header.tsx
  *
  * Thanh tiêu đề trên cùng (58px đồng bộ với Sidebar Brand Header):
- * - Breadcrumb đầy đủ cho mọi route trong hệ thống.
- * - Ô tìm kiếm, trạng thái Zabbix Live, Theme Toggle và nút Đồng Bộ Zabbix dạng rounded-lg sắc nét.
+ * - Tiêu đề trang hiện tại gọn gàng + lời chào người dùng (không breadcrumb '/').
+ * - Thiết kế chuẩn Dribbble: Search pill mềm, cụm thông báo, theme toggle và pill vai trò/avatar.
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC, FontAwesome chuẩn).
  */
 
@@ -13,7 +13,6 @@ import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../app/store';
 import {
   FontAwesomeIcon,
-  faRotate,
   faSun,
   faMoon,
   faMagnifyingGlass,
@@ -32,71 +31,57 @@ export interface HeaderProps {
   onSearch?: (query: string) => void;
 }
 
-const ROUTE_BREADCRUMBS: Record<NavTabId, { group?: string; label: string }> = {
-  dashboard: { label: 'Dashboard' },
-  printers: { group: 'Máy in', label: 'Danh sách máy in' },
-  'printers-inventory': { group: 'Máy in', label: 'Sơ đồ tầng & Tổng vụ' },
-  'printers-timeline': { group: 'Máy in', label: 'Lịch trình bảo trì' },
-  'printers-history': { group: 'Máy in', label: 'Lệnh bảo trì' },
-  analytics: { group: 'Phân tích', label: 'Sản lượng in' },
-  'analytics-sla-cost': { group: 'Phân tích', label: 'SLA & Chi phí' },
-  inventory: { group: 'Vận hành', label: 'Kho & Dự báo vật tư' },
-  procurement: { group: 'Vận hành', label: 'Mua sắm (PO)' },
-  settings: { group: 'Hệ thống', label: 'Cấu hình' },
+const ROUTE_TITLES: Record<NavTabId, string> = {
+  dashboard: 'Dashboard',
+  printers: 'Danh sách máy in',
+  'printers-inventory': 'Sơ đồ tầng',
+  'printers-timeline': 'Lịch trình bảo trì',
+  'printers-history': 'Lệnh bảo trì',
+  analytics: 'Xu hướng sản lượng in',
+  'analytics-sla-cost': 'SLA & Chi phí',
+  inventory: 'Kho vật tư',
+  settings: 'Cấu hình hệ thống',
 };
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   isDark,
   onToggleTheme,
-  onManualRefresh,
-  isRefreshing = false,
-  lastSyncTime,
   onSearch,
 }) => {
   const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
   const greetingName = user?.fullName || 'Người vận hành';
+  const isFieldTech = user?.role === 'FIELD_TECH';
+  const initials = user?.avatarInitials || (isFieldTech ? 'KT' : 'AD');
+  const roleLabel = isFieldTech ? 'KTV' : 'Admin';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  const breadcrumb = ROUTE_BREADCRUMBS[activeTab] || { label: 'Dashboard' };
+  const pageTitle = ROUTE_TITLES[activeTab] || 'Dashboard';
 
   return (
-    <header
-      style={{
-        backgroundColor: 'var(--bg-header, #ffffff)',
-        borderBottom: '1px solid var(--border-color, #e2e8f0)',
-      }}
-      className="h-[58px] px-4 lg:px-6 flex items-center justify-between gap-3 shrink-0 z-10 select-none min-w-0"
-    >
-      {/* Left: Breadcrumb & Greeting */}
-      <div className="flex items-center gap-2.5 min-w-0 overflow-hidden">
-        <div className="flex items-center gap-1.5 text-xs min-w-0 truncate">
-          {breadcrumb.group && (
-            <>
-              <span className="font-medium text-slate-400 truncate">{breadcrumb.group}</span>
-              <span className="text-slate-300">/</span>
-            </>
-          )}
-          <span className="font-bold text-slate-900 dark:text-slate-100 text-sm tracking-tight truncate">
-            {breadcrumb.label}
-          </span>
-        </div>
+    <header className="h-[58px] px-4 lg:px-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs ring-1 ring-slate-900/[0.04] dark:ring-white/[0.06] flex items-center justify-between gap-3 shrink-0 z-10 select-none min-w-0">
+      {/* Left: Page Title & Soft Greeting */}
+      <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+        <h1 className="text-[15px] font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate m-0">
+          {pageTitle}
+        </h1>
 
-        <span className="hidden xl:inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
+        <span className="hidden xl:inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100/80 dark:bg-slate-800/70 text-[11px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
           Xin chào, {greetingName}
         </span>
       </div>
 
-      {/* Right: Search, Zabbix Live, Notifications, Theme & Sync */}
-      <div className="flex items-center gap-2 shrink-0">
-        {/* Search Input */}
+      {/* Right: Soft Search Pill, Notifications, Theme Toggle & User Role Pill */}
+      <div className="flex items-center gap-2.5 shrink-0">
+        {/* Search Pill */}
         <div
-          className={`hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg border transition-all ${
+          className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full transition-all ${
             isSearchFocused
-              ? 'w-60 bg-white dark:bg-slate-900 border-blue-500 ring-2 ring-blue-500/15'
-              : 'w-44 lg:w-52 bg-slate-50/80 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
+              ? 'w-64 bg-white dark:bg-slate-950 shadow-xs ring-2 ring-blue-500/20'
+              : 'w-48 lg:w-56 bg-slate-100/80 dark:bg-slate-800/70 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <FontAwesomeIcon
@@ -119,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }
               }
             }}
-            className="w-full bg-transparent border-none outline-none text-xs text-slate-800 dark:text-slate-100 min-w-0"
+            className="w-full bg-transparent border-none outline-none text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 min-w-0"
           />
           {searchQuery && (
             <button
@@ -135,23 +120,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Zabbix Live Status Badge */}
-        <div
-          title={lastSyncTime ? `Zabbix Live Polling (Đồng bộ lúc ${lastSyncTime})` : 'Zabbix Live 60s Fast Polling'}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold whitespace-nowrap ${
-            isRefreshing
-              ? 'bg-blue-50 border-blue-200 text-blue-600'
-              : 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400'
-          }`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              isRefreshing ? 'bg-blue-600 animate-pulse' : 'bg-emerald-500'
-            }`}
-          />
-          <span className="hidden sm:inline">{isRefreshing ? 'Đang đồng bộ...' : 'Zabbix Live'}</span>
-        </div>
-
         <HeaderNotifications />
 
         {/* Theme Toggle */}
@@ -159,21 +127,27 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={onToggleTheme}
           title={isDark ? 'Chuyển sang Giao diện Sáng' : 'Chuyển sang Giao diện Tối'}
-          className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center cursor-pointer transition-colors text-xs shrink-0"
+          className="w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200/70 dark:bg-slate-800/70 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center cursor-pointer transition-colors text-xs shrink-0"
         >
           <FontAwesomeIcon icon={isDark ? faSun : faMoon} color={isDark ? '#f59e0b' : undefined} />
         </button>
 
-        {/* Manual Sync Button */}
-        <button
-          type="button"
-          onClick={onManualRefresh}
-          disabled={isRefreshing}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-semibold border-none cursor-pointer transition-colors whitespace-nowrap shrink-0"
+        {/* Compact Avatar & Role Pill */}
+        <div
+          title={`${greetingName} (${roleLabel})`}
+          className="hidden sm:inline-flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/70 shrink-0"
         >
-          <FontAwesomeIcon icon={faRotate} spin={isRefreshing} className="text-[11px]" />
-          <span className="hidden sm:inline">Đồng Bộ Zabbix</span>
-        </button>
+          <span
+            className={`w-6 h-6 rounded-full text-[10px] font-bold flex items-center justify-center ${
+              isFieldTech
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300'
+                : 'bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
+            }`}
+          >
+            {initials}
+          </span>
+          <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">{roleLabel}</span>
+        </div>
       </div>
     </header>
   );

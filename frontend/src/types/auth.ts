@@ -6,13 +6,8 @@
  */
 
 export type UserRole =
-  | 'ADMIN'              // Quản trị viên Hệ thống (IT & NOC - Toàn quyền)
-  | 'FIELD_TECH'          // Kỹ thuật viên Bảo trì Hiện trường (Xử lý Lệnh bảo trì & Stepper)
-  | 'ASSET_HR'           // HR / Quản trị Hành chính & Kiểm kê Tài sản
-  | 'FLEET_MANAGER'      // Alias tương thích
-  | 'NOC_ENGINEER'       // Alias tương thích
-  | 'FIELD_TECHNICIAN'   // Alias tương thích
-  | 'DEPARTMENT_HEAD';   // Alias tương thích
+  | 'ADMIN'       // Quản trị viên Hệ thống (IT & NOC - Toàn quyền)
+  | 'FIELD_TECH'; // Kỹ thuật viên Bảo trì Hiện trường (Xử lý Lệnh bảo trì & Stepper)
 
 export interface UserDataScope {
   departmentIds?: string[];

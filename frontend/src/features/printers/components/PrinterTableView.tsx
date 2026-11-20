@@ -135,7 +135,7 @@ export const PrinterTableView: React.FC<PrinterTableViewProps> = ({
             <tr style={{ borderBottom: '1px solid var(--border-color, #e2e8f0)', backgroundColor: 'var(--bg-subtle, #f8fafc)' }}>
               <th onClick={() => handleToggleSort('id')} style={{ ...thSortStyle, width: '130px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span>MÃ / IP</span>
+                  <span>IP</span>
                   <FontAwesomeIcon icon={faSort} style={{ fontSize: '9px', opacity: sortColumn === 'id' ? 1 : 0.4 }} />
                 </div>
               </th>

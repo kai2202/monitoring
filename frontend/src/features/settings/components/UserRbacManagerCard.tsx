@@ -40,7 +40,7 @@ export const UserRbacManagerCard: React.FC<UserRbacManagerCardProps> = ({ initia
   const [users, setUsers] = useState<ManagedUser[]>(initialUsers || []);
   const [isLoading, setIsLoading] = useState<boolean>(!initialUsers);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'ALL' | 'ADMIN' | 'FIELD_TECH' | 'ASSET_HR'>('ALL');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | 'ADMIN' | 'FIELD_TECH'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
   const [manageTarget, setManageTarget] = useState<{ user: ManagedUser; tab: UserManageTab } | null>(null);
@@ -69,9 +69,8 @@ export const UserRbacManagerCard: React.FC<UserRbacManagerCardProps> = ({ initia
     const total = users.length;
     const admins = users.filter((u) => u.role === 'ADMIN').length;
     const techs = users.filter((u) => u.role === 'FIELD_TECH').length;
-    const assets = users.filter((u) => u.role === 'ASSET_HR').length;
     const active = users.filter((u) => u.status === 'ACTIVE').length;
-    return { total, admins, techs, assets, active };
+    return { total, admins, techs, active };
   }, [users]);
 
   const filteredUsers = useMemo(() => {
@@ -145,12 +144,11 @@ export const UserRbacManagerCard: React.FC<UserRbacManagerCardProps> = ({ initia
       </div>
 
       {/* 2. Interactive KPI Bento Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { key: 'ALL', label: 'Tổng User', value: kpis.total, sub: null, active: roleFilter === 'ALL' && statusFilter === 'ALL', onClick: resetFilters, icon: <FontAwesomeIcon icon={faUser} />, badgeClass: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200' },
           { key: 'ADMIN', label: 'Quản trị viên', value: kpis.admins, sub: null, active: roleFilter === 'ADMIN', onClick: () => setRoleFilter(roleFilter === 'ADMIN' ? 'ALL' : 'ADMIN'), icon: 'AD', badgeClass: 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400' },
           { key: 'FIELD_TECH', label: 'Kỹ thuật viên', value: kpis.techs, sub: null, active: roleFilter === 'FIELD_TECH', onClick: () => setRoleFilter(roleFilter === 'FIELD_TECH' ? 'ALL' : 'FIELD_TECH'), icon: 'KT', badgeClass: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400' },
-          { key: 'ASSET_HR', label: 'QL Tài sản', value: kpis.assets, sub: null, active: roleFilter === 'ASSET_HR', onClick: () => setRoleFilter(roleFilter === 'ASSET_HR' ? 'ALL' : 'ASSET_HR'), icon: 'TS', badgeClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400' },
           { key: 'ACTIVE', label: 'Đang hoạt động', value: kpis.active, sub: `/ ${kpis.total}`, active: statusFilter === 'ACTIVE', onClick: () => setStatusFilter(statusFilter === 'ACTIVE' ? 'ALL' : 'ACTIVE'), icon: <FontAwesomeIcon icon={faCircleCheck} />, badgeClass: 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400' },
         ].map((item) => (
           <button
@@ -179,8 +177,8 @@ export const UserRbacManagerCard: React.FC<UserRbacManagerCardProps> = ({ initia
       {/* 3. Toolbar: Role Filter + Status Filter + Search */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 overflow-x-auto max-w-full">
-          {(['ALL', 'ADMIN', 'FIELD_TECH', 'ASSET_HR'] as const).map((r) => {
-            const label = r === 'ALL' ? 'Tất cả' : r === 'ADMIN' ? 'Quản trị viên' : r === 'FIELD_TECH' ? 'Kỹ thuật viên' : 'Chuyên viên HR';
+          {(['ALL', 'ADMIN', 'FIELD_TECH'] as const).map((r) => {
+            const label = r === 'ALL' ? 'Tất cả' : r === 'ADMIN' ? 'Quản trị viên' : 'Kỹ thuật viên';
             const count = r === 'ALL' ? users.length : users.filter((u) => u.role === r).length;
             const isSelected = roleFilter === r;
             return (

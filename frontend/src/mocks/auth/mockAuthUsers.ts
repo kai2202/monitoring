@@ -5,7 +5,7 @@
  * Đồng bộ tên, email và phạm vi quản lý với mockUsers.ts & 22 máy in chuẩn.
  */
 
-import { faUserShield, faWrench, faFileLines } from '../../shared/icons';
+import { faUserShield, faWrench } from '../../shared/icons';
 import { AuthUser, UserRole } from '../../types/auth';
 
 export interface PredefinedRoleProfile {
@@ -47,28 +47,9 @@ const FIELD_TECH_USER: AuthUser = {
   token: 'mock-jwt-token-field-tech',
 };
 
-const ASSET_HR_USER: AuthUser = {
-  id: 'usr-003',
-  username: 'hr_kiemke',
-  fullName: 'Phạm Thu Hà',
-  email: 'ha.pham@fleetmonitor.vn',
-  role: 'ASSET_HR',
-  roleNameVi: 'HR / Kiểm kê Tài sản & Hành chính',
-  avatarInitials: 'PH',
-  dataScope: {
-    departmentName: 'Kiểm kê tài sản & Chi phí thuê máy',
-  },
-  token: 'mock-jwt-token-asset-hr',
-};
-
 export const MOCK_AUTH_USERS: Record<UserRole, AuthUser> = {
   ADMIN: ADMIN_USER,
   FIELD_TECH: FIELD_TECH_USER,
-  ASSET_HR: ASSET_HR_USER,
-  FLEET_MANAGER: ADMIN_USER,
-  NOC_ENGINEER: ADMIN_USER,
-  FIELD_TECHNICIAN: FIELD_TECH_USER,
-  DEPARTMENT_HEAD: ASSET_HR_USER,
 };
 
 export const MOCK_ROLE_PROFILES: PredefinedRoleProfile[] = [
@@ -91,15 +72,5 @@ export const MOCK_ROLE_PROFILES: PredefinedRoleProfile[] = [
     badge: 'Thực thi SOP & Bảo trì',
     color: '#f59e0b',
     icon: faWrench,
-  },
-  {
-    role: 'ASSET_HR',
-    username: 'hr_kiemke',
-    fullName: 'Phạm Thu Hà',
-    email: 'ha.pham@fleetmonitor.vn',
-    title: 'HR / Kiểm kê Tài sản & Chi phí',
-    badge: 'Kiểm kê & Hợp đồng SLA',
-    color: '#ec4899',
-    icon: faFileLines,
   },
 ];

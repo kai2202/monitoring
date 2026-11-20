@@ -49,8 +49,7 @@ export const PrintersPageHeader: React.FC<PrintersPageHeaderProps> = ({
   const currentTab = activeTab || 'printers';
   const { user } = useSelector((state: RootState) => state.auth);
   const role = user?.role;
-  const isFieldTech = role === 'FIELD_TECH' || role === 'FIELD_TECHNICIAN';
-  const isAssetHr = role === 'ASSET_HR' || role === 'DEPARTMENT_HEAD';
+  const isFieldTech = role === 'FIELD_TECH';
 
   const subTabs = isFieldTech
     ? [
@@ -58,13 +57,6 @@ export const PrintersPageHeader: React.FC<PrintersPageHeaderProps> = ({
         { id: 'history' as const, label: 'Lệnh bảo trì', icon: faWrench, count: totalTasks },
         { id: 'inventory' as const, label: 'Sơ đồ tầng', icon: faBuilding, count: null },
         { id: 'printers' as const, label: 'Danh sách máy', icon: faPrint, count: totalPrinters },
-      ]
-    : isAssetHr
-    ? [
-        { id: 'inventory' as const, label: 'Sơ đồ tầng & Tổng vụ', icon: faBuilding, count: null },
-        { id: 'printers' as const, label: 'Danh mục tài sản', icon: faPrint, count: totalPrinters },
-        { id: 'history' as const, label: 'Đối soát KPI', icon: faWrench, count: totalTasks },
-        { id: 'timeline' as const, label: 'Lịch bảo dưỡng', icon: faCalendarDays, count: null },
       ]
     : [
         { id: 'printers' as const, label: 'Danh sách', icon: faPrint, count: totalPrinters },

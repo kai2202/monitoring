@@ -18,7 +18,6 @@ import {
   faChartLine,
   faGear,
   faBox,
-  faFileLines,
 } from '../../shared/icons';
 import { SidebarNavItem } from './SidebarNavItem';
 import { SidebarNavGroup, SubItemConfig } from './SidebarNavGroup';
@@ -33,7 +32,6 @@ export type NavTabId =
   | 'analytics'
   | 'analytics-sla-cost'
   | 'inventory'
-  | 'procurement'
   | 'settings';
 
 export interface SidebarProps {
@@ -53,11 +51,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { user } = useSelector((state: RootState) => state.auth);
   const role = user?.role || 'ADMIN';
 
-  const isFieldTech = role === 'FIELD_TECH' || role === 'FIELD_TECHNICIAN';
-  const isAssetHr = role === 'ASSET_HR' || role === 'DEPARTMENT_HEAD';
-  const isAdmin = !isFieldTech && !isAssetHr;
+  const isFieldTech = role === 'FIELD_TECH';
+  const isAdmin = !isFieldTech;
 
-  const canAccessProcurement = !isFieldTech;
   const canAccessSettings = isAdmin;
 
   const [isPrintersOpen, setIsPrintersOpen] = useState(true);
@@ -86,61 +82,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return [
         { id: 'printers-timeline', label: 'Lịch trình bảo trì' },
         { id: 'printers-history', label: 'Lệnh bảo trì' },
+        { id: 'printers', label: 'Danh sách máy in' },
         { id: 'printers-inventory', label: 'Sơ đồ tầng' },
-        { id: 'printers', label: 'Danh sách máy' },
-      ];
-    }
-    if (isAssetHr) {
-      return [
-        { id: 'printers-inventory', label: 'Sơ đồ tầng & Tổng vụ' },
-        { id: 'printers', label: 'Danh mục tài sản' },
-        { id: 'printers-history', label: 'Đối soát KPI & Bảo trì' },
-        { id: 'printers-timeline', label: 'Lịch bảo dưỡng' },
       ];
     }
     return [
-      { id: 'printers', label: 'Danh sách' },
-      { id: 'printers-inventory', label: 'Sơ đồ tầng & Tổng vụ' },
-      { id: 'printers-timeline', label: 'Lịch trình' },
+      { id: 'printers', label: 'Danh sách máy in' },
+      { id: 'printers-inventory', label: 'Sơ đồ tầng' },
+      { id: 'printers-timeline', label: 'Lịch trình bảo trì' },
       { id: 'printers-history', label: 'Lệnh bảo trì' },
     ];
-  }, [isFieldTech, isAssetHr]);
+  }, [isFieldTech]);
 
   const analyticsSubItems: SubItemConfig[] = useMemo(() => {
     if (isFieldTech) {
       return [
-        { id: 'analytics', label: 'Sản lượng in' },
-      ];
-    }
-    if (isAssetHr) {
-      return [
-        { id: 'analytics', label: 'Sản lượng in' },
-        { id: 'analytics-sla-cost', label: 'Chi phí phòng ban' },
+        { id: 'analytics', label: 'Xu hướng sản lượng in' },
       ];
     }
     return [
-      { id: 'analytics', label: 'Sản lượng in' },
+      { id: 'analytics', label: 'Xu hướng sản lượng in' },
       { id: 'analytics-sla-cost', label: 'SLA & Chi phí' },
     ];
-  }, [isFieldTech, isAssetHr]);
+  }, [isFieldTech]);
 
   return (
     <aside
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md ring-1 ring-slate-900/[0.04] dark:ring-white/[0.06]"
       style={{
         position: 'absolute',
         top: 0,
         bottom: 0,
         left: 0,
         width: isHovered ? '252px' : '72px',
-        backgroundColor: 'var(--bg-sidebar, #ffffff)',
-        borderRight: '1px solid var(--border-color, #e2e8f0)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
         transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease',
-        boxShadow: isHovered ? '8px 0 28px -6px rgba(15, 23, 42, 0.14)' : 'none',
+        boxShadow: isHovered ? '12px 0 32px -8px rgba(15, 23, 42, 0.14)' : 'none',
         userSelect: 'none',
         zIndex: 50,
         overflow: 'hidden',
@@ -148,12 +129,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     >
       {/* Brand Header 58px đồng bộ Header */}
       <div
-        style={{ borderBottom: '1px solid var(--border-color, #e2e8f0)' }}
         className={`h-[58px] shrink-0 flex items-center gap-2.5 ${
           isHovered ? 'px-4 justify-start' : 'px-0 justify-center'
         }`}
       >
-        <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-blue-600 shadow-sm shadow-blue-600/20 text-white flex items-center justify-center shrink-0">
           <FontAwesomeIcon icon={faPrint} className="text-xs" />
         </div>
         {isHovered && (
@@ -162,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               FleetMonitor
             </span>
             <span className="text-[10.5px] font-medium text-slate-400 truncate">
-              Enterprise NOC
+              Quản lý máy in
             </span>
           </div>
         )}
@@ -171,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Navigation */}
       <nav
         className={`custom-scrollbar flex-1 overflow-y-auto flex flex-col gap-1 ${
-          collapsed ? 'px-2.5 py-3' : 'px-3 py-3'
+          collapsed ? 'px-2.5 py-2' : 'px-3 py-2'
         }`}
       >
         {!collapsed && (
@@ -194,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         )}
         <SidebarNavGroup
-          label={role === 'FIELD_TECHNICIAN' ? 'Bảo trì máy in' : 'Máy in'}
+          label={isFieldTech ? 'Bảo trì máy in' : 'Máy in'}
           icon={faPrint}
           isOpen={isPrintersOpen}
           onToggleOpen={() => setIsPrintersOpen((prev) => !prev)}
@@ -205,22 +185,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
         <SidebarNavItem
           id="inventory"
-          label="Kho & Dự báo vật tư"
+          label="Kho vật tư"
           icon={faBox}
           activeTab={activeTab}
           collapsed={collapsed}
           onSelectTab={onSelectTab}
         />
-        {canAccessProcurement && (
-          <SidebarNavItem
-            id="procurement"
-            label="Mua sắm (PO)"
-            icon={faFileLines}
-            activeTab={activeTab}
-            collapsed={collapsed}
-            onSelectTab={onSelectTab}
-          />
-        )}
 
         {!collapsed && (
           <span className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -240,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {canAccessSettings && (
           <SidebarNavItem
             id="settings"
-            label="Cấu hình"
+            label="Cấu hình hệ thống"
             icon={faGear}
             activeTab={activeTab}
             collapsed={collapsed}

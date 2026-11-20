@@ -32,26 +32,26 @@ type HistoryFilter = 'ALL' | 'RELOCATION' | 'CUSTODIAN_TRANSFER' | 'INVENTORY_AU
 const ACTION_CONFIGS: Record<string, { label: string; badgeClass: string; iconBg: string; icon: typeof faBuilding }> = {
   RELOCATION: {
     label: 'Điều Chuyển Vị Trí',
-    badgeClass: 'bg-blue-50 text-blue-700 border-blue-200/70',
-    iconBg: 'bg-blue-50 text-blue-600 border-blue-200',
+    badgeClass: 'bg-blue-50/90 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300',
+    iconBg: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400',
     icon: faBuilding,
   },
   CUSTODIAN_TRANSFER: {
     label: 'Bàn Giao Người Phụ Trách',
-    badgeClass: 'bg-violet-50 text-violet-700 border-violet-200/70',
-    iconBg: 'bg-violet-50 text-violet-600 border-violet-200',
+    badgeClass: 'bg-violet-50/90 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300',
+    iconBg: 'bg-violet-50 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400',
     icon: faUser,
   },
   INVENTORY_AUDIT: {
     label: 'Kiểm Kê Hiện Trạng',
-    badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
-    iconBg: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+    badgeClass: 'bg-emerald-50/90 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300',
+    iconBg: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400',
     icon: faClipboardCheck,
   },
   STATUS_CHANGE: {
     label: 'Đổi Trạng Thái Quản Lý',
-    badgeClass: 'bg-slate-100 text-slate-700 border-slate-200/80',
-    iconBg: 'bg-slate-100 text-slate-600 border-slate-200',
+    badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    iconBg: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
     icon: faSliders,
   },
 };
@@ -83,45 +83,9 @@ export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ pr
     [allAssetLogs, filter]
   );
 
-  const lastAuditText = printer.lastInventoriedAt
-    ? new Date(printer.lastInventoriedAt).toLocaleDateString('vi-VN')
-    : 'Chưa kiểm kê';
-
   return (
     <div className="p-5 flex flex-col gap-4">
-      {/* 1. Thanh Tóm Tắt Quyền Sở Hữu & Kiểm Kê Hiện Hành */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800 overflow-hidden">
-        <div className="px-4 py-3 flex items-center gap-3">
-          <FontAwesomeIcon icon={faBuilding} className="text-blue-600 text-sm shrink-0" />
-          <div className="min-w-0">
-            <div className="text-[11px] text-slate-500 font-medium">Đơn vị quản lý</div>
-            <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-              {printer.managingTeam || 'Chưa phân công'}
-            </div>
-          </div>
-        </div>
-
-        <div className="px-4 py-3 flex items-center gap-3">
-          <FontAwesomeIcon icon={faUser} className="text-violet-600 text-sm shrink-0" />
-          <div className="min-w-0">
-            <div className="text-[11px] text-slate-500 font-medium">Người đại diện</div>
-            <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-              {printer.custodianName || 'Chưa phân công'}
-              {printer.custodianContact ? ` • ${printer.custodianContact}` : ''}
-            </div>
-          </div>
-        </div>
-
-        <div className="px-4 py-3 flex items-center gap-3">
-          <FontAwesomeIcon icon={faClipboardCheck} className="text-emerald-600 text-sm shrink-0" />
-          <div className="min-w-0">
-            <div className="text-[11px] text-slate-500 font-medium">Kiểm kê gần nhất</div>
-            <div className="text-xs font-bold text-slate-900 dark:text-slate-100">{lastAuditText}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Header & Bộ lọc nhanh theo loại biến động */}
+      {/* 1. Bộ lọc nhanh theo loại biến động */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           {FILTER_OPTIONS.map((opt) => {
@@ -133,10 +97,10 @@ export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ pr
                 key={opt.id}
                 type="button"
                 onClick={() => setFilter(opt.id)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer ${
                   isActive
-                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-blue-600 dark:border-blue-600'
-                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                    ? 'bg-slate-900 text-white dark:bg-blue-600'
+                    : 'bg-slate-100/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800'
                 }`}
               >
                 {opt.label} ({count})
@@ -146,10 +110,10 @@ export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ pr
         </div>
       </div>
 
-      {/* 3. Timeline Dọc Biến Động Tài Sản */}
+      {/* 2. Timeline Dọc Biến Động Tài Sản */}
       {visibleLogs.length === 0 ? (
-        <div className="py-10 px-5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/40 flex flex-col items-center text-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-slate-200/80 text-slate-500 flex items-center justify-center text-base">
+        <div className="py-10 px-5 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 flex flex-col items-center text-center gap-2.5">
+          <div className="w-10 h-10 rounded-xl bg-slate-200/80 dark:bg-slate-700 text-slate-500 flex items-center justify-center text-base">
             <FontAwesomeIcon icon={faClock} />
           </div>
           <div>
@@ -162,12 +126,12 @@ export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ pr
           </div>
         </div>
       ) : (
-        <div className="relative pl-6 flex flex-col gap-3 before:content-[''] before:absolute before:left-[13px] before:top-2 before:bottom-2 before:w-px before:bg-slate-200 dark:before:bg-slate-800">
+        <div className="relative pl-7 flex flex-col gap-3 before:content-[''] before:absolute before:left-[13px] before:top-3 before:bottom-3 before:w-[2px] before:rounded-full before:bg-slate-100 dark:before:bg-slate-800">
           {visibleLogs.map((log) => {
             const config = ACTION_CONFIGS[log.actionType] || {
               label: log.actionType,
-              badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
-              iconBg: 'bg-slate-100 text-slate-600 border-slate-200',
+              badgeClass: 'bg-slate-100 text-slate-700',
+              iconBg: 'bg-slate-100 text-slate-600',
               icon: faClock,
             };
             const prev = log.previousData || {};
@@ -181,15 +145,15 @@ export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ pr
               <div key={log.id} className="relative">
                 {/* Node icon trên trục Timeline */}
                 <div
-                  className={`absolute -left-6 top-3 w-7 h-7 rounded-full border flex items-center justify-center text-[11px] z-10 ${config.iconBg}`}
+                  className={`absolute -left-7 top-3 w-7 h-7 rounded-full flex items-center justify-center text-[11px] z-10 shadow-xs ${config.iconBg}`}
                 >
                   <FontAwesomeIcon icon={config.icon} />
                 </div>
 
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 flex flex-col gap-2">
+                <div className="rounded-2xl bg-white dark:bg-slate-900 shadow-xs ring-1 ring-slate-900/[0.05] dark:ring-white/[0.06] px-4 py-3.5 flex flex-col gap-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[10.5px] font-bold px-2 py-0.5 rounded border ${config.badgeClass}`}>
+                      <span className={`text-[10.5px] font-bold px-2.5 py-0.5 rounded-lg whitespace-nowrap ${config.badgeClass}`}>
                         {config.label}
                       </span>
                       <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
@@ -207,7 +171,7 @@ export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ pr
                   )}
 
                   {hasDiff && (
-                    <div className="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-[11.5px] text-slate-600 flex items-center gap-4 flex-wrap">
+                    <div className="px-3 py-2 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 text-[11.5px] text-slate-600 dark:text-slate-300 flex items-center gap-4 flex-wrap">
                       {prev.floor && next.floor && prev.floor !== next.floor && (
                         <div className="inline-flex items-center gap-1.5">
                           <FontAwesomeIcon icon={faBuilding} className="text-blue-600 text-[11px]" />
@@ -236,7 +200,7 @@ export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ pr
                   )}
 
                   {log.attachedFileName && (
-                    <div className="pt-2 border-t border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                    <div className="pt-1.5 flex items-center justify-between flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() =>
@@ -256,7 +220,7 @@ export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ pr
                       </button>
 
                       {log.sha256Hash && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-700 bg-emerald-50/90 px-2 py-0.5 rounded-md">
                           <FontAwesomeIcon icon={faShieldCheck} />
                           <span>SHA-256: {log.sha256Hash.slice(0, 8)}...</span>
                         </span>

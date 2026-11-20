@@ -80,10 +80,11 @@ export const WorkOrderWorkLogsList: React.FC<WorkOrderWorkLogsListProps> = ({
 
   return (
     <div
+      className="rounded-xl bg-white dark:bg-slate-900 shadow-xs ring-1 ring-slate-900/[0.04] dark:ring-white/[0.06]"
       style={
         embedded
           ? { padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }
-          : { padding: '16px 18px', borderRadius: '10px', backgroundColor: 'var(--bg-card, #ffffff)', border: '1px solid var(--border-color, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '12px' }
+          : { padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }
       }
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

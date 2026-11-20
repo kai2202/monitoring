@@ -62,8 +62,8 @@ export const WorkOrderSubTasksProgress: React.FC<WorkOrderSubTasksProgressProps>
     <div
       className={
         embedded
-          ? 'p-4 flex flex-col gap-3'
-          : 'p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col gap-3.5'
+          ? 'p-4 rounded-xl bg-white dark:bg-slate-900 shadow-xs ring-1 ring-slate-900/[0.04] dark:ring-white/[0.06] flex flex-col gap-3'
+          : 'p-5 rounded-xl bg-white dark:bg-slate-900 shadow-xs ring-1 ring-slate-900/[0.05] dark:ring-white/[0.06] flex flex-col gap-3.5'
       }
     >
       {/* Header & Progress Bar */}
@@ -168,18 +168,18 @@ export const WorkOrderSubTasksProgress: React.FC<WorkOrderSubTasksProgressProps>
               value={newStepTitle}
               onChange={(e) => setNewStepTitle(e.target.value)}
               autoFocus
-              className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-indigo-500"
+              className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-slate-100/80 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
             <button
               type="submit"
-              className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-xs"
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-xs cursor-pointer"
             >
               Thêm
             </button>
             <button
               type="button"
               onClick={() => setIsAdding(false)}
-              className="px-2.5 py-1.5 rounded-xl text-xs text-slate-500 hover:text-slate-700"
+              className="px-2.5 py-1.5 rounded-xl text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
             >
               Hủy
             </button>
@@ -188,7 +188,7 @@ export const WorkOrderSubTasksProgress: React.FC<WorkOrderSubTasksProgressProps>
           <button
             type="button"
             onClick={() => setIsAdding(true)}
-            className="w-full py-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 text-indigo-600 dark:text-indigo-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+            className="w-full py-2 rounded-xl bg-indigo-50/70 hover:bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
             <span>Thêm bước kỹ thuật vào quy trình</span>

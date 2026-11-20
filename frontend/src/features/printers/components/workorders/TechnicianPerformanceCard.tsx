@@ -26,7 +26,7 @@ export const TechnicianPerformanceCard: React.FC<TechnicianPerformanceCardProps>
   const { user } = useSelector((state: RootState) => state.auth);
   const [selectedTech, setSelectedTech] = useState<string>('all');
 
-  const isTechRole = user?.role === 'FIELD_TECH' || user?.role === 'FIELD_TECHNICIAN';
+  const isTechRole = user?.role === 'FIELD_TECH';
 
   const technicians = useMemo(() => {
     const set = new Set<string>();

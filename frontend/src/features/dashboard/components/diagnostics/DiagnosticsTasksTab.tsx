@@ -34,18 +34,25 @@ interface DiagnosticsTasksTabProps {
 
 const getTaskBadge = (task: Task) => {
   if (task.status === 'Completed') {
-    return { label: 'Hoàn tất', dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200/70' };
+    return { label: 'Hoàn tất', dot: 'bg-emerald-500', badge: 'bg-emerald-50/90 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' };
   }
   if (task.reworkReason && task.status === 'In_Progress') {
-    return { label: 'Cần làm lại', dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200/70' };
+    return { label: 'Cần làm lại', dot: 'bg-amber-500', badge: 'bg-amber-50/90 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300' };
   }
   if (task.status === 'Pending_Verification') {
-    return { label: 'Chờ duyệt', dot: 'bg-indigo-500', badge: 'bg-indigo-50 text-indigo-700 border-indigo-200/70' };
+    return { label: 'Chờ duyệt', dot: 'bg-indigo-500', badge: 'bg-indigo-50/90 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300' };
   }
   if (task.status === 'Planned') {
-    return { label: 'Chờ nhận', dot: 'bg-slate-400', badge: 'bg-slate-100 text-slate-600 border-slate-200/70' };
+    return { label: 'Chờ nhận', dot: 'bg-slate-400', badge: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' };
   }
-  return { label: 'Đang xử lý', dot: 'bg-blue-500', badge: 'bg-blue-50 text-blue-700 border-blue-200/70' };
+  return { label: 'Đang xử lý', dot: 'bg-blue-500', badge: 'bg-blue-50/90 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300' };
+};
+
+const formatShortDate = (raw?: string | null, fallback?: string) => {
+  if (!raw) return fallback || '';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return raw;
+  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 export const DiagnosticsTasksTab: React.FC<DiagnosticsTasksTabProps> = ({
@@ -85,7 +92,7 @@ export const DiagnosticsTasksTab: React.FC<DiagnosticsTasksTabProps> = ({
     <div className="p-5 flex flex-col gap-4">
       {/* Empty State toàn phần khi máy in chưa có bất kỳ lệnh nào */}
       {tasks.length === 0 ? (
-        <div className="py-12 px-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/40 flex flex-col items-center justify-center text-center gap-3">
+        <div className="py-12 px-6 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 flex flex-col items-center justify-center text-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
             <FontAwesomeIcon icon={faWrench} />
           </div>
@@ -148,7 +155,7 @@ export const DiagnosticsTasksTab: React.FC<DiagnosticsTasksTabProps> = ({
               </button>
             )}
 
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden max-h-[520px] overflow-y-auto">
+            <div className="rounded-2xl bg-slate-100/60 dark:bg-slate-800/40 p-1.5 flex flex-col gap-1.5 max-h-[520px] overflow-y-auto">
               {visibleList.length === 0 ? (
                 <div className="p-5 text-center text-xs text-slate-400">
                   {filterMode === 'active' ? 'Không có lệnh nào đang xử lý.' : 'Chưa có lệnh nào hoàn tất.'}
@@ -157,15 +164,19 @@ export const DiagnosticsTasksTab: React.FC<DiagnosticsTasksTabProps> = ({
                 visibleList.map((t) => {
                   const isSelected = currentTask?.id === t.id;
                   const meta = getTaskBadge(t);
+                  const dateText =
+                    t.status === 'Completed' && t.completedDate
+                      ? formatShortDate(t.completedDate)
+                      : formatShortDate(t.dueDate, t.id);
                   return (
                     <button
                       key={t.id}
                       type="button"
                       onClick={() => onSelectTask(t.id)}
-                      className={`w-full text-left px-3 py-2.5 flex flex-col gap-1.5 transition-colors cursor-pointer border-l-2 ${
+                      className={`w-full text-left px-3 py-2.5 rounded-xl flex flex-col gap-2 transition-colors cursor-pointer ${
                         isSelected
-                          ? 'bg-blue-50/70 dark:bg-blue-950/30 border-l-blue-600'
-                          : 'bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/40 border-l-transparent'
+                          ? 'bg-white dark:bg-slate-900 shadow-xs ring-1 ring-blue-500/15'
+                          : 'bg-transparent hover:bg-white/70 dark:hover:bg-slate-900/50'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -178,25 +189,23 @@ export const DiagnosticsTasksTab: React.FC<DiagnosticsTasksTabProps> = ({
                           <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${meta.dot}`} />
                         )}
                       </div>
-                      <div className="flex items-center justify-between gap-1.5">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${meta.badge}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap shrink-0 ${meta.badge}`}>
                             {meta.label}
                           </span>
                           <span
-                            className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded ${
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap shrink-0 ${
                               t.taskType === 'SUPPLY_REPLENISHMENT'
-                                ? 'bg-blue-50 text-blue-600'
-                                : 'bg-rose-50 text-rose-600'
+                                ? 'bg-blue-50/90 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300'
+                                : 'bg-rose-50/90 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300'
                             }`}
                           >
                             {t.taskType === 'SUPPLY_REPLENISHMENT' ? 'Thay vật tư' : 'Sửa sự cố'}
                           </span>
                         </div>
-                        <span className="text-[10px] text-slate-400 font-mono truncate">
-                          {t.status === 'Completed' && t.completedDate
-                            ? new Date(t.completedDate).toLocaleDateString('vi-VN')
-                            : t.dueDate || t.id}
+                        <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap shrink-0">
+                          {dateText}
                         </span>
                       </div>
                     </button>
@@ -220,7 +229,7 @@ export const DiagnosticsTasksTab: React.FC<DiagnosticsTasksTabProps> = ({
                 onAddActivityNote={onAddActivityNote}
               />
             ) : (
-              <div className="py-14 px-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 text-center text-xs text-slate-500">
+              <div className="py-14 px-6 rounded-2xl bg-slate-100/60 dark:bg-slate-800/40 text-center text-xs text-slate-500">
                 {filterMode === 'active'
                   ? 'Không có nhiệm vụ nào đang xử lý. Chuyển sang mục "Đã hoàn tất" hoặc tạo công việc mới.'
                   : 'Chưa có lệnh bảo trì nào đã hoàn tất.'}

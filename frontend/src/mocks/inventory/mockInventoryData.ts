@@ -1,14 +1,13 @@
 /**
  * Frontend/src/mocks/inventory/mockInventoryData.ts
  *
- * Dữ liệu giả lập tập trung cho Kho Vật Tư (Inventory) và Đơn Mua Hàng (Procurement PO):
+ * Dữ liệu giả lập tập trung cho Kho Vật Tư (Inventory):
  * - Đồng bộ SKU theo các dòng máy in trong danh mục 22 máy (Ricoh, Canon, HP, Epson, Zebra).
  * - Bao gồm đủ trường hợp: đủ tồn, dưới tồn an toàn (<= safetyStock), hết hàng (0 hộp),
- *   giao dịch IMPORT/EXPORT gắn taskId có thật trong mockTasks, và đơn hàng DRAFT/ORDERED/RECEIVED.
+ *   giao dịch IMPORT/EXPORT gắn taskId có thật trong mockTasks.
  */
 
 import type { InventoryItem, InventoryTransaction } from '../../features/inventory/types';
-import type { PurchaseOrder, ProcurementRequest } from '../../features/procurement/types';
 
 export const mockInventoryItems: InventoryItem[] = [
   {
@@ -166,58 +165,3 @@ export const mockInventoryTransactions: InventoryTransaction[] = [
     item: { sku: 'WT-C6004', name: 'Hộp chứa mực thải dùng chung (Waste Toner Box)', unit: 'Hộp', category: 'WASTE_BOX' },
   },
 ];
-
-export const mockPurchaseOrders: PurchaseOrder[] = [
-  {
-    id: 'po-001',
-    poNumber: 'PO-2026-0841',
-    vendorId: 'v-ricoh',
-    vendor: { id: 'v-ricoh', name: 'Ricoh Vietnam Official', code: 'RICOH-VN', phone: '1900 1821' },
-    status: 'ORDERED',
-    totalAmount: 16500000,
-    itemsJson: [
-      { sku: 'MP-C6004-CY', name: 'Hộp mực Ricoh MP C6004 Cyan (Xanh)', quantity: 4, unitPrice: 1850000 },
-      { sku: 'FUSER-C6004', name: 'Cụm sấy Ricoh MP C6004 Fuser Unit 220V (D242-4000)', quantity: 1, unitPrice: 6800000 },
-      { sku: 'MP-C6004-BK', name: 'Hộp mực Ricoh MP C6004 Black (Chính hãng)', quantity: 1, unitPrice: 2300000 },
-    ],
-    createdById: 'usr-001',
-    createdBy: { id: 'usr-001', fullName: 'Nguyễn Văn An', role: 'ADMIN' },
-    orderedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    note: 'Bổ sung vật tư màu & cụm sấy dự phòng cho prt-001',
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-  {
-    id: 'po-002',
-    poNumber: 'PO-2026-0792',
-    vendorId: 'v-hp',
-    vendor: { id: 'v-hp', name: 'HP Enterprise Supply Partner', code: 'HPE-VN', phone: '1800 588 868' },
-    status: 'RECEIVED',
-    totalAmount: 10500000,
-    itemsJson: [
-      { sku: 'CF226X-HP', name: 'Hộp mực HP 26X / M608 High Yield Black', quantity: 5, unitPrice: 2100000 },
-    ],
-    createdById: 'usr-003',
-    createdBy: { id: 'usr-003', fullName: 'Phạm Thu Hà', role: 'ASSET_HR' },
-    orderedAt: new Date(Date.now() - 86400000 * 10).toISOString(),
-    receivedAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-    note: 'Đã nghiệm thu nhập kho đủ 5 hộp nguyên tem',
-    createdAt: new Date(Date.now() - 86400000 * 11).toISOString(),
-  },
-  {
-    id: 'po-003',
-    poNumber: 'PO-2026-0855',
-    vendorId: 'v-canon',
-    vendor: { id: 'v-canon', name: 'Canon Marketing Vietnam', code: 'CANON-VN', phone: '1900 6602' },
-    status: 'DRAFT',
-    totalAmount: 11520000,
-    itemsJson: [
-      { sku: 'CAN-NPG71-MG', name: 'Hộp mực Canon NPG-71 Magenta (Đỏ)', quantity: 6, unitPrice: 1920000 },
-    ],
-    createdById: 'usr-003',
-    createdBy: { id: 'usr-003', fullName: 'Phạm Thu Hà', role: 'ASSET_HR' },
-    note: 'Đề xuất mua bù khẩn cấp mực Đỏ Canon đang về 0 hộp',
-    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-  },
-];
-
-export const mockProcurementRequests: ProcurementRequest[] = [];
