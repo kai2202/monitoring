@@ -7,10 +7,11 @@
  * - Tuân thủ AGENTS.md Rule 7.1 (< 300 LOC, FontAwesome chuẩn).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../app/store';
+import { printerService } from '../../services';
 import {
   FontAwesomeIcon,
   faSun,
@@ -58,6 +59,26 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [uninitializedCount, setUninitializedCount] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    printerService
+      .getPrinters()
+      .then((list) => {
+        if (!isMounted || !Array.isArray(list)) return;
+        const count = list.filter((p) => {
+          const siteName = (p.branch || p.building || '').trim();
+          const subLoc = [p.floor, p.room || p.department].filter(Boolean).join(' • ') || (p.location || '').trim();
+          return !siteName && !subLoc;
+        }).length;
+        setUninitializedCount(count);
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab]);
 
   const pageTitle = ROUTE_TITLES[activeTab] || 'Dashboard';
 
@@ -119,6 +140,18 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
         </div>
+
+        {uninitializedCount > 0 && !isFieldTech && (
+          <button
+            type="button"
+            onClick={() => navigate('/printers/list')}
+            title="Có máy in mới từ Zabbix chưa được khởi tạo vị trí & nghiệp vụ"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-950/70 text-amber-800 dark:text-amber-300 text-[11px] font-semibold whitespace-nowrap cursor-pointer transition-colors shrink-0"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            <span>Chưa khởi tạo ({uninitializedCount})</span>
+          </button>
+        )}
 
         <HeaderNotifications />
 

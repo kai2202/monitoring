@@ -25,8 +25,8 @@ import {
   PrinterTableView,
   PrinterRelocateModal,
   BranchFloorManagerModal,
-  PrinterCreateModal,
   PrinterEditModal,
+  PrinterInitializeDrawer,
   PrintersPageHeader,
   FleetHealthBar,
   GeneralAffairsInventoryHub,
@@ -73,6 +73,7 @@ export const PrintersPage: React.FC<PrintersPageProps> = ({
   const [statusFilter, setStatusFilter] = useState(initialFilter || searchParams.get('filter') || 'all');
   const [mfrFilter, setMfrFilter] = useState('all');
   const [branchFilter, setBranchFilter] = useState('all');
+  const [initializingPrinter, setInitializingPrinter] = useState<Printer | null>(null);
   const [subnetFilter, setSubnetFilter] = useState('all');
   const [floorFilter, setFloorFilter] = useState('all');
   const [colorFilter, setColorFilter] = useState('all');
@@ -301,7 +302,9 @@ export const PrintersPage: React.FC<PrintersPageProps> = ({
             />
             <PrinterTableView
               printers={filteredPrinters} printerTaskMap={printerTaskMap} copiedIp={copiedIp}
-              onCopyIp={handleCopyIp} onOpenDrawer={modals.handleOpenDrawer} isAdmin={isAdmin}
+              onCopyIp={handleCopyIp} onOpenDrawer={modals.handleOpenDrawer}
+              onEditPrinter={(p) => setInitializingPrinter(p)}
+              isAdmin={isAdmin}
             />
           </>
         )}
@@ -337,7 +340,12 @@ export const PrintersPage: React.FC<PrintersPageProps> = ({
         onOpenEdit={modals.handleOpenEdit} onOpenRelocate={modals.handleOpenRelocate}
         onDecommissionPrinter={modals.handleDecommissionPrinter} onReactivatePrinter={modals.handleReactivatePrinter}
       />
-      <PrinterCreateModal isOpen={modals.isCreatePrinterOpen} onClose={() => modals.setIsCreatePrinterOpen(false)} onPrinterCreated={loadData} />
+      <PrinterInitializeDrawer
+        printer={initializingPrinter}
+        isOpen={Boolean(initializingPrinter)}
+        onClose={() => setInitializingPrinter(null)}
+        onInitialized={loadData}
+      />
       <PrinterEditModal
         printer={modals.editingPrinter} isOpen={modals.isEditModalOpen}
         onClose={() => { modals.setIsEditModalOpen(false); modals.setEditingPrinter(null); }}

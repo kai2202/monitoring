@@ -3,8 +3,8 @@
  * Public API Gate for Printers Modals
  */
 
-export * from './PrinterCreateModal';
 export * from './PrinterEditModal';
+export * from './PrinterInitializeDrawer';
 export * from './PrinterRelocateModal';
 export * from './BranchFloorManagerModal';
 export * from './BranchItemCard';

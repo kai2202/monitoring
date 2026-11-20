@@ -129,16 +129,6 @@ export const PrintersPageHeader: React.FC<PrintersPageHeaderProps> = ({
           </button>
         )}
 
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={onOpenCreatePrinter}
-            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer border-none"
-          >
-            <FontAwesomeIcon icon={faPlus} className="text-[11px]" />
-            <span>Khai báo máy in</span>
-          </button>
-        )}
       </div>
     </div>
   );

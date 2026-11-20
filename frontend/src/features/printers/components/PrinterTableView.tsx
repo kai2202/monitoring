@@ -22,6 +22,7 @@ interface PrinterTableViewProps {
   copiedIp: string | null;
   onCopyIp: (e: React.MouseEvent, ip: string) => void;
   onOpenDrawer: (printer: Printer, tab: 'diag' | 'location' | 'tasks' | 'counters' | 'history', taskId?: string) => void;
+  onEditPrinter?: (printer: Printer) => void;
   isAdmin?: boolean;
   embedded?: boolean;
 }
@@ -32,6 +33,7 @@ export const PrinterTableView: React.FC<PrinterTableViewProps> = ({
   copiedIp,
   onCopyIp,
   onOpenDrawer,
+  onEditPrinter,
   isAdmin = false,
   embedded = false,
 }) => {
@@ -59,7 +61,14 @@ export const PrinterTableView: React.FC<PrinterTableViewProps> = ({
   };
 
   const sortedPrinters = useMemo(() => {
-    if (!sortColumn) return printers;
+    const isUninit = (p: Printer) => {
+      const siteName = (p.branch || p.building || '').trim();
+      const subLoc = [p.floor, p.room || p.department].filter(Boolean).join(' • ') || (p.location || '').trim();
+      return !siteName && !subLoc;
+    };
+    if (!sortColumn) {
+      return [...printers].sort((a, b) => Number(isUninit(b)) - Number(isUninit(a)));
+    }
     return [...printers].sort((a, b) => {
       let valA: string | number | null = '';
       let valB: string | number | null = '';
@@ -182,6 +191,7 @@ export const PrinterTableView: React.FC<PrinterTableViewProps> = ({
                   copiedIp={copiedIp}
                   onCopyIp={onCopyIp}
                   onOpenDrawer={onOpenDrawer}
+                  onEditPrinter={onEditPrinter}
                 />
               ))
             )}

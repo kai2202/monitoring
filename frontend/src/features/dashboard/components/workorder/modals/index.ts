@@ -5,5 +5,4 @@
  */
 
 export * from './ReworkReasonModal';
-export * from './ImageLightboxModal';
 

@@ -21,7 +21,6 @@ import {
   faSliders,
 } from '@/shared/icons';
 import { Printer, PrinterHistoryLog } from '@/types/printer';
-import { DocumentPreviewModal } from '@/features/tasks/components/collaboration';
 
 export interface DiagnosticsHistoryTabProps {
   printer: Printer;
@@ -66,12 +65,6 @@ const FILTER_OPTIONS: Array<{ id: HistoryFilter; label: string }> = [
 
 export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ printer }) => {
   const [filter, setFilter] = useState<HistoryFilter>('ALL');
-  const [previewDoc, setPreviewDoc] = useState<{
-    name: string;
-    size?: string | number | null;
-    sha256?: string | null;
-    author?: string | null;
-  } | null>(null);
 
   const allAssetLogs: PrinterHistoryLog[] = useMemo(
     () => (printer.historyLogs || []).filter((log) => log.actionType !== 'TASK_DOSSIER_ARCHIVED'),
@@ -203,16 +196,21 @@ export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ pr
                     <div className="pt-1.5 flex items-center justify-between flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() =>
-                          setPreviewDoc({
-                            name: log.attachedFileName || 'Biên bản',
-                            size: log.fileSize,
-                            sha256: log.sha256Hash,
-                            author: log.performedBy,
-                          })
-                        }
+                        onClick={() => {
+                          const content = [
+                            `Tệp đính kèm: ${log.attachedFileName || 'Biên bản'}`,
+                            `Người thực hiện: ${log.performedBy || 'Quản trị viên'}`,
+                            log.fileSize ? `Dung lượng: ${(log.fileSize / 1024).toFixed(0)} KB` : '',
+                            log.sha256Hash ? `SHA-256: ${log.sha256Hash}` : '',
+                          ]
+                            .filter(Boolean)
+                            .join('\n');
+                          const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+                          window.open(url, '_blank', 'noopener,noreferrer');
+                          setTimeout(() => URL.revokeObjectURL(url), 60000);
+                        }}
                         className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 hover:underline bg-transparent border-none p-0 cursor-pointer"
-                        title="Click để xem trước biên bản trực tiếp"
+                        title="Click để mở tệp trong tab mới"
                       >
                         <FontAwesomeIcon icon={faPaperclip} />
                         <span>{log.attachedFileName}</span>
@@ -234,14 +232,6 @@ export const DiagnosticsHistoryTab: React.FC<DiagnosticsHistoryTabProps> = ({ pr
         </div>
       )}
 
-      <DocumentPreviewModal
-        isOpen={Boolean(previewDoc)}
-        onClose={() => setPreviewDoc(null)}
-        fileName={previewDoc?.name || ''}
-        fileSize={previewDoc?.size}
-        sha256Hash={previewDoc?.sha256}
-        author={previewDoc?.author}
-      />
     </div>
   );
 };

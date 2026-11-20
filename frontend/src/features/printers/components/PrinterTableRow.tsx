@@ -22,6 +22,7 @@ export interface PrinterTableRowProps {
   copiedIp: string | null;
   onCopyIp: (e: React.MouseEvent, ip: string) => void;
   onOpenDrawer: (printer: Printer, tab: 'diag' | 'location' | 'tasks' | 'counters' | 'history', taskId?: string) => void;
+  onEditPrinter?: (printer: Printer) => void;
 }
 
 export const PrinterTableRow: React.FC<PrinterTableRowProps> = ({
@@ -29,18 +30,31 @@ export const PrinterTableRow: React.FC<PrinterTableRowProps> = ({
   copiedIp,
   onCopyIp,
   onOpenDrawer,
+  onEditPrinter,
 }) => {
   const isOnline = p.connectionStatus === 'Online';
   const isCritical = p.health === 'Critical' || p.alertSeverity === 'critical';
   const isWarning = p.health === 'Warning' || p.alertSeverity === 'warning';
   const isStored = p.monitoringStatus === 'Storage' || p.monitoringStatus === 'Decommissioned' || p.monitoringStatus === 'Suspended';
+  const siteName = (p.branch || p.building || '').trim();
+  const subLoc = [p.floor, p.room || p.department].filter(Boolean).join(' • ') || (p.location || '').trim();
+  const isUninitialized = !siteName && !subLoc;
 
   return (
     <tr
-      onClick={() => onOpenDrawer(p, 'diag')}
-      style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background-color 0.15s ease' }}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-subtle)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      onClick={() => (isUninitialized && onEditPrinter ? onEditPrinter(p) : onOpenDrawer(p, 'diag'))}
+      style={{
+        borderBottom: '1px solid var(--border-color)',
+        backgroundColor: isUninitialized ? 'rgba(254, 243, 199, 0.45)' : 'transparent',
+        cursor: 'pointer',
+        transition: 'background-color 0.15s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = isUninitialized ? 'rgba(254, 243, 199, 0.72)' : 'var(--bg-subtle)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = isUninitialized ? 'rgba(254, 243, 199, 0.45)' : 'transparent';
+      }}
     >
       <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -79,13 +93,37 @@ export const PrinterTableRow: React.FC<PrinterTableRowProps> = ({
       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
         {(() => {
           const siteName = (p.branch || p.building || '').trim();
-          const subLoc = [p.floor, p.room || p.department].filter(Boolean).join(' • ') || p.location || '—';
+          const subLoc = [p.floor, p.room || p.department].filter(Boolean).join(' • ') || p.location || '';
+          const isUninitialized = !siteName && !subLoc;
+          if (isUninitialized) {
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px' }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    backgroundColor: 'rgba(245, 158, 11, 0.14)',
+                    color: '#b45309',
+                  }}
+                >
+                  Chưa khởi tạo
+                </span>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                  Chờ gán vị trí &amp; nghiệp vụ
+                </span>
+              </div>
+            );
+          }
           return (
             <>
               <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {siteName || subLoc}
               </div>
-              {siteName && (
+              {siteName && subLoc && (
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                   {subLoc}
                 </div>
@@ -214,10 +252,40 @@ export const PrinterTableRow: React.FC<PrinterTableRowProps> = ({
         </div>
       </td>
       <td style={{ padding: '12px 14px', verticalAlign: 'middle', textAlign: 'right' }}>
-        <button
-          type="button"
-          onClick={() => onOpenDrawer(p, 'diag')}
+        {isUninitialized && onEditPrinter ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditPrinter(p);
+            }}
+            style={{
+              minWidth: '88px',
+              padding: '5px 12px',
+              borderRadius: '8px',
+              border: '1px solid transparent',
+              backgroundColor: '#d97706',
+              color: '#ffffff',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '5px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>Khởi tạo</span>
+            <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '9px' }} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onOpenDrawer(p, 'diag')}
           style={{
+            minWidth: '88px',
             padding: '5px 12px',
             borderRadius: '8px',
             backgroundColor: 'var(--bg-subtle, #f8fafc)',
@@ -226,15 +294,18 @@ export const PrinterTableRow: React.FC<PrinterTableRowProps> = ({
             fontWeight: 700,
             display: 'inline-flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '5px',
             border: '1px solid var(--border-color, #cbd5e1)',
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
           }}
         >
           <span>Chi tiết</span>
           <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '9px' }} />
         </button>
+        )}
       </td>
     </tr>
   );

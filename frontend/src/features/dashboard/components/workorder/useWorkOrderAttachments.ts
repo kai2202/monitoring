@@ -57,6 +57,7 @@ export function useWorkOrderAttachments({
               fileName: file.name,
               fileType: isImage ? 'IMAGE' : 'DOC',
               fileSize: formattedSize,
+              fileUrl: URL.createObjectURL(file),
               uploadedAt: `${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date().toLocaleDateString('vi-VN')}`,
               uploadedBy: uploaderName,
             });

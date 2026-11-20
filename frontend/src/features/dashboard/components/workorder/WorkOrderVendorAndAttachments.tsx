@@ -9,12 +9,11 @@
 
 import React, { useState } from 'react';
 import {
-  FontAwesomeIcon, faPhone, faPaperclip, faChevronDown, faChevronUp,
-  faFolder, faDownload, faPlus, faEye, faTrashCan,
+  FontAwesomeIcon, faPhone, faChevronDown, faChevronUp,
+  faDownload, faPlus, faFileLines, faUpload, faXmark,
 } from '../../../../shared/icons';
 import { VendorCommunicationLog, TaskAttachment } from '../../../../types/task';
 import { useWorkOrderAttachments } from './useWorkOrderAttachments';
-import { ImageLightboxModal } from './modals/ImageLightboxModal';
 
 interface WorkOrderVendorAndAttachmentsProps {
   taskId?: string;
@@ -44,7 +43,7 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
   const [isVendorOpen, setIsVendorOpen] = useState(vendorLogs.length > 0);
   const [isAttachmentsOpen, setIsAttachmentsOpen] = useState(true);
   const [isAddingVendor, setIsAddingVendor] = useState(false);
-  const [previewAttachment, setPreviewAttachment] = useState<TaskAttachment | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [vendorName, setVendorName] = useState('Hỗ trợ kỹ thuật chính hãng');
   const [contact, setContact] = useState('');
@@ -159,112 +158,71 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
       </div>
       )}
 
-      {/* 2. Attachments - Yellow Folder Cards + MinIO S3 Integration */}
+      {/* 2. Attachments */}
       {showAttachments && (
       <div className="rounded-xl bg-white dark:bg-slate-900 shadow-xs ring-1 ring-slate-900/[0.04] dark:ring-white/[0.06] overflow-hidden">
         <button
           type="button"
           onClick={() => setIsAttachmentsOpen(!isAttachmentsOpen)}
-          className="w-full px-4 py-3 flex items-center justify-between text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+          className="w-full px-4 py-3 flex items-center justify-between text-left transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/50 cursor-pointer"
         >
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs">
-              <FontAwesomeIcon icon={faFolder} />
-            </div>
-            <strong className="text-xs font-bold text-slate-800 dark:text-slate-100">
-              Tài Liệu &amp; Ảnh Nghiệm Thu ({attachments.length})
-            </strong>
-          </div>
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+            Tài liệu &amp; Ảnh nghiệm thu {attachments.length > 0 && `(${attachments.length} tệp)`}
+          </span>
           <FontAwesomeIcon icon={isAttachmentsOpen ? faChevronUp : faChevronDown} className="text-xs text-slate-400" />
         </button>
 
         {isAttachmentsOpen && (
-          <div className="p-4 pt-2 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-600 dark:text-slate-300">
-                {attachments.length} tệp tin xác thực
-              </span>
-              {!isReadOnly && (
-                <>
-                  <button
-                    type="button"
-                    disabled={isUploading}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-400 text-xs font-bold transition-colors flex items-center gap-1.5 disabled:opacity-60"
-                  >
-                    <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
-                    <span>{isUploading ? 'Đang tải lên...' : 'Thêm tệp / chứng từ'}</span>
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    accept=".jpg,.jpeg,.png,.webp,.pdf,.log,.txt,.csv"
-                    multiple
-                    className="hidden"
-                  />
-                </>
-              )}
-            </div>
+          <div className="px-4 pb-4 pt-1 flex flex-col gap-2">
+            {!isReadOnly && (
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".jpg,.jpeg,.png,.webp,.pdf,.log,.txt,.csv"
+                multiple
+                className="hidden"
+              />
+            )}
 
-            {attachments.length === 0 ? (
-              <div
-                onClick={() => !isUploading && fileInputRef.current?.click()}
-                className="p-5 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-100 transition-colors"
-              >
-                <FontAwesomeIcon icon={faPaperclip} className="text-indigo-600 text-base" />
-                <span className="text-xs font-semibold text-indigo-600">
-                  {isUploading ? 'Đang truyền tải tệp lên kho lưu trữ...' : 'Bấm để tải lên biên bản kỹ thuật / chứng từ / file log'}
-                </span>
-                <span className="text-[10.5px] text-slate-600 dark:text-slate-300">
-                  Hỗ trợ PNG, JPG, WEBP, PDF, LOG, TXT (Tối đa 10MB)
-                </span>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2.5">
+            {attachments.length > 0 && (
+              <div className="flex flex-col gap-1.5">
                 {attachments.map((att) => (
                   <div
                     key={att.id}
-                    className="group/att p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between gap-3 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all"
+                    onClick={() => {
+                      if (att.fileUrl) {
+                        window.open(att.fileUrl, '_blank', 'noopener,noreferrer');
+                      } else {
+                        const content = `Tệp đính kèm: ${att.fileName}\nDung lượng: ${att.fileSize}\nNgười tải lên: ${att.uploadedBy}`;
+                        const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                        setTimeout(() => URL.revokeObjectURL(url), 60000);
+                      }
+                    }}
+                    title={`Bấm để mở trong tab mới: ${att.fileName}`}
+                    className="rounded-xl bg-emerald-50/80 hover:bg-emerald-100/70 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 px-3.5 py-2 flex items-center justify-between gap-2 cursor-pointer transition-colors"
                   >
-                    <div
-                      className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
-                      onClick={() => setPreviewAttachment(att)}
-                      title={`Bấm để xem trước: ${att.fileName}`}
-                    >
-                      <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm shrink-0 shadow-xs group-hover/att:scale-105 transition-transform">
-                        <FontAwesomeIcon icon={faFolder} />
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                        <FontAwesomeIcon icon={faFileLines} className="text-xs" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div
-                          className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate whitespace-nowrap group-hover/att:text-indigo-600 dark:group-hover/att:text-indigo-400 transition-colors"
-                          title={att.fileName}
-                        >
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">
                           {att.fileName}
                         </div>
-                        <div
-                          className="text-[10.5px] text-slate-600 dark:text-slate-300 font-medium truncate whitespace-nowrap mt-0.5"
-                          title={`${att.fileSize} • Tải lên bởi: ${att.uploadedBy}`}
-                        >
-                          {att.fileSize} • {att.uploadedBy}
+                        <div className="text-[10.5px] text-slate-500 dark:text-slate-400 truncate">
+                          {att.fileSize} • {att.uploadedBy} • Bấm để xem
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        title={`Xem trước ${att.fileName}`}
-                        onClick={() => setPreviewAttachment(att)}
-                        className="w-7 h-7 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-indigo-600 flex items-center justify-center transition-colors"
-                      >
-                        <FontAwesomeIcon icon={faEye} className="text-xs" />
-                      </button>
+                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         title={`Tải xuống ${att.fileName}`}
                         onClick={() => handleDownloadAttachment(att)}
-                        className="w-7 h-7 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-indigo-600 flex items-center justify-center transition-colors"
+                        className="w-7 h-7 rounded-lg hover:bg-white/80 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 flex items-center justify-center transition-colors cursor-pointer"
                       >
                         <FontAwesomeIcon icon={faDownload} className="text-xs" />
                       </button>
@@ -272,15 +230,10 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
                         <button
                           type="button"
                           title={`Xoá tệp ${att.fileName}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm(`Bạn có chắc muốn xoá tệp "${att.fileName}" không?`)) {
-                              onDeleteAttachment(att.id);
-                            }
-                          }}
-                          className="w-7 h-7 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors"
+                          onClick={() => onDeleteAttachment(att.id)}
+                          className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors cursor-pointer"
                         >
-                          <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
+                          <FontAwesomeIcon icon={faXmark} className="text-xs" />
                         </button>
                       )}
                     </div>
@@ -288,17 +241,52 @@ export const WorkOrderVendorAndAttachments: React.FC<WorkOrderVendorAndAttachmen
                 ))}
               </div>
             )}
+
+            {!isReadOnly && (
+              <div
+                onClick={() => !isUploading && fileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  if (!isUploading && e.dataTransfer.files?.length) {
+                    handleFileUpload({
+                      target: { files: e.dataTransfer.files, value: '' },
+                    } as unknown as React.ChangeEvent<HTMLInputElement>);
+                  }
+                }}
+                className={`rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
+                  isDragging
+                    ? 'bg-amber-50 dark:bg-amber-950/30 ring-2 ring-amber-500/30'
+                    : 'bg-slate-100/80 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 text-amber-600 flex items-center justify-center shadow-xs shrink-0">
+                  <FontAwesomeIcon icon={faUpload} className="text-xs" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    {isUploading
+                      ? 'Đang truyền tải tệp lên kho lưu trữ...'
+                      : attachments.length > 0
+                      ? 'Tải thêm biên bản kỹ thuật / chứng từ / ảnh'
+                      : 'Tải lên biên bản kỹ thuật / chứng từ / ảnh'}
+                  </div>
+                  <div className="text-[10.5px] text-slate-400">
+                    Kéo thả hoặc bấm để chọn nhiều tệp (PNG, JPG, WEBP, PDF, LOG, TXT, CSV)
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
       )}
 
-      <ImageLightboxModal
-        attachment={previewAttachment}
-        isOpen={Boolean(previewAttachment)}
-        onClose={() => setPreviewAttachment(null)}
-        onDownload={handleDownloadAttachment}
-      />
     </div>
   );
 };

@@ -3,5 +3,4 @@
  */
 
 export * from './TaskCollaborationThread';
-export * from './DocumentPreviewModal';
 

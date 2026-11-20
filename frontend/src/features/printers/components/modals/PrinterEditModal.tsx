@@ -68,8 +68,8 @@ const TEXTAREA_STYLE: React.CSSProperties = {
   boxSizing: 'border-box',
   padding: '9px 12px',
   borderRadius: '10px',
-  border: '1px solid #cbd5e1',
-  backgroundColor: '#f8fafc',
+  border: 'none',
+  backgroundColor: '#f1f5f9',
   fontSize: '12.5px',
   outline: 'none',
   resize: 'vertical',
@@ -91,7 +91,7 @@ const formatFileSize = (bytes: number): string => {
 };
 
 const FormField: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div style={{ borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', padding: '7px 12px' }}>
+  <div style={{ borderRadius: '10px', backgroundColor: '#f1f5f9', padding: '8px 12px' }}>
     <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '2px' }}>
       {label}
     </label>
@@ -105,67 +105,111 @@ const FileDropzone: React.FC<{
   title: string;
   accentColor: string;
 }> = ({ file, onChange, title, accentColor }) => {
+  const [files, setFiles] = useState<File[]>(() => (file ? [file] : []));
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (!file) setFiles([]);
+    else setFiles((prev) => (prev.some((f) => f === file) ? prev : [file]));
+  }, [file]);
+
+  const addFiles = (incoming: File[]) => {
+    if (incoming.length === 0) return;
+    setFiles((prev) => {
+      const next = [...prev, ...incoming];
+      onChange(next[0] || null);
+      return next;
+    });
+  };
+
+  const removeFileAt = (idx: number) => {
+    setFiles((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      onChange(next[0] || null);
+      return next;
+    });
+  };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const dropped = e.dataTransfer.files?.[0];
-    if (dropped) onChange(dropped);
+    addFiles(Array.from(e.dataTransfer.files || []));
   };
 
-  if (file) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 12px', borderRadius: '10px', border: `1px solid ${accentColor}40`, backgroundColor: `${accentColor}08` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <FontAwesomeIcon icon={faFileLines} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div title={file.name} style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {file.name}
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>{formatFileSize(file.size)}</div>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => onChange(null)}
-          title="Gỡ bỏ tệp đính kèm"
-          style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #fecaca', backgroundColor: '#ffffff', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-        >
-          <FontAwesomeIcon icon={faXmark} style={{ fontSize: '11px' }} />
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <label
-      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-      onDragLeave={() => setIsDragging(false)}
-      onDrop={handleDrop}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '11px 14px',
-        borderRadius: '10px',
-        border: `1.5px dashed ${isDragging ? accentColor : '#cbd5e1'}`,
-        backgroundColor: isDragging ? `${accentColor}0a` : '#f8fafc',
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-      }}
-    >
-      <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <FontAwesomeIcon icon={faUpload} style={{ fontSize: '12px' }} />
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{title}</div>
-        <div style={{ fontSize: '11px', color: '#64748b' }}>Kéo thả tệp vào đây hoặc bấm để chọn (PDF, PNG, JPG)</div>
-      </div>
-      <input type="file" accept=".pdf,image/*" onChange={(e) => onChange(e.target.files?.[0] || null)} style={{ display: 'none' }} />
-    </label>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {files.map((item, idx) => (
+        <div
+          key={`${item.name}-${item.size}-${idx}`}
+          onClick={() => {
+            const url = URL.createObjectURL(item);
+            window.open(url, '_blank', 'noopener,noreferrer');
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+          }}
+          title="Bấm để xem trước tệp"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '9px 12px', borderRadius: '10px', backgroundColor: `${accentColor}12`, cursor: 'pointer' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div style={{ width: '30px', height: '30px', borderRadius: '8px', backgroundColor: '#ffffff', color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <FontAwesomeIcon icon={faFileLines} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div title={item.name} style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {item.name}
+              </div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>{formatFileSize(item.size)} • Bấm để xem</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              removeFileAt(idx);
+            }}
+            title="Gỡ bỏ tệp đính kèm"
+            style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', backgroundColor: '#ffffff', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >
+            <FontAwesomeIcon icon={faXmark} style={{ fontSize: '11px' }} />
+          </button>
+        </div>
+      ))}
+
+      <label
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '10px 14px',
+          borderRadius: '10px',
+          backgroundColor: isDragging ? `${accentColor}14` : '#f1f5f9',
+          cursor: 'pointer',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        <div style={{ width: '30px', height: '30px', borderRadius: '8px', backgroundColor: '#ffffff', color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <FontAwesomeIcon icon={faUpload} style={{ fontSize: '12px' }} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
+            {files.length > 0 ? `Tải thêm ${title.toLowerCase()}` : title}
+          </div>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>Kéo thả hoặc bấm để chọn nhiều tệp (PDF, PNG, JPG)</div>
+        </div>
+        <input
+          type="file"
+          multiple
+          accept=".pdf,image/*"
+          onChange={(e) => {
+            addFiles(Array.from(e.target.files || []));
+            e.target.value = '';
+          }}
+          style={{ display: 'none' }}
+        />
+      </label>
+    </div>
   );
 };
 

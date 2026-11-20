@@ -190,7 +190,7 @@ export const mockPrintersExtended: Printer[] = [
   },
 
   // --- CÁC THIẾT BỊ BỔ SUNG TẠI CHI NHÁNH & KHO DỰ PHÒNG (Tổng cộng 22 máy: prt-001 .. prt-022) ---
-  ...Array.from({ length: 6 }, (_, i) => {
+  ...Array.from({ length: 8 }, (_, i) => {
     const idx = i + 17;
     const configs: Array<{
       mfr: 'Ricoh' | 'Canon' | 'HP' | 'Epson';
@@ -200,8 +200,8 @@ export const mockPrintersExtended: Printer[] = [
       branch: string;
       floor: string;
       department: string;
-      gridX: number;
-      gridY: number;
+      gridX: number | null;
+      gridY: number | null;
       connectionStatus: 'Online' | 'Offline' | 'Unknown';
       monitoringStatus: string;
       health: 'Healthy' | 'Warning' | 'Critical' | 'Offline';
@@ -318,14 +318,51 @@ export const mockPrintersExtended: Printer[] = [
         supplies: { black: 100, cyan: 100, magenta: 100, yellow: 100, waste: 0 },
         thirtyDayVolume: 0,
       },
+      {
+        name: '192.168.1.210 (Mới từ Zabbix)',
+        mfr: 'Ricoh',
+        model: 'MP 3055',
+        isColor: false,
+        branch: '',
+        floor: '',
+        department: '',
+        gridX: null,
+        gridY: null,
+        connectionStatus: 'Online',
+        monitoringStatus: 'Active',
+        health: 'Healthy',
+        alertSeverity: 'clear',
+        alertText: 'Chưa khởi tạo vị trí & nghiệp vụ',
+        supplies: { black: 78, cyan: null, magenta: null, yellow: null, waste: 12 },
+        thirtyDayVolume: 1240,
+      },
+      {
+        name: '192.168.1.211 (Mới từ Zabbix)',
+        mfr: 'HP',
+        model: 'LaserJet Pro M404dn',
+        isColor: false,
+        branch: '',
+        floor: '',
+        department: '',
+        gridX: null,
+        gridY: null,
+        connectionStatus: 'Online',
+        monitoringStatus: 'Active',
+        health: 'Healthy',
+        alertSeverity: 'clear',
+        alertText: 'Chưa khởi tạo vị trí & nghiệp vụ',
+        supplies: { black: 64, cyan: null, magenta: null, yellow: null, waste: null },
+        thirtyDayVolume: 890,
+      },
     ];
     const cfg = configs[i];
     const isOffline = cfg.connectionStatus === 'Offline';
+    const hasLocation = Boolean(cfg.branch || cfg.floor || cfg.department);
 
     return {
       id: `prt-${idx.toString().padStart(3, '0')}`,
       name: cfg.name,
-      ip: cfg.monitoringStatus === 'Storage' ? '' : `192.168.1.${idx + 140}`,
+      ip: cfg.monitoringStatus === 'Storage' ? '' : !hasLocation ? (cfg.name.split(' ')[0]) : `192.168.1.${idx + 140}`,
       mfr: cfg.mfr,
       model: cfg.model,
       deviceType: (cfg.isColor ? 'Color MFP' : 'Mono Laser') as any,
@@ -342,7 +379,7 @@ export const mockPrintersExtended: Printer[] = [
       department: cfg.department,
       gridX: cfg.gridX,
       gridY: cfg.gridY,
-      location: `${cfg.branch} - ${cfg.floor} - ${cfg.department}`,
+      location: hasLocation ? `${cfg.branch} - ${cfg.floor} - ${cfg.department}` : '',
       snmpStatus: isOffline ? 'SNMP_DOWN' : cfg.monitoringStatus === 'Storage' ? 'STORAGE_IDLE' : 'SNMP_AGENT_OK',
       lastScrape: new Date(Date.now() - (isOffline ? 7200000 : 30000)).toISOString(),
       lastSuccessfulScrape: new Date(Date.now() - (isOffline ? 7200000 : 30000)).toISOString(),

@@ -284,49 +284,8 @@ export const PrinterFilterToolbar: React.FC<PrinterFilterToolbarProps> = ({
           />
         </button>
 
-        {/* Dropdown Loại in & Chức năng (Hiển thị khi mở rộng hoặc khi đang lọc) */}
-        {(showAdvanced || advancedActiveCount > 0) && (
-          <>
-            <select
-              value={colorFilter}
-              onChange={(e) => onColorFilterChange(e.target.value)}
-              style={selectStyle(colorFilter !== 'all')}
-            >
-              <option value="all">Màu / Đơn sắc</option>
-              <option value="mono">Đen trắng (Mono)</option>
-              <option value="color">In màu (Color)</option>
-            </select>
-
-            <select
-              value={functionFilter}
-              onChange={(e) => onFunctionFilterChange(e.target.value)}
-              style={selectStyle(functionFilter !== 'all')}
-            >
-              <option value="all">Đa / Đơn năng</option>
-              <option value="mfp">Đa năng (MFP)</option>
-              <option value="sfp">Đơn năng (SFP)</option>
-            </select>
-
-            {onManagingTeamFilterChange && (
-              <select
-                value={managingTeamFilter}
-                onChange={(e) => onManagingTeamFilterChange(e.target.value)}
-                style={selectStyle(managingTeamFilter !== 'all')}
-                title="Lọc theo Team quản lý / chịu trách nhiệm tài sản"
-              >
-                <option value="all">Tất cả Team quản lý</option>
-                {managingTeams.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            )}
-          </>
-        )}
-
         {/* Nút Đặt lại cố định vị trí bên phải (không biến mất để tránh giật layout) */}
-        <div style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           {filteredCount !== undefined && (
             <span
               style={{
@@ -380,6 +339,47 @@ export const PrinterFilterToolbar: React.FC<PrinterFilterToolbarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Hàng phụ riêng cho Bộ lọc khác (không đẩy nút Đặt lại xuống dòng) */}
+      {(showAdvanced || advancedActiveCount > 0) && (
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', paddingTop: '2px' }}>
+          <select
+            value={colorFilter}
+            onChange={(e) => onColorFilterChange(e.target.value)}
+            style={selectStyle(colorFilter !== 'all')}
+          >
+            <option value="all">Màu / Đơn sắc</option>
+            <option value="mono">Đen trắng (Mono)</option>
+            <option value="color">In màu (Color)</option>
+          </select>
+
+          <select
+            value={functionFilter}
+            onChange={(e) => onFunctionFilterChange(e.target.value)}
+            style={selectStyle(functionFilter !== 'all')}
+          >
+            <option value="all">Đa / Đơn năng</option>
+            <option value="mfp">Đa năng (MFP)</option>
+            <option value="sfp">Đơn năng (SFP)</option>
+          </select>
+
+          {onManagingTeamFilterChange && (
+            <select
+              value={managingTeamFilter}
+              onChange={(e) => onManagingTeamFilterChange(e.target.value)}
+              style={selectStyle(managingTeamFilter !== 'all')}
+              title="Lọc theo Team quản lý / chịu trách nhiệm tài sản"
+            >
+              <option value="all">Tất cả Team quản lý</option>
+              {managingTeams.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
     </div>
   );
 };

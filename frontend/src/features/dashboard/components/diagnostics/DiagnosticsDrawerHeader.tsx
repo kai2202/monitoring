@@ -62,13 +62,14 @@ export const DiagnosticsDrawerHeader: React.FC<DiagnosticsDrawerHeaderProps> = (
         gap: '12px',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
         {/* Device Icon Avatar */}
         <div
           style={{
             width: '42px',
             height: '42px',
             borderRadius: '12px',
+            flexShrink: 0,
             backgroundColor: isCritical
               ? 'rgba(239, 68, 68, 0.1)'
               : 'rgba(37, 99, 235, 0.1)',
@@ -81,8 +82,8 @@ export const DiagnosticsDrawerHeader: React.FC<DiagnosticsDrawerHeaderProps> = (
           <FontAwesomeIcon icon={faPrint} style={{ fontSize: '18px' }} />
         </div>
 
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--text-primary, #0f172a)' }}>
               {printer.name}
             </h3>
@@ -91,14 +92,26 @@ export const DiagnosticsDrawerHeader: React.FC<DiagnosticsDrawerHeaderProps> = (
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
+                flexShrink: 0,
                 backgroundColor: isOnline ? '#16a34a' : '#ef4444',
               }}
               title={isOnline ? 'Trực tuyến' : 'Ngoại tuyến'}
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: 'var(--text-muted, #64748b)', marginTop: '2px' }}>
-            <span>{printer.model}</span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              rowGap: '4px',
+              columnGap: '8px',
+              fontSize: '11.5px',
+              color: 'var(--text-muted, #64748b)',
+              marginTop: '4px',
+            }}
+          >
+            <span style={{ whiteSpace: 'nowrap' }}>{printer.model}</span>
             <span>•</span>
             <button
               type="button"
@@ -110,6 +123,7 @@ export const DiagnosticsDrawerHeader: React.FC<DiagnosticsDrawerHeaderProps> = (
                 background: 'none',
                 border: 'none',
                 padding: 0,
+                whiteSpace: 'nowrap',
                 color: 'var(--text-secondary, #475569)',
                 fontFamily: "'JetBrains Mono', monospace",
                 cursor: 'pointer',
@@ -124,7 +138,7 @@ export const DiagnosticsDrawerHeader: React.FC<DiagnosticsDrawerHeaderProps> = (
               )}
             </button>
             <span>•</span>
-            <span>{printer.location}</span>
+            <span style={{ whiteSpace: 'nowrap' }}>{printer.location}</span>
             {printer.custodianName && (
               <>
                 <span>•</span>
@@ -133,10 +147,11 @@ export const DiagnosticsDrawerHeader: React.FC<DiagnosticsDrawerHeaderProps> = (
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '1px 8px',
+                    padding: '2px 8px',
                     borderRadius: '9999px',
                     fontSize: '11px',
                     fontWeight: 700,
+                    whiteSpace: 'nowrap',
                     backgroundColor: 'rgba(37, 99, 235, 0.08)',
                     color: '#2563eb',
                     border: '1px solid rgba(37, 99, 235, 0.2)',
